@@ -1054,7 +1054,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.11.1 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.11.2 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1149,7 +1149,7 @@ const S = {
   rec: null
 };
 // (a self-contained page — one that works opened straight from the disk — carries the painter's code with it)
-const WORKER_URL = window.CP_WORKER_SRC ? URL.createObjectURL(new Blob([window.CP_WORKER_SRC], { type: 'text/javascript' })) : 'painter-worker.js?v=4.11.1', worker = new Worker(WORKER_URL);
+const WORKER_URL = window.CP_WORKER_SRC ? URL.createObjectURL(new Blob([window.CP_WORKER_SRC], { type: 'text/javascript' })) : 'painter-worker.js?v=4.11.2', worker = new Worker(WORKER_URL);
 // ── live modes (video, zoom, live inputs): several painters at once, each painting its own band of rows, so the
 // painting keeps up with the speed slider (one painter alone manages ~150 strokes a second). More speed, more painters.
 const POOL = { helpers: [], max: Math.max(1, Math.min(7, (navigator.hardwareConcurrency || 4) - 2)) };
@@ -4116,7 +4116,7 @@ function drawMouse(now) {
 // ═════════════════════════════════════════════════════════════
 const BRIDGE_URL = 'ws://127.0.0.1:8792';
 const BR = { ws: null, retry: null, via: '', name: '', tried: false };
-const SEND = { on: false, code: false, ch: [{ cv: null, x: null, busy: 0 }, { cv: null, x: null, busy: 0 }], n: 0, t: 0, fps: 0 };
+const SEND = { on: false, code: false, ch: [{ cv: null, x: null, busy: 0 }, { cv: null, x: null, busy: 0 }], n: 0, t: 0, fps: 0, last: -1e9 };
 const IN = { want: false, id: null, name: '', cv: null, x: null, stream: null, n: 0 };
 const bridgeWanted = () => SEND.on || IN.want;
 const bridgeSend = m => { if (BR.ws && BR.ws.readyState === 1) BR.ws.send(typeof m === 'object' && !ArrayBuffer.isView(m) && !(m instanceof ArrayBuffer) ? JSON.stringify(m) : m); };
@@ -4205,6 +4205,8 @@ onmessage = async e => {
 }
 function sendOut(now) {
   const ws = BR.ws; if (!SEND.on || !ws || ws.readyState !== 1 || ws.bufferedAmount > 4e6) return;
+  if (now - SEND.last < 30) return;                // (at most ~30 a second: plenty for a painting, half the work of 60)
+  SEND.last = now;
   for (let ch = 0; ch < (SEND.code ? 2 : 1); ch++) {
     const c = SEND.ch[ch]; if (c.busy >= 2) continue;
     const [w, h] = sendDims(ch);
@@ -4222,12 +4224,12 @@ function sendOut(now) {
     // JPEG on the page itself held up the painting, and with it everything else
     const done = () => { c.busy = Math.max(0, c.busy - 1); };
     const enc = jpegWorker();
-    if (enc) createImageBitmap(c.cv).then(bm => enc.postMessage({ bm, ch, q: 0.92 }, [bm]), done);
+    if (enc) createImageBitmap(c.cv).then(bm => enc.postMessage({ bm, ch, q: 0.85 }, [bm]), done);
     else {
       const post = buf => { if (BR.ws !== ws || ws.readyState !== 1) return done(); const b = new Uint8Array(buf.byteLength + 1); b[0] = ch; b.set(new Uint8Array(buf), 1); ws.send(b); };
-      c.cv.toBlob(b => { if (b) b.arrayBuffer().then(post, done); else done(); }, 'image/jpeg', 0.92);
+      c.cv.toBlob(b => { if (b) b.arrayBuffer().then(post, done); else done(); }, 'image/jpeg', 0.85);
     }
-    if (ch === 0) { SEND.n++; const dt = now - SEND.t; if (dt > 1000) { SEND.fps = SEND.n * 1000 / dt; SEND.n = 0; SEND.t = now; $('sendon').title = `Sending to ${BR.via} at ${Math.round(SEND.fps)} fps (click to stop)`; } }
+    if (ch === 0) { SEND.n++; const dt = now - SEND.t; if (dt > 1000) { SEND.fps = SEND.n * 1000 / dt; SEND.n = 0; SEND.t = now; $('sendon').title = `Sending to ${BR.via} at ${Math.round(SEND.fps)} fps (click to stop)`; bridgeSend({ studio: { fps: Math.round(SEND.fps), hidden: document.hidden } }); } }
   }
 }
 
@@ -5600,7 +5602,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.11.1');
+    const V = await import('./viewer3d.js?v=4.11.2');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }

@@ -1,6 +1,6 @@
 # Code Painter by JAS.BLACK
 
-Version 4.11.1
+Version 4.11.2
 
 Drop in any picture and watch it painted in code, stroke by stroke, with the program writing itself underneath.
 Add a song and the painting follows its hits and sections; add stroke sounds and every stroke plays a note.
@@ -28,6 +28,7 @@ Best in Chrome, Edge or Brave on a desktop or laptop (Safari works too).
 
 - `index.html`: the studio, the whole app in one page (its code, the painter's and the recorder's)
 - `viewer3d.js` + `vendor/three/`: the 3D input (three.js, MIT licence, see its LICENSE)
+- `CNAME`: the site's address for GitHub Pages (paint.jas.black): keep it with the other files
 - `og-image.jpg`: the picture a shared link shows (the page's link preview points to it at https://paint.jas.black/)
 - `download/code-painter-local.zip`: the local version (the studio run from your own computer, with the Resolume bridge)
 - `studio/index.html`: forwards old links (…/studio/) to the studio
