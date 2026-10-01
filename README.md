@@ -1,6 +1,6 @@
 # Code Painter by JAS.BLACK
 
-Version 4.9.9
+Version 4.10
 
 Drop in any picture and watch it painted in code, stroke by stroke, with the program writing itself underneath.
 Add a song and the painting follows its hits and sections; add stroke sounds and every stroke plays a note.
@@ -15,6 +15,10 @@ Best in Chrome, Edge or Brave on a desktop or laptop (Safari works too).
 
 - **Online**: open the studio's link. It opens painting a JAS.BLACK picture; pick a demo, type a word or drop your
   own picture / video / song to take over.
+- **On a phone**: the same link. A small screen gets its own layout: the painting (4:5, or 9:16 for reels) with
+  its code over it and the essentials under it (a photo / video, the camera, the examples, style, shapes, speed,
+  record, save). *full studio* shows every control; *phone view* brings it back. Add `?desktop` (or `?phone`) to the
+  link to choose either on any screen.
 - **From this folder**: double-click `index.html`. Everything works except the 3D input, which needs the online
   version.
 - **With Resolume** (Syphon / Spout in and out): a website can't reach other apps, so that is in the **local

@@ -208,12 +208,13 @@
   body.phone .lcdrow { flex: none; }
   body.phone #hint { font-size: 11px; padding: 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   body.phone #phone { display: flex; flex-direction: column; gap: 8px; flex: none; }
+  #phone .prow[hidden] { display: none; }
   #phone .prow { display: flex; align-items: center; gap: 8px; min-width: 0; }
   #phone .pkey { flex: none; height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--keyline); background: var(--key); color: var(--text); font: 600 12px 'IBM Plex Mono', monospace; display: inline-flex; align-items: center; justify-content: center; gap: 7px; box-shadow: 0 2px 0 var(--keyshadow); -webkit-tap-highlight-color: transparent; }
   #phone .pkey:active { transform: translateY(1px); box-shadow: none; }
   #phone .prec { flex: 1; } #phone .prec .dot { width: 9px; height: 9px; border-radius: 50%; background: #e0e0dc; }
   #phone .prec.on { background: #2a1214; border-color: #ff4d5e; } #phone .prec.on .dot { background: #ff3048; box-shadow: 0 0 8px #ff3048; }
-  #phone .psel { flex: 1; min-width: 0; height: 40px; border-radius: 10px; border: 1px solid var(--keyline); background: var(--well); color: var(--text); font: 500 12px 'IBM Plex Mono', monospace; padding: 0 8px; }
+  #phone .psel { flex: 1; min-width: 0; height: 40px; border-radius: 10px; border: 1px solid var(--keyline); background: var(--well); color: var(--text); font: 500 16px 'IBM Plex Mono', monospace; padding: 0 8px; }      /* (16px: smaller and iPhones zoom in when tapped) */
   #phone .pchips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 2px 0; }
   #phone .pchips::-webkit-scrollbar { display: none; }
   #phone .pchips button { flex: none; height: 34px; padding: 0 12px; border-radius: 17px; border: 1px solid var(--keyline); background: var(--key); color: var(--muted); font: 500 12px 'IBM Plex Mono', monospace; }
@@ -225,7 +226,13 @@
   #phone input[type=range] { flex: 1; min-width: 0; accent-color: var(--accent); }
   #phone output { flex: none; width: 44px; text-align: right; font: 600 12px 'IBM Plex Mono', monospace; color: var(--text); }
   /* on a phone showing the full studio: a way back */
-  body.phonesize:not(.phone) #phonego { display: block; position: fixed; right: 12px; bottom: 12px; z-index: 50; height: 40px; padding: 0 14px; border-radius: 20px; border: 1px solid var(--accent); background: var(--key); color: var(--text); font: 600 12px 'IBM Plex Mono', monospace; }
+  @media (orientation: landscape) {      /* a phone on its side: the painting left, the controls right */
+    body.phone .centre { display: grid; grid-template-columns: minmax(0, 1fr) 330px; grid-template-rows: auto minmax(0, 1fr); }
+    body.phone main { grid-column: 1; grid-row: 1 / span 2; min-height: 0; }
+    body.phone .lcdrow { grid-column: 2; grid-row: 1; }
+    body.phone #phone { grid-column: 2; grid-row: 2; overflow-y: auto; min-height: 0; }
+  }
+  body.phonesize:not(.phone) #phonego { display: block; position: fixed; left: 12px; top: 12px; z-index: 50; height: 40px; padding: 0 14px; border-radius: 20px; border: 1px solid var(--accent); background: var(--key); color: var(--text); font: 600 12px 'IBM Plex Mono', monospace; }
   #sendon, #sendcode, #sendsize { display: none !important; }
   a.mini { text-decoration: none; }
 </style>
@@ -392,6 +399,7 @@
       <select id="phex" class="psel" aria-label="Examples"></select>
       <button type="button" class="pkey" id="phcam" title="Paint the camera live">camera</button>
     </div>
+    <div class="prow" id="phtextrow" hidden><input id="phtextin" class="psel" type="text" maxlength="80" enterkeyhint="go" placeholder="type a word · | = new line" aria-label="Text to paint"><button type="button" class="pkey" id="phtextgo">paint</button><button type="button" class="pkey" id="phtextx" aria-label="Close">✕</button></div>
     <div class="pchips" id="phstyles" aria-label="Style"></div>
     <div class="prow">
       <div class="pseg" id="phview"><button type="button" data-v="duo">+code</button><button type="button" data-v="painting">paint</button></div>
@@ -1013,7 +1021,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.9.9 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.10 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1108,7 +1116,7 @@ const S = {
   rec: null
 };
 // (a self-contained page — one that works opened straight from the disk — carries the painter's code with it)
-const WORKER_URL = window.CP_WORKER_SRC ? URL.createObjectURL(new Blob([window.CP_WORKER_SRC], { type: 'text/javascript' })) : 'painter-worker.js?v=4.9.9', worker = new Worker(WORKER_URL);
+const WORKER_URL = window.CP_WORKER_SRC ? URL.createObjectURL(new Blob([window.CP_WORKER_SRC], { type: 'text/javascript' })) : 'painter-worker.js?v=4.10', worker = new Worker(WORKER_URL);
 // ── live modes (video, zoom, live inputs): several painters at once, each painting its own band of rows, so the
 // painting keeps up with the speed slider (one painter alone manages ~150 strokes a second). More speed, more painters.
 const POOL = { helpers: [], max: Math.max(1, Math.min(7, (navigator.hardwareConcurrency || 4) - 2)) };
@@ -5088,8 +5096,14 @@ $('file').onchange = e => { openFiles([...e.target.files]); e.target.value = '';
   }
   // the controls, copied from (and driving) the studio's own
   const pex = $('phex'); pex.innerHTML = $('example').innerHTML; pex.value = '';
-  pex.onchange = () => { $('example').value = pex.value; $('example').dispatchEvent(new Event('change')); pex.value = $('example').value; };
+  pex.onchange = () => {
+    if (pex.value === '__text') { pex.value = $('example').value; $('phtextrow').hidden = false; fitStage(); $('phtextin').focus(); return; }      // (a word, typed here: the studio's own text box is in the hidden column)
+    $('example').value = pex.value; $('example').dispatchEvent(new Event('change')); pex.value = $('example').value; };
   $('example').addEventListener('change', () => { pex.value = $('example').value; });
+  const phText = () => { const t = $('phtextin').value; if (!t.trim()) return $('phtextin').focus(); $('phtextin').blur(); $('textin').value = t; pex.value = ''; paintText(t); };
+  $('phtextgo').onclick = phText;
+  $('phtextin').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); phText(); } });
+  $('phtextx').onclick = () => { $('phtextrow').hidden = true; fitStage(); };
   $('phfile').onchange = e => { openFiles([...e.target.files]); e.target.value = ''; pex.value = ''; };
   $('phcam').onclick = () => { pex.value = ''; startLive('camera'); };
   const chips = $('phstyles');
@@ -5106,7 +5120,7 @@ $('file').onchange = e => { openFiles([...e.target.files]); e.target.value = '';
   psh.onchange = () => { $('shapes').value = psh.value; $('shapes').dispatchEvent(new Event('change')); $('hint').textContent = `${psh.value} shapes from the next picture (or ⟲ restart).`; };
   const psp = $('phspeed'), showSpeedP = () => { psp.value = $('speed').value; $('phspeedval').textContent = $('speedval').textContent; };
   psp.oninput = () => { $('speed').value = psp.value; $('speed').dispatchEvent(new Event('input')); showSpeedP(); };
-  $('speed').addEventListener('input', showSpeedP); showSpeedP();
+  $('speed').addEventListener('input', showSpeedP); new MutationObserver(showSpeedP).observe($('speedval'), { childList: true, characterData: true, subtree: true }); showSpeedP();
   $('phrec').onclick = () => $('rec').click();
   new MutationObserver(() => { $('phrec').classList.toggle('on', $('rec').classList.contains('on')); $('phrec').lastChild.textContent = $('rec').textContent.trim() || 'record'; }).observe($('rec'), { attributes: true, childList: true, subtree: true });
   // (a picture is saved at 4K on a phone: 8K is more than a phone's memory likes)
@@ -5457,7 +5471,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…';
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.9.9');
+    const V = await import('./viewer3d.js?v=4.10');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
