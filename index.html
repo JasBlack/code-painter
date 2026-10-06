@@ -294,7 +294,6 @@
     <button data-display="duo" title="The painting on top, its code underneath (no original)">+code</button>
   </div>
   <select id="layout" class="sel" aria-label="Frame" title="The frame: 16:9 (1920×1080) · 9:16 reels / shorts / tiktok (1080×1920) · 4:5 feed post (1080×1350) · 1:1 square (1080×1080)"><option value="landscape">16:9</option><option value="vertical">9:16</option><option value="portrait">4:5</option><option value="square">1:1</option></select>
-  <span class="themepick" title="Theme: two colours for the app's lights and buttons and the studio's highlights, bars and stats (the code and rim colours have their own swatches)" style="display: flex; align-items: center; gap: 4px"><input id="theme1" class="swatch" type="color" value="#39ff88" aria-label="Theme colour 1" title="Theme colour 1 (functions, highlight, rim, lights)"><input id="theme2" class="swatch" type="color" value="#b36bff" aria-label="Theme colour 2" title="Theme colour 2 (numbers, keywords, rim)"></span>
   <button id="fullscreen" class="key ico" title="Full screen (Esc to leave)" aria-label="Full screen"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 5V1h4M9 1h4v4M13 9v4H9M5 13H1V9"/></svg></button>
   <button id="uitheme" class="key ico" title="Light / dark" aria-label="Light or dark"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="5.5"/><path d="M7 1.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"/></svg></button>
   </div>
@@ -302,7 +301,7 @@
 
 <aside class="col">
   <div class="panel">
-    <div class="ttl"><b>source</b><span>or drop anything</span></div>
+    <div class="ttl"><b>source</b><span style="display: flex; align-items: center; gap: 6px" title="Theme: two colours for the app's lights and buttons and the studio's highlights, bars and stats (the code and rim colours have their own swatches)">theme <input id="theme1" class="swatch" type="color" value="#39ff88" aria-label="Theme colour 1" title="Theme colour 1 (functions, highlight, rim, lights)"><input id="theme2" class="swatch" type="color" value="#b36bff" aria-label="Theme colour 2" title="Theme colour 2 (numbers, keywords, rim)"></span></div>
     <div class="row">
       <label class="key" title="One picture, several pictures (a playlist) or a video. Or drop them anywhere on the page">open<input id="file" type="file" accept="image/*,video/*,.glb,.gltf,.obj,.stl,.ply" multiple></label>
       <select id="example" class="sel" aria-label="Example images" style="flex: 1"><option value="">examples…</option></select>
@@ -1080,7 +1079,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.13.1 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.13.2 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1098,7 +1097,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.13.1', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.13.2', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -1176,7 +1175,7 @@ const S = {
   rec: null
 };
 // (a self-contained page — one that works opened straight from the disk — carries the painter's code with it)
-const WORKER_URL = window.CP_WORKER_SRC ? URL.createObjectURL(new Blob([window.CP_WORKER_SRC], { type: 'text/javascript' })) : 'painter-worker.js?v=4.13.1', worker = new Worker(WORKER_URL);
+const WORKER_URL = window.CP_WORKER_SRC ? URL.createObjectURL(new Blob([window.CP_WORKER_SRC], { type: 'text/javascript' })) : 'painter-worker.js?v=4.13.2', worker = new Worker(WORKER_URL);
 // ── live modes (video, zoom, live inputs): several painters at once, each painting its own band of rows, so the
 // painting keeps up with the speed slider (one painter alone manages ~150 strokes a second). More speed, more painters.
 const POOL = { helpers: [], max: Math.max(1, Math.min(7, (navigator.hardwareConcurrency || 4) - 2)) };
@@ -5805,7 +5804,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.13.1');
+    const V = await import('./viewer3d.js?v=4.13.2');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
