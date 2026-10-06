@@ -1,6 +1,6 @@
 # Code Painter by JAS.BLACK
 
-Version 4.13.0
+Version 4.13.1
 
 Drop in any picture and watch it painted in code, stroke by stroke, with the program writing itself underneath.
 Add a song and the painting follows its hits and sections; add stroke sounds and every stroke plays a note.
