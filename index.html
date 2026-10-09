@@ -1079,7 +1079,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.13.2 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.14.0 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1097,7 +1097,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.13.2', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.14.0', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -1175,7 +1175,7 @@ const S = {
   rec: null
 };
 // (a self-contained page — one that works opened straight from the disk — carries the painter's code with it)
-const WORKER_URL = window.CP_WORKER_SRC ? URL.createObjectURL(new Blob([window.CP_WORKER_SRC], { type: 'text/javascript' })) : 'painter-worker.js?v=4.13.2', worker = new Worker(WORKER_URL);
+const WORKER_URL = window.CP_WORKER_SRC ? URL.createObjectURL(new Blob([window.CP_WORKER_SRC], { type: 'text/javascript' })) : 'painter-worker.js?v=4.14.0', worker = new Worker(WORKER_URL);
 // ── live modes (video, zoom, live inputs): several painters at once, each painting its own band of rows, so the
 // painting keeps up with the speed slider (one painter alone manages ~150 strokes a second). More speed, more painters.
 const POOL = { helpers: [], max: Math.max(1, Math.min(7, (navigator.hardwareConcurrency || 4) - 2)) };
@@ -2905,6 +2905,42 @@ function fillShape(x, q, style) {
   if (q.t === 'S') { x.strokeStyle = style; x.lineWidth = a[6]; x.lineCap = 'round'; x.beginPath(); x.moveTo(a[0], a[1]); x.quadraticCurveTo(a[2], a[3], a[4], a[5]); x.stroke(); return; }
   x.fillStyle = style; outlinePath(x, q); x.fill();
 }
+// ── stamped brush lines and layered washes ───────────────────────────────────────────────────────────────────────────
+// After p5.brush by Alejandro Campos Uribe (MIT licence, https://github.com/acamposuribe/p5.brush), written again for this
+// painter. stampLine: a path is walked in small steps and a tip stamped at each; the tip's size follows a pressure profile
+// along the stroke (light, firm, light), the stamps scatter across the line, and a grain skips some of them, so a line breaks
+// up like pencil or charcoal on paper. hobbsGrow: Tyler Hobbs' watercolour polygon: every edge gets a midpoint pushed
+// sideways by a gaussian amount, again and again, so an outline frays into a natural, fractal edge.
+const gaussR = R => (R() + R() + R() + R() - 2) * 1.732;
+function stampLine(x, P, o) {
+  const n = P.length; if (n < 2) return;
+  const cum = [0]; for (let i = 1; i < n; i++) cum.push(cum[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
+  const L = cum[n - 1]; if (L < 0.01) return;
+  const R = o.R, w = o.w, step = Math.max(o.minStep || 0.4, w * o.spacing), steps = Math.min(o.maxSteps || 500, Math.max(2, Math.ceil(L / step)));
+  const peak = o.peak + (R() - 0.5) * 0.2, hw = o.hw * (0.85 + R() * 0.3), c = 1 + R() * 0.6, A = new Path2D(), B = new Path2D();
+  let j = 1;
+  for (let k = 0; k <= steps; k++) {
+    const t = k / steps, d = t * L; while (j < n - 1 && cum[j] < d) j++;
+    const seg = cum[j] - cum[j - 1] || 1, f = (d - cum[j - 1]) / seg, tx = (P[j][0] - P[j - 1][0]) / seg, ty = (P[j][1] - P[j - 1][1]) / seg;
+    const px = P[j - 1][0] + (P[j][0] - P[j - 1][0]) * f, py = P[j - 1][1] + (P[j][1] - P[j - 1][1]) * f;
+    const pr = o.pmin + (o.pmax - o.pmin) / (1 + Math.pow(Math.abs((t - peak) / hw), 2 * c));       // pressure along the stroke
+    if (R() < o.grain * (0.62 - 0.4 * Math.min(1, pr))) continue;                                      // grain: this stamp is skipped
+    const sc = gaussR(R) * o.scatter * w * 0.5 * (1.15 - o.sharp * 0.5), par = (R() - 0.5) * step;
+    const sx = px - ty * sc + tx * par, sy = py + tx * sc + ty * par, r = Math.max(0.3, w * 0.5 * (0.4 + 0.6 * Math.min(1.1, pr)) * (0.8 + R() * 0.4));
+    const Q = R() < 0.55 ? A : B; Q.moveTo(sx + r, sy); Q.arc(sx, sy, r, 0, 7);
+  }
+  const base = o.alpha * (0.8 + R() * 0.2);                                                           // each stroke a little lighter or darker
+  x.fillStyle = o.fill; x.globalAlpha = Math.min(1, base); x.fill(A); x.globalAlpha = Math.min(1, base * 0.5); x.fill(B);
+}
+function hobbsGrow(pts, R, sigma) {
+  const out = [], n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const p = pts[i], q = pts[(i + 1) % n], dx = q[0] - p[0], dy = q[1] - p[1], len = Math.hypot(dx, dy) || 1, d = gaussR(R) * sigma * len * p[2];
+    out.push(p, [(p[0] + q[0]) / 2 - dy / len * d, (p[1] + q[1]) / 2 + dx / len * d, Math.max(0.25, Math.min(2, p[2] * (1 + gaussR(R) * 0.12)))]);
+  }
+  return out;
+}
+const WET_TILE = { cv: null, x: null };
 const MEDIA = new Set(['pencil', 'pastel', 'pen', 'ink', 'wash', 'wet', 'charcoal']);
 // (a canvas blur: for the wet bleed; browsers without it get the sharp version)
 const CAN_BLUR = (() => { try { const t = document.createElement('canvas').getContext('2d'); t.filter = 'blur(1px)'; return t.filter === 'blur(1px)'; } catch (e) { return false; } })();
@@ -2991,29 +3027,31 @@ const STYLE_DRAW = {
     x.restore();
   },
   // ── drawing media ──
-  pencil(x, q, u = 1, dir = 1) {   // coloured pencil: thin grainy lines; areas shaded with close, slightly uneven strokes
+  pencil(x, q, u = 1, dir = 1) {   // coloured pencil: stamped, grainy lines that press harder in the middle; areas shaded with close strokes
     const [c, , o] = colsOf(q), R = rngFor(q.args), lead = patternFor('graphite', c);
-    x.save(); x.lineCap = x.lineJoin = 'round'; x.strokeStyle = lead;
+    const pen = { R, fill: lead, spacing: 0.15, scatter: 0.55, sharp: 0.4, grain: 0.34, pmin: 0.55, pmax: 1.1, peak: 0.4, hw: 0.5 };
+    x.save(); x.lineCap = x.lineJoin = 'round';
     if (q.t === 'S') {
-      const a = q.args, w = Math.max(0.8, Math.min(4, a[6])), P = quadPts(a, u, dir, 20);
-      for (let k = 0; k < 3; k++) {      // a few passes a hair apart, the middle one firmest
-        const off = (k - 1) * w * 0.55 + (R() - 0.5) * w * 0.3;
-        x.globalAlpha = o * (k === 1 ? 0.95 : 0.5); x.lineWidth = w * (k === 1 ? 1 : 0.7);
-        offsetLine(x, P, off); x.stroke();
-      }
+      const a = q.args, w = Math.max(0.9, Math.min(4.5, a[6])), P = quadPts(a, u, dir, 24);
+      stampLine(x, P, { ...pen, w: w * 1.15, alpha: o });                                  // the firm line
+      stampLine(x, offsetPts(P, w * 0.5 * (R() < 0.5 ? 1 : -1)), { ...pen, w: w * 0.7, scatter: 0.9, grain: 0.7, alpha: o * 0.5 });     // a lighter pass a hair beside it
       x.restore(); return P[P.length - 1];
     }
     const P = SHP.poly({ t: q.t, p: q.args }), b = boxOf(P), size = Math.max(b.w, b.h, 2);
-    const lw = Math.max(0.7, Math.min(2.2, size * 0.02)), gap = lw * 1.9, half = size * 0.75, ang = -0.95 + (R() - 0.5) * 0.3;
-    outlinePath(x, q); x.clip(); x.lineWidth = lw;
+    const lw = Math.max(0.8, Math.min(2.4, size * 0.02)), gap = lw * 1.5, half = size * 0.75, ang = -0.95 + (R() - 0.5) * 0.3;
+    outlinePath(x, q); x.clip();
+    const lines = Math.max(1, Math.round(size * 1.5 / gap)), maxSteps = Math.max(5, Math.min(90, Math.round(2200 / lines)));
     for (let pass = 0, n = size > 40 && R() < 0.5 ? 2 : 1; pass < n; pass++) {
-      x.save(); x.translate(b.cx, b.cy); x.rotate(ang + pass * 0.55); x.globalAlpha = o * (pass ? 0.55 : 0.9);
-      x.beginPath();
-      for (let y = -half; y <= half; y += gap * (0.85 + R() * 0.3)) { const j = (R() - 0.5) * gap * 0.4; x.moveTo(-half + R() * size * 0.15, y + j); x.lineTo(half - R() * size * 0.15, y - j); }
-      x.stroke(); x.restore();
+      x.save(); x.translate(b.cx, b.cy); x.rotate(ang + pass * 0.55);
+      for (let y = -half; y <= half; y += gap * (0.85 + R() * 0.3)) {
+        const j = (R() - 0.5) * gap * 0.4, x0 = -half + R() * size * 0.15, x1 = half - R() * size * 0.15;
+        stampLine(x, [[x0, y + j], [x1, y - j]], { ...pen, w: lw * 1.9, maxSteps, spacing: 0.4, grain: 0.25, alpha: o * (pass ? 0.55 : 0.95), peak: 0.5 });
+      }
+      x.restore();
     }
     x.restore(); return [q.args[0], q.args[1]];
   },
+
   pastel(x, q, u = 1, dir = 1) {   // soft pastel: chalky, broken up by the paper's grain, ragged at the edges, a little powdery
     const [c0, c1, o] = colsOf(q), R = rngFor(q.args), a = q.args, pat = patternFor('pastel', mixHex(c0, '#ffffff', 0.08)), dust = patternFor('grain', mixHex(c1, '#ffffff', 0.12));
     const ang = q.t === 'S' ? Math.atan2(a[5] - a[1], a[4] - a[0]) : R() * Math.PI;
@@ -3083,45 +3121,47 @@ const STYLE_DRAW = {
     x.globalAlpha = o * 0.35; x.strokeStyle = shade(c0, -0.3); x.lineWidth = Math.max(0.6, r * 0.04); x.stroke(path);
     x.restore(); return [a[0], a[1]];
   },
-  wet(x, q, u = 1) {               // wet watercolour, after Watercolor Playground: a damp halo the pigment creeps into, a body paler in the
-    // middle and pooled to the rim, a hard dark tide line where it dried, granulation, glazes (multiply) that darken where washes overlap, now and then a bloom
-    const [c0, c1, o] = colsOf(q), a = q.args, R = rngFor(a), P = SHP.poly({ t: q.t, p: a }), b = boxOf(P), size = Math.max(b.w, b.h, 2), stroke = q.t === 'S', mid = mixHex(c0, c1, 0.5);
-    const soft = (px, fn) => { if (CAN_BLUR && u >= 1) { x.save(); x.filter = `blur(${Math.max(0.5, px).toFixed(1)}px)`; fn(); x.restore(); } else fn(); };
-    const path = new Path2D(); let end;
-    if (stroke) { path.moveTo(a[0], a[1]); path.quadraticCurveTo(a[2], a[3], a[4], a[5]); end = [a[4], a[5]]; }
-    else { path.addPath(raggedPath(q, R, 0.1, 1)); end = [a[0], a[1]]; }
-    const lw = stroke ? a[6] : 0, G = gradOf(x, q, [[0, c0], [1, c1]]);
-    x.save(); x.lineJoin = x.lineCap = 'round';
-    soft(size * 0.04, () => { x.globalAlpha = o * 0.22; if (stroke) { x.strokeStyle = mid; x.lineWidth = lw * 1.7; x.stroke(path); } else { x.fillStyle = mid; x.fill(path); } });   // the damp halo
-    if (stroke) {
-      x.globalAlpha = o * 0.5; x.strokeStyle = shade(mid, -0.3); x.lineWidth = lw; x.stroke(path);                    // pooled rims
-      x.globalAlpha = o * 0.62; x.strokeStyle = G; x.lineWidth = lw * 0.72; x.stroke(path);                           // the paler body
-    } else {
-      x.globalAlpha = o * 0.55; x.fillStyle = G; x.fill(path);
-      x.save(); x.clip(path);
-      soft(size * 0.05, () => { x.globalAlpha = o * 0.3; x.strokeStyle = shade(mid, -0.35); x.lineWidth = size * 0.14; x.stroke(path); });   // pigment pooled inside the edge
-      x.restore();
+  wet(x, q, u = 1) {               // wet watercolour: Tyler Hobbs' layered wash (a fractal-edged outline stacked in many transparent layers, each edge
+    // darkening where they pile up, circles of pigment lifted out for the grain), glazed onto the canvas so overlapping washes darken
+    const [c0, c1, o] = colsOf(q), a = q.args, R = rngFor(a), mid = mixHex(c0, c1, 0.5), stroke = q.t === 'S';
+    const P = SHP.poly({ t: q.t, p: a }), n = P.length / 2, stepI = Math.max(1, Math.ceil(n / 14)), fast = u < 1, layers = fast ? 4 : 18, sig = 0.115;
+    let base = []; for (let i = 0; i < n; i += stepI) base.push([P[i * 2], P[i * 2 + 1], 0.6 + R() * 0.8]);
+    base = hobbsGrow(hobbsGrow(base, R, sig), R, sig * 0.8);
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; const paths = [];
+    for (let i = 0; i < layers; i++) {
+      let p = base; for (let k = 0; k < 3; k++) p = hobbsGrow(p, R, sig * 0.62 * Math.pow(0.85, k));
+      const pa = new Path2D(); p.forEach((v, j) => { pa[j ? 'lineTo' : 'moveTo'](v[0], v[1]); if (v[0] < x0) x0 = v[0]; if (v[0] > x1) x1 = v[0]; if (v[1] < y0) y0 = v[1]; if (v[1] > y1) y1 = v[1]; });
+      pa.closePath(); paths.push(pa);
     }
-    x.globalCompositeOperation = 'multiply';                                                                         // glaze: the tide line, darker where it overlaps what is there
-    x.globalAlpha = o * (stroke ? 0.18 : 0.5); x.strokeStyle = shade(mid, -0.28); x.lineWidth = Math.max(0.7, (stroke ? lw * 0.1 : size * 0.012)); x.stroke(path);
-    if (!stroke) { x.globalAlpha = o * 0.16; x.fillStyle = shade(mid, 0.2); x.fill(path); }
-    x.globalCompositeOperation = 'source-over';
-    const n = Math.min(220, Math.round((stroke ? lw * b.w / 6 : size * 1.1) + 6)), dot = Math.max(0.5, (stroke ? lw : size) * 0.011);      // granulation
-    x.globalAlpha = o * 0.2; x.fillStyle = shade(c0, -0.4); x.beginPath();
-    for (let i = 0; i < n; i++) {
-      let px = b.x0 + R() * b.w, py = b.y0 + R() * b.h;
-      if (stroke) { const t = R(), v = 1 - t, ox = (R() - 0.5) * lw, oy = (R() - 0.5) * lw; px = v * v * a[0] + 2 * v * t * a[2] + t * t * a[4] + ox; py = v * v * a[1] + 2 * v * t * a[3] + t * t * a[5] + oy; }
-      else if (!inPoly(P, px, py)) continue;
-      x.moveTo(px + dot, py); x.arc(px, py, dot * (0.5 + R()), 0, 7);
-    }
-    x.fill();
-    if (!stroke && R() < 0.3) {                // a bloom: water running back into the drying wash leaves a paler flower with a hard edge
-      const px = b.x0 + b.w * (0.3 + R() * 0.4), py = b.y0 + b.h * (0.3 + R() * 0.4), r = size * (0.12 + R() * 0.14);
-      x.save(); x.clip(path); x.globalAlpha = o * 0.16; x.fillStyle = mixHex(c0, '#ffffff', 0.4); x.beginPath(); x.arc(px, py, r, 0, 7); x.fill();
-      x.globalAlpha = o * 0.16; x.strokeStyle = shade(c0, -0.3); x.lineWidth = Math.max(0.6, size * 0.008); x.stroke(); x.restore();
-    }
-    x.restore(); return end;
+    const size = Math.max(x1 - x0, y1 - y0, 2), rim = shade(mid, -0.32);
+    const paint = (c, lay) => {
+      c.lineJoin = 'round'; const G = gradOf(c, q, [[0, c0], [1, c1]]);
+      for (let i = 0; i < paths.length; i++) {
+        c.globalAlpha = o * (fast ? 0.2 : 0.11); c.fillStyle = G; c.fill(paths[i]);
+        c.globalAlpha = o * (fast ? 0.1 : 0.07); c.strokeStyle = rim; c.lineWidth = Math.max(0.5, size * 0.006); c.stroke(paths[i]);     // edges pile up darker
+      }
+    };
+    if (fast) { x.save(); paint(x); x.restore(); return [stroke ? a[4] : a[0], stroke ? a[5] : a[1]]; }
+    const m = x.getTransform(), sc0 = Math.hypot(m.a, m.b) || 1, bw = x1 - x0 + 4, bh = y1 - y0 + 4, sc = Math.min(sc0, 1500 / Math.max(bw, bh));
+    const tw = Math.max(2, Math.ceil(bw * sc)), th = Math.max(2, Math.ceil(bh * sc));
+    if (!WET_TILE.cv) { WET_TILE.cv = document.createElement('canvas'); WET_TILE.x = WET_TILE.cv.getContext('2d'); }
+    if (WET_TILE.cv.width < tw || WET_TILE.cv.height < th) { WET_TILE.cv.width = Math.max(WET_TILE.cv.width, tw); WET_TILE.cv.height = Math.max(WET_TILE.cv.height, th); }
+    const t = WET_TILE.x; t.setTransform(1, 0, 0, 1, 0, 0); t.globalCompositeOperation = 'source-over'; t.globalAlpha = 1; t.clearRect(0, 0, WET_TILE.cv.width, WET_TILE.cv.height);
+    t.setTransform(sc, 0, 0, sc, (2 - x0) * sc, (2 - y0) * sc);
+    paint(t);
+    // granulation: pigment lifted out in soft circles (every fifth left out), then dark grains where pigment is
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, cnt = Math.min(170, 60 + Math.round(size * 0.35));
+    t.globalCompositeOperation = 'destination-out';
+    for (let i = 0; i < cnt; i++) { if (i % 5 === 4) continue; const r = size * (0.015 + R() * 0.12); t.globalAlpha = 0.05 + R() * 0.07; t.beginPath(); t.arc(cx + gaussR(R) * size * 0.3, cy + gaussR(R) * size * 0.3, r, 0, 7); t.fill(); }
+    t.globalCompositeOperation = 'source-atop'; t.fillStyle = shade(c0, -0.45); t.globalAlpha = o * 0.25; t.beginPath();
+    for (let i = 0, g = Math.min(200, Math.round(size * 0.9)); i < g; i++) { const gx = x0 + R() * (x1 - x0), gy = y0 + R() * (y1 - y0), r = Math.max(0.3, size * 0.004 * (0.5 + R())); t.moveTo(gx + r, gy); t.arc(gx, gy, r, 0, 7); }
+    t.fill(); t.globalCompositeOperation = 'source-over'; t.globalAlpha = 1; t.setTransform(1, 0, 0, 1, 0, 0);
+    x.save(); x.globalAlpha = 1;
+    x.drawImage(WET_TILE.cv, 0, 0, tw, th, x0 - 2, y0 - 2, tw / sc, th / sc);
+    x.globalCompositeOperation = 'multiply'; x.globalAlpha = 0.28; x.drawImage(WET_TILE.cv, 0, 0, tw, th, x0 - 2, y0 - 2, tw / sc, th / sc);       // the glaze: darker where washes overlap
+    x.restore(); return [stroke ? a[4] : a[0], stroke ? a[5] : a[1]];
   },
+
   wash(x, q) {                     // watercolour shapes: wet wavering washes, pigment pooled darker at the edge, a little granulation, now and then a bloom
     const [c0, c1, o] = colsOf(q), R = rngFor(q.args), b = boxOf(SHP.poly({ t: q.t, p: q.args })), size = Math.max(b.w, b.h, 2);
     x.save(); x.lineJoin = 'round';
@@ -3144,23 +3184,28 @@ const STYLE_DRAW = {
     }
     x.restore(); return [q.args[0], q.args[1]];
   },
-  charcoal(x, q, u = 1, dir = 1) { // charcoal (its colours already greyed by the painter): dusty, smudged, broken by the grain
+  charcoal(x, q, u = 1, dir = 1) { // charcoal (its colours already greyed by the painter): dusty, smudged, stamped with a wide scatter, broken by the grain
     const [c0, c1, o] = colsOf(q), R = rngFor(q.args), a = q.args, pat = patternFor('charcoal', c0);
     const ang = q.t === 'S' ? Math.atan2(a[5] - a[1], a[4] - a[0]) : R() * Math.PI;
     pat.setTransform(new DOMMatrix().translate(R() * 64, R() * 64).rotateSelf(ang * 57.29578));
+    const dust = { R, fill: pat, spacing: 0.12, scatter: 1.4, sharp: 0.68, grain: 1.0, pmin: 0.5, pmax: 1.1, peak: 0.35, hw: 0.5, minStep: 0.5 };
     x.save(); x.lineCap = x.lineJoin = 'round';
     const end = shapePath(x, q, u, dir);
     if (q.t === 'S') {
       x.globalAlpha = o * 0.16; x.strokeStyle = mixHex(c0, c1, 0.5); x.lineWidth = a[6] * 1.7; x.stroke();      // the smudge
-      x.globalAlpha = Math.min(1, o * 1.05); x.strokeStyle = pat; x.lineWidth = a[6]; x.stroke();
+      x.globalAlpha = Math.min(1, o * 0.6); x.strokeStyle = pat; x.lineWidth = a[6] * 0.8; x.stroke();            // the body, in the paper's grain
+      stampLine(x, quadPts(a, u, dir, 24), { ...dust, w: Math.max(1.2, a[6]), alpha: Math.min(1, o * 1.05) });    // the dusty, pressed line over it
     } else {
       const size = Math.max(a[2] || 0, a[3] || 0, 4);
       x.globalAlpha = o * 0.12; x.strokeStyle = c0; x.lineWidth = size * 0.18; x.stroke();                         // smudged rim
       x.globalAlpha = o * 0.3; x.fillStyle = mixHex(c0, c1, 0.5); x.fill();
-      x.globalAlpha = Math.min(1, o * 1.05); x.fillStyle = pat; x.fill();
+      x.globalAlpha = Math.min(1, o * 0.85); x.fillStyle = pat; x.fill();
+      const P = SHP.poly({ t: q.t, p: a }), ring = []; for (let i = 0; i < P.length; i += 2) ring.push([P[i], P[i + 1]]); ring.push(ring[0]);
+      stampLine(x, ring, { ...dust, w: Math.max(1.5, size * 0.05), scatter: 1.8, maxSteps: 260, alpha: o * 0.8 });    // dust along the edge
     }
     x.restore(); return end;
   },
+
   stitch(x, q) {          // cross-stitch: an × in every square of a fixed fabric grid whose middle is inside the shape
     const [c, , o] = colsOf(q), P = SHP.poly({ t: q.t, p: q.args }), b = boxOf(P), cell = STITCH;
     const i0 = Math.floor(b.x0 / cell), i1 = Math.ceil(b.x1 / cell), j0 = Math.floor(b.y0 / cell), j1 = Math.ceil(b.y1 / cell), X = new Path2D();
@@ -3178,6 +3223,9 @@ const STYLE_DRAW = {
 };
 const STITCH = 7;   // the fabric grid, in painting pixels (1000 across the long side)
 // points along (the first part of) a quadratic stroke, for the media that build a stroke out of several lines
+function offsetPts(P, off) {      // a polyline moved sideways
+  return P.map((p, i) => { const a = P[Math.max(0, i - 1)], b = P[Math.min(P.length - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1; return [p[0] - dy / l * off, p[1] + dx / l * off]; });
+}
 function quadPts(a, u = 1, dir = 1, n = 24) {
   let [x0, y0, x1, y1, x2, y2] = a; if (dir < 0) [x0, y0, x2, y2] = [x2, y2, x0, y0];
   const P = [];
@@ -5804,7 +5852,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.13.2');
+    const V = await import('./viewer3d.js?v=4.14.0');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
