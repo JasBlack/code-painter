@@ -83,6 +83,15 @@
   /* dropdowns */
   select.sel { appearance: none; -webkit-appearance: none; height: 32px; border-radius: 8px; border: 1px solid var(--keyline); background: var(--well) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238c8c88'/%3E%3C/svg%3E") no-repeat right 10px center; padding: 0 26px 0 10px; font: 500 9.5px 'IBM Plex Mono', monospace; color: var(--text); cursor: pointer; min-width: 0; }
   select.sel:disabled { opacity: .4; }
+  /* the brush menu: a dropdown that shows a little stroke drawn in each brush */
+  .bsel { position: relative; flex: 1; min-width: 0; }
+  .bsel-btn { display: flex; align-items: center; gap: 10px; width: 100%; height: 34px; border-radius: 8px; border: 1px solid var(--keyline); background: var(--well) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238c8c88'/%3E%3C/svg%3E") no-repeat right 10px center; padding: 0 26px 0 8px; font: 500 9.5px 'IBM Plex Mono', monospace; color: var(--text); cursor: pointer; text-align: left; }
+  .bsel-menu { position: fixed; z-index: 1000; overflow: auto; background: var(--panel); border: 1px solid var(--keyline); border-radius: 10px; padding: 4px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+  .bsel-menu[hidden] { display: none; }
+  .bsel-item { display: flex; align-items: center; gap: 10px; width: 100%; height: 32px; border: 0; border-radius: 7px; background: none; padding: 0 6px; font: 500 9.5px 'IBM Plex Mono', monospace; color: var(--text); cursor: pointer; text-align: left; }
+  .bsel-item:hover, .bsel-item:focus-visible { background: var(--keyon); outline: none; }
+  .bsel-item.on { box-shadow: inset 2px 0 0 var(--accent); background: var(--keyon); }
+  .bsel canvas { border-radius: 5px; background: rgba(128,128,128,.12); }
   #shapes { padding: 0 16px 0 6px; background-position: right 5px center; }
   select.sel option { background: var(--panel); color: var(--text); }
   /* led-ring knobs (ui.js draws the ring over a hidden range input) */
@@ -275,7 +284,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.15.0">CODE PAINTER</span><span class="lbl">jas.black</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.15.1">CODE PAINTER</span><span class="lbl">jas.black</span></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
       <span><i class="led" id="ledaudio"></i><span class="lbl">audio</span></span>
@@ -1085,7 +1094,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.15.0 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.15.1 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1103,7 +1112,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.15.0', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.15.1', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -1181,7 +1190,7 @@ const S = {
   rec: null
 };
 // (a self-contained page — one that works opened straight from the disk — carries the painter's code with it)
-const WORKER_URL = window.CP_WORKER_SRC ? URL.createObjectURL(new Blob([window.CP_WORKER_SRC], { type: 'text/javascript' })) : 'painter-worker.js?v=4.15.0', worker = new Worker(WORKER_URL);
+const WORKER_URL = window.CP_WORKER_SRC ? URL.createObjectURL(new Blob([window.CP_WORKER_SRC], { type: 'text/javascript' })) : 'painter-worker.js?v=4.15.1', worker = new Worker(WORKER_URL);
 // ── live modes (video, zoom, live inputs): several painters at once, each painting its own band of rows, so the
 // painting keeps up with the speed slider (one painter alone manages ~150 strokes a second). More speed, more painters.
 const POOL = { helpers: [], max: Math.max(1, Math.min(7, (navigator.hardwareConcurrency || 4) - 2)) };
@@ -3568,10 +3577,11 @@ function brushed(x, q, u = 1, dir = 1) {
   if (q.t === 'S' || q.t === 'B' || q.t === 'E') return stamped(x, q, u, dir);
   SHP.lib(x)[q.t](...q.args); return [q.args[0], q.args[1]];
 }
+let brushSync = () => {};
 function setBrush(name, customImg) {
   if (customImg) BRUSH.custom = stampFromImage(customImg);
   if (name === 'custom' && !BRUSH.custom) name = 'default';
-  BRUSH.name = name; $('brush').value = name;
+  BRUSH.name = name; $('brush').value = name; brushSync();
 }
 // repaint the picture so far with the current brush (not while zooming / live: those keep no stroke list)
 function rebrush() {
@@ -5617,6 +5627,39 @@ addEventListener('keydown', e => {
 });
 $('infinite').onchange = () => { if (infinite() && S.mode === 'auto' && S.done && !S.endless.on) { S.running = true; S.pausedAt = 0; beginEndless(); } };
 // brushes (the custom one is remembered)
+// ── the brush menu (see .bsel): the real <select> stays, hidden, for presets and everything else that reads it
+brushSync = (() => {
+  const sel = $('brush'), host = document.createElement('div'), btn = document.createElement('button'), menu = document.createElement('div');
+  host.className = 'bsel'; btn.type = 'button'; btn.className = 'bsel-btn'; btn.setAttribute('aria-haspopup', 'listbox'); menu.className = 'bsel-menu'; menu.hidden = true; menu.setAttribute('role', 'listbox');
+  sel.parentNode.insertBefore(host, sel); host.append(btn); sel.style.display = 'none';
+  const icon = name => {       // a short stroke, painted with that brush
+    const c = document.createElement('canvas'); c.width = 160; c.height = 52; c.style.cssText = 'width: 80px; height: 26px; flex: none';
+    const x = c.getContext('2d'); x.scale(2, 2);
+    try {
+      if (name === 'custom' && !BRUSH.custom) { x.fillStyle = '#9a9aa2'; x.font = '600 15px "IBM Plex Mono", monospace'; x.textAlign = 'center'; x.fillText('+ image', 40, 18); }
+      else drawQ(x, { t: 'S', st: 'painterly', brush: name === 'default' ? null : name, args: [9, 18, 40, 3, 71, 17, 11, 0, '#ececf0', '#b4b4be', 1] });
+    } catch (e) { /* no icon */ }
+    return c;
+  };
+  const row = (o, cls) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.append(icon(o.value)); const t = document.createElement('span'); t.textContent = o.textContent; b.append(t); return b; };
+  const close = () => { menu.hidden = true; menu.remove(); };
+  const sync = () => { const o = sel.selectedOptions[0] || sel.options[0]; btn.textContent = ''; const r = row(o, ''); btn.append(...r.childNodes); };
+  const open = () => {
+    menu.textContent = '';
+    for (const o of sel.options) { const b = row(o, 'bsel-item' + (o.value === sel.value ? ' on' : '')); b.setAttribute('role', 'option'); b.onclick = () => { sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true })); close(); sync(); }; menu.append(b); }
+    document.body.append(menu); menu.hidden = false;       // (in the page itself, so no panel can cover or clip it)
+    const r = btn.getBoundingClientRect(), below = innerHeight - r.bottom - 12, above = r.top - 12, up = below < 240 && above > below, room = Math.max(120, Math.min(360, up ? above : below));
+    menu.style.left = r.left + 'px'; menu.style.width = r.width + 'px'; menu.style.maxHeight = room + 'px';
+    if (up) { menu.style.top = ''; menu.style.bottom = (innerHeight - r.top + 4) + 'px'; } else { menu.style.bottom = ''; menu.style.top = (r.bottom + 4) + 'px'; }
+    const on = menu.querySelector('.on'); if (on) on.scrollIntoView({ block: 'nearest' });
+  };
+  btn.onclick = () => { if (menu.hidden) open(); else close(); };
+  btn.onkeydown = e => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const i = Math.max(0, Math.min(sel.options.length - 1, sel.selectedIndex + (e.key === 'ArrowDown' ? 1 : -1))); sel.selectedIndex = i; sel.dispatchEvent(new Event('change', { bubbles: true })); sync(); } else if (e.key === 'Escape') close(); };
+  document.addEventListener('mousedown', e => { if (!host.contains(e.target) && !menu.contains(e.target)) close(); });
+  addEventListener('resize', close); addEventListener('scroll', close, true);
+  sel.addEventListener('change', sync); sync();
+  return sync;
+})();
 $('brush').onchange = () => {
   if ($('brush').value === 'custom' && !BRUSH.custom) { $('brushfile').click(); return; }
   setBrush($('brush').value); store('cp-brush', BRUSH.name);
@@ -5970,7 +6013,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.15.0');
+    const V = await import('./viewer3d.js?v=4.15.1');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
