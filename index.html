@@ -3884,14 +3884,16 @@ function relight() {
   paintBg(S.outX); for (let i = 0; i < done; i++) drawQ(S.outX, S.drawn[i]); S.big = null;
 }
 function drawLightPad() {
-  const c = $('lightpad'); if (!c) return; const x = c.getContext('2d'), W = c.width, H = c.height, cx = W / 2, cy = H / 2;
+  const c = $('lightpad'); if (!c) return; const dpr = Math.max(1, devicePixelRatio || 1);
+  if (c.clientWidth && c.width !== Math.round(c.clientWidth * dpr)) { c.width = Math.round(c.clientWidth * dpr); c.height = Math.round(c.clientHeight * dpr); }
+  const x = c.getContext('2d'), W = c.width, H = c.height, cx = W / 2, cy = H / 2, k = H / 48;
   x.clearRect(0, 0, W, H);
-  const sx = cx + LIGHT.x * (W / 2 - 14), sy = cy + LIGHT.y * (H / 2 - 9), G = x.createRadialGradient(sx, sy, 0, sx, sy, W * 0.6);
+  const sx = cx + LIGHT.x * (W / 2 - 14 * k), sy = cy + LIGHT.y * (H / 2 - 9 * k), G = x.createRadialGradient(sx, sy, 0, sx, sy, W * 0.6);
   G.addColorStop(0, 'rgba(255,255,255,0.14)'); G.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = G; x.fillRect(0, 0, W, H);
-  const B = x.createRadialGradient(cx + LIGHT.x * 6, cy + LIGHT.y * 6, 1, cx, cy, 14); B.addColorStop(0, '#f2f2ef'); B.addColorStop(0.5, '#8e9198'); B.addColorStop(1, '#2b2c31');
-  x.fillStyle = B; x.beginPath(); x.arc(cx, cy, 13, 0, 7); x.fill();
-  x.strokeStyle = getComputedStyle(document.body).getPropertyValue('--accent') || '#39ff88'; x.lineWidth = 2; x.setLineDash([3, 4]); x.beginPath(); x.moveTo(cx, cy); x.lineTo(sx, sy); x.stroke(); x.setLineDash([]);
-  x.fillStyle = x.strokeStyle; x.beginPath(); x.arc(sx, sy, 7, 0, 7); x.fill();
+  const B = x.createRadialGradient(cx + LIGHT.x * 6 * k, cy + LIGHT.y * 6 * k, 1, cx, cy, 14 * k); B.addColorStop(0, '#f2f2ef'); B.addColorStop(0.5, '#8e9198'); B.addColorStop(1, '#2b2c31');
+  x.fillStyle = B; x.beginPath(); x.arc(cx, cy, 13 * k, 0, 7); x.fill();
+  x.strokeStyle = getComputedStyle(document.body).getPropertyValue('--accent') || '#39ff88'; x.lineWidth = 2 * k; x.setLineDash([3 * k, 4 * k]); x.beginPath(); x.moveTo(cx, cy); x.lineTo(sx, sy); x.stroke(); x.setLineDash([]);
+  x.fillStyle = x.strokeStyle; x.beginPath(); x.arc(sx, sy, 7 * k, 0, 7); x.fill();
 }
 function setBrush(name, customImg) {
   if (customImg) BRUSH.custom = stampFromImage(customImg);
@@ -5944,14 +5946,14 @@ $('infinite').onchange = () => { if (infinite() && S.mode === 'auto' && S.done &
 // brushes (the custom one is remembered)
 { const c = $('lightpad'), t = (store('cp-light') || '').split(',').map(Number);
   if (t.length === 2 && t.every(Number.isFinite)) { const l = Math.hypot(t[0], t[1]) || 1; LIGHT.x = t[0] / l; LIGHT.y = t[1] / l; }
-  const setFrom = e => { const r = c.getBoundingClientRect(), dx = (e.clientX - r.left) / r.width * c.width - c.width / 2, dy = ((e.clientY - r.top) / r.height * c.height - c.height / 2) * (c.width / c.height) * 0.5, l = Math.hypot(dx, dy); if (l < 1) return; LIGHT.x = dx / l; LIGHT.y = dy / l; drawLightPad(); };
+  const setFrom = e => { const r = c.getBoundingClientRect(), dx = (e.clientX - r.left - r.width / 2) / (r.width / 2), dy = (e.clientY - r.top - r.height / 2) / (r.height / 2), l = Math.hypot(dx, dy); if (l < 0.05) return; LIGHT.x = dx / l; LIGHT.y = dy / l; drawLightPad(); };
   let drag = false;
   c.addEventListener('pointerdown', e => { drag = true; c.setPointerCapture(e.pointerId); setFrom(e); });
   c.addEventListener('pointermove', e => { if (drag) setFrom(e); });
   const done = () => { if (!drag) return; drag = false; store('cp-light', LIGHT.x.toFixed(3) + ',' + LIGHT.y.toFixed(3)); relight(); $('hint').textContent = 'Light moved: the lit styles are drawn again with it.'; };
   c.addEventListener('pointerup', done); c.addEventListener('pointercancel', done);
   c.addEventListener('dblclick', () => { LIGHT.x = -0.62; LIGHT.y = -0.78; drawLightPad(); store('cp-light', ''); relight(); });
-  drawLightPad(); }
+  drawLightPad(); addEventListener('resize', drawLightPad); }
 $('brush').onchange = () => {
   if ($('brush').value === 'custom' && !BRUSH.custom) { $('brushfile').click(); return; }
   setBrush($('brush').value); store('cp-brush', BRUSH.name);
