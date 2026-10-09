@@ -284,7 +284,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.15.1">CODE PAINTER</span><span class="lbl">jas.black</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.15.2">CODE PAINTER</span><span class="lbl">jas.black</span></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
       <span><i class="led" id="ledaudio"></i><span class="lbl">audio</span></span>
@@ -1094,7 +1094,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.15.1 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.15.2 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1112,7 +1112,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.15.1', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.15.2', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -1190,7 +1190,7 @@ const S = {
   rec: null
 };
 // (a self-contained page — one that works opened straight from the disk — carries the painter's code with it)
-const WORKER_URL = window.CP_WORKER_SRC ? URL.createObjectURL(new Blob([window.CP_WORKER_SRC], { type: 'text/javascript' })) : 'painter-worker.js?v=4.15.1', worker = new Worker(WORKER_URL);
+const WORKER_URL = window.CP_WORKER_SRC ? URL.createObjectURL(new Blob([window.CP_WORKER_SRC], { type: 'text/javascript' })) : 'painter-worker.js?v=4.15.2', worker = new Worker(WORKER_URL);
 // ── live modes (video, zoom, live inputs): several painters at once, each painting its own band of rows, so the
 // painting keeps up with the speed slider (one painter alone manages ~150 strokes a second). More speed, more painters.
 const POOL = { helpers: [], max: Math.max(1, Math.min(7, (navigator.hardwareConcurrency || 4) - 2)) };
@@ -1765,7 +1765,7 @@ async function startAuto(src, name, fileName = '', opts = {}) {
   S.startArgs = [src, name, fileName, opts];
   S.mode = 'auto'; S.name = name; S.orig = img; S.done = false; S.lines = []; S.items = []; S.drawn = []; S.bits = 0; S.count = 0; S.sim = null; S.recent = [];
   S.queue = []; S.acc = 0; S.workerDone = false; S.line = liveRun() ? null : lineSpec(); S.order = liveRun() ? 'free' : $('order').value; S.lineSeed = 1 + Math.floor(Math.random() * 1e6); if (S.line) S.line.seed = S.lineSeed;
-  S.pen = !!S.line; S.penEnd = 0; S.fmt = $('export').value; S.codeBytes = 0; S.landing = []; S.big = null; S.debt = 0; S.brush = null;
+  S.pen = !!S.line; S.penEnd = 0; S.penLen = 0; S.fmt = $('export').value; S.codeBytes = 0; S.landing = []; S.big = null; S.debt = 0; S.brush = null;
   S.endless = newEndless();
   S.total = +$('shapes').value || 3000;
   // a video's own soundtrack only starts once the video does (after the first frame has emerged)
@@ -1945,8 +1945,12 @@ function reveal(m, anim) {
     dur = Math.min(dur, anim.max || 1200);
     const L = { q, c, dir, from, mode: mo, t0: now + (anim.delay || 0), dur, seed: Math.random() * 100 };
     if (S.pen && S.mode === 'auto') {      // one pen: each stroke starts when the last has finished, travelling at an even pace (the speed slider sets how fast)
+      // the pen moves at one steady speed; it is set so that an average stroke takes as long as a stroke does at this speed in the normal painter
+      // ((12 + 0.06 × strokes so far) × speed strokes a second), so the speed slider means the same here, short strokes or long
       const a = q.args, len = Math.hypot(a[4] - a[0], a[5] - a[1]) * 1.15 + 1;
-      L.t0 = Math.max(now, S.penEnd || 0); L.dur = dur = Math.max(4, len / (3.5 * Math.min(speedFactor(), 400)));
+      S.penLen = S.penLen ? S.penLen * 0.95 + len * 0.05 : len;
+      const target = 1000 / ((12 + 0.06 * S.count) * Math.min(speedFactor(), 400)), v = Math.max(0.02, S.penLen / target);
+      L.t0 = Math.max(now, S.penEnd || 0); L.dur = dur = Math.max(1, len / v);
       S.penEnd = L.t0 + dur;
     }
     S.landing.push(L); end = L.t0 + dur;
@@ -6013,7 +6017,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.15.1');
+    const V = await import('./viewer3d.js?v=4.15.2');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
