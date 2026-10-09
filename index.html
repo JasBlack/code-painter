@@ -3308,22 +3308,22 @@ const STYLE_DRAW = {
     const g = stampSet(q, 'hylics' + lightKey(), () => {
       const R = rngFor(a), path = raggedPath(q, R, 0.035, 1), P = SHP.poly({ t: q.t, p: a }), b = boxOf(P), size = Math.max(b.w, b.h, 2), stroke = q.t === 'S';
       const rx = Math.max(1, b.w / 2), ry = Math.max(1, b.h / 2), half = stroke ? Math.max(1, a[6] / 2) : 1, mid = stroke ? quadPts(a, 1, 1, 16) : null;
-      const dot = Math.max(0.7, Math.min(2, (stroke ? a[6] * 4 : size) * 0.008)), n = Math.min(2600, Math.round(b.w * b.h / (dot * dot * 8))), dots = new Path2D();
+      const dot = Math.max(1.1, Math.min(2.2, (stroke ? a[6] * 4 : size) * 0.009)), n = Math.min(2400, Math.round(b.w * b.h / (dot * dot * 9))), dots = new Path2D();
       for (let i = 0; i < n; i++) {
         const px = b.x0 + R() * b.w, py = b.y0 + R() * b.h; let ux, uy;
         if (stroke) { let bd = 1e9, vx = 0, vy = 0; for (const m of mid) { const dx = px - m[0], dy = py - m[1], dd = dx * dx + dy * dy; if (dd < bd) { bd = dd; vx = dx; vy = dy; } } ux = vx / half; uy = vy / half; }
         else { ux = (px - b.cx) / rx; uy = (py - b.cy) / ry; }
         const away = -(ux * LIGHT.x + uy * LIGHT.y), rim = Math.min(1, Math.hypot(ux, uy)), s = 0.5 * away + 0.55 * rim * rim + 0.08 * gaussR(R) - 0.05;
-        if (R() < Math.max(0, Math.min(1, (s - 0.05) / 0.75))) dots.rect(px, py, dot, dot);
+        if (R() < Math.max(0, Math.min(1, (s - 0.18) / 0.75))) dots.rect(px, py, dot, dot);
       }
-      const hl = new Path2D();
-      if (round) hl.ellipse(b.cx + LIGHT.x * rx * 0.38, b.cy + LIGHT.y * ry * 0.38, rx * 0.4, ry * 0.34, Math.atan2(LIGHT.y, LIGHT.x) + Math.PI / 2, 0, 7);
-      return { path, dots, hl, d: stroke ? a[6] * 0.28 : size * 0.12 };
+      const hl = new Path2D(), hasHl = round && size > 28 && R() < 0.35;
+      if (hasHl) hl.ellipse(b.cx + LIGHT.x * rx * 0.38, b.cy + LIGHT.y * ry * 0.38, rx * 0.4, ry * 0.34, Math.atan2(LIGHT.y, LIGHT.x) + Math.PI / 2, 0, 7);
+      return { path, dots, hl, hasHl, d: stroke ? a[6] * 0.16 : size * 0.06 };
     });
     x.save(); x.globalAlpha = o; x.fillStyle = '#000'; x.fill(g.path);                 // the black: where the light doesn't reach
     x.save(); x.clip(g.path);
     x.translate(LIGHT.x * g.d, LIGHT.y * g.d); x.fillStyle = col; x.fill(g.path); x.translate(-LIGHT.x * g.d, -LIGHT.y * g.d);   // the lit colour, shifted towards the light
-    if (round) { x.fillStyle = '#fbfbf6'; x.fill(g.hl); }
+    if (g.hasHl) { x.fillStyle = '#fbfbf6'; x.fill(g.hl); }
     x.fillStyle = '#000'; x.fill(g.dots);                                             // stipple shading
     x.restore(); x.restore(); return endOf(q);
   },
@@ -3335,7 +3335,7 @@ const STYLE_DRAW = {
     const rx = Math.max(1, b.w / 2), ry = Math.max(1, b.h / 2), under = underRegion(x, b.x0 - 2, b.y0 - 2, b.w + 4, b.h + 4);
     x.save();
     const kx = b.cx - LIGHT.x * rx * 0.95, ky = b.cy - LIGHT.y * ry * 0.95, kr = Math.max(4, size * 0.42), K = x.createRadialGradient(kx, ky, 0, kx, ky, kr);
-    K.addColorStop(0, rgbaOf(mixHex(c0, '#ffffff', 0.6), 0.5 * o)); K.addColorStop(1, rgbaOf(c0, 0));
+    K.addColorStop(0, rgbaOf(mixHex(c0, '#ffffff', 0.4), 0.28 * o)); K.addColorStop(1, rgbaOf(c0, 0));
     x.globalCompositeOperation = 'screen'; x.fillStyle = K; x.beginPath(); x.ellipse(kx, ky, kr, kr * 0.65, Math.atan2(LIGHT.y, LIGHT.x), 0, 7); x.fill(); x.globalCompositeOperation = 'source-over';   // the caustic
     x.save(); x.clip(path);
     if (under) {
@@ -3343,13 +3343,13 @@ const STYLE_DRAW = {
       if (round) x.scale(-1.18, -1.18); else x.scale(1.14, 1.14);
       x.drawImage(under.cv, 0, 0, under.sw, under.sh, under.x0 - b.cx, under.y0 - b.cy, under.w, under.h); x.restore();
     }
-    x.globalCompositeOperation = 'multiply'; x.globalAlpha = 0.5 * o; x.fillStyle = mixHex(c0, '#ffffff', 0.35); x.fill(path); x.globalCompositeOperation = 'source-over';
-    x.globalAlpha = 0.35 * o; x.strokeStyle = '#000'; x.lineWidth = size * 0.1; x.stroke(path);                 // the glass thickens towards its edge
-    litEdge(x, path, Math.max(1, size * 0.03), '#ffffff', Math.max(1.5, size * 0.035), o, true);
+    x.globalCompositeOperation = 'multiply'; x.globalAlpha = 0.75 * o; x.fillStyle = mixHex(c0, '#ffffff', 0.12); x.fill(path); x.globalCompositeOperation = 'source-over';
+    x.globalAlpha = 0.3 * o; x.strokeStyle = '#000'; x.lineWidth = size * 0.1; x.stroke(path);                 // the glass thickens towards its edge
+    litEdge(x, path, Math.max(1, size * 0.025), '#ffffff', Math.max(1.2, size * 0.025), 0.6 * o, true);
     const sx = b.cx + LIGHT.x * rx * 0.48, sy = b.cy + LIGHT.y * ry * 0.48, sr = Math.max(1.5, size * 0.13), Gs = x.createRadialGradient(sx, sy, 0, sx, sy, sr);
-    Gs.addColorStop(0, 'rgba(255,255,255,0.95)'); Gs.addColorStop(1, 'rgba(255,255,255,0)'); x.globalAlpha = o; x.fillStyle = Gs; x.beginPath(); x.ellipse(sx, sy, sr, sr * 0.6, Math.atan2(LIGHT.y, LIGHT.x) + 1.57, 0, 7); x.fill();
+    Gs.addColorStop(0, 'rgba(255,255,255,0.8)'); Gs.addColorStop(1, 'rgba(255,255,255,0)'); x.globalAlpha = o; x.fillStyle = Gs; x.beginPath(); x.ellipse(sx, sy, sr, sr * 0.6, Math.atan2(LIGHT.y, LIGHT.x) + 1.57, 0, 7); x.fill();
     x.restore();
-    x.globalAlpha = 0.4 * o; x.strokeStyle = '#ffffff'; x.lineWidth = 0.8; x.stroke(path);
+    x.globalAlpha = 0.25 * o; x.strokeStyle = '#ffffff'; x.lineWidth = 0.7; x.stroke(path);
     x.restore(); return endOf(q);
   },
   crystal(x, q, u = 1, dir = 1) {       // cut crystal: the shape cut into facets from a point near the light; each facet bends what is under it its own way,
@@ -3365,14 +3365,14 @@ const STYLE_DRAW = {
       const tri = new Path2D(); tri.moveTo(ax, ay); tri.lineTo(p0[0], p0[1]); tri.lineTo(p1[0], p1[1]); tri.closePath();
       x.save(); x.clip(tri);
       if (under) { x.globalAlpha = o; x.drawImage(under.cv, 0, 0, under.sw, under.sh, under.x0 - nx * size * 0.12, under.y0 - ny * size * 0.12, under.w, under.h); }
-      x.globalCompositeOperation = 'multiply'; x.globalAlpha = 0.4 * o; x.fillStyle = mixHex(c0, '#ffffff', 0.3); x.fill(tri); x.globalCompositeOperation = 'source-over';
-      x.globalAlpha = o * Math.abs(lit) * (lit > 0 ? 0.42 : 0.3); x.fillStyle = lit > 0 ? '#ffffff' : '#000000'; x.fill(tri);
+      x.globalAlpha = 0.42 * o; x.fillStyle = c0; x.fill(tri);
+      x.globalAlpha = o * Math.abs(lit) * (lit > 0 ? 0.32 : 0.14); x.fillStyle = lit > 0 ? '#ffffff' : '#000000'; x.fill(tri);
       x.restore();
-      x.globalAlpha = 0.55 * o; x.strokeStyle = '#ffffff'; x.lineWidth = 0.7; x.stroke(tri);
+      x.globalAlpha = 0.35 * o; x.strokeStyle = '#ffffff'; x.lineWidth = 0.6; x.stroke(tri);
       const vl = (p0[0] - b.cx) * LIGHT.x + (p0[1] - b.cy) * LIGHT.y; if (vl > best) { best = vl; bp = p0; }
     }
-    x.globalAlpha = 0.45 * o; x.strokeStyle = '#000'; x.lineWidth = 1.1; x.stroke(outlineOf(q));
-    const sr = Math.max(2, size * 0.09); x.globalAlpha = o; x.fillStyle = '#ffffff'; x.beginPath();         // the sparkle
+    x.globalAlpha = 0.3 * o; x.strokeStyle = '#000'; x.lineWidth = 0.9; x.stroke(outlineOf(q));
+    const sr = Math.max(2, size * 0.09); x.globalAlpha = size > 80 && (b.cx * 7 + b.cy * 13) % 10 < 3 ? o : 0; x.fillStyle = '#ffffff'; x.beginPath();         // the sparkle (now and then, on big pieces)
     x.moveTo(bp[0], bp[1] - sr); x.quadraticCurveTo(bp[0], bp[1], bp[0] + sr, bp[1]); x.quadraticCurveTo(bp[0], bp[1], bp[0], bp[1] + sr); x.quadraticCurveTo(bp[0], bp[1], bp[0] - sr, bp[1]); x.quadraticCurveTo(bp[0], bp[1], bp[0], bp[1] - sr); x.fill();
     x.restore(); return endOf(q);
   },
@@ -3386,8 +3386,8 @@ const STYLE_DRAW = {
       if (CAN_BLUR) { x.filter = `blur(${Math.max(2, Math.min(14, size * 0.04)).toFixed(1)}px)`; x.drawImage(under.cv, 0, 0, under.sw, under.sh, under.x0, under.y0, under.w, under.h); x.filter = 'none'; }
       else { x.imageSmoothingQuality = 'high'; x.drawImage(under.cv, 0, 0, under.sw, under.sh, under.x0, under.y0, under.w, under.h); }
     }
-    x.globalAlpha = 0.3 * o; x.fillStyle = mixHex(c0, '#ffffff', 0.45); x.fill(path);
-    x.globalAlpha = 0.22 * o; x.fillStyle = patternFor('chalk', '#ffffff'); x.fillRect(b.x0 - 2, b.y0 - 2, b.w + 4, b.h + 4);
+    x.globalAlpha = 0.62 * o; x.fillStyle = mixHex(c0, '#ffffff', 0.12); x.fill(path);
+    x.globalAlpha = 0.14 * o; x.fillStyle = patternFor('chalk', '#ffffff'); x.fillRect(b.x0 - 2, b.y0 - 2, b.w + 4, b.h + 4);
     litEdge(x, path, Math.max(1, size * 0.025), '#ffffff', Math.max(2, size * 0.05), 0.75 * o, true);
     litEdge(x, path, Math.max(1, size * 0.025), '#000000', Math.max(2, size * 0.05), 0.25 * o, false);
     x.restore(); x.globalAlpha = 0.5 * o; x.strokeStyle = '#ffffff'; x.lineWidth = 0.8; x.stroke(path);

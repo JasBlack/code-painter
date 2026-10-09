@@ -36,5 +36,6 @@ Best in Chrome, Edge or Brave on a desktop or laptop (Safari works too).
 ## Credits
 
 The wet, pencil and charcoal styles use ideas from p5.brush by Alejandro Campos Uribe (MIT licence, https://github.com/acamposuribe/p5.brush: stamped brush lines with a pressure profile) and Tyler Hobbs' watercolour method (a fractal-edged outline stacked in transparent layers), written again for this painter.
+The *hylics* style is inspired by the claymation graphics of Mason Lindroth's game Hylics.
 
 © 2026 JAS.BLACK. All rights reserved.
