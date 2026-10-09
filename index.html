@@ -3209,11 +3209,12 @@ const STYLE_DRAW = {
     const P = SHP.poly({ t: q.t, p: a }), b = boxOf(P), size = Math.max(b.w, b.h, 2), mid = mixHex(c0, c1, 0.5), d = Math.max(0.8, Math.min(size * 0.06, 6));
     const path = raggedPath(q, R, stroke ? 0.05 : 0.07, 1), end = stroke ? [a[4], a[5]] : [a[0], a[1]];
     x.save(); x.lineJoin = x.lineCap = 'round';
-    blurDo(x, d * 0.8, () => { x.globalAlpha = o * 0.4; x.fillStyle = '#000'; x.translate(d * 0.7, d); x.fill(path); x.translate(-d * 0.7, -d); }, soft);      // it sits on the surface
+    for (let k = 0; k < 3; k++) { x.globalAlpha = o * 0.14; x.fillStyle = '#000'; x.translate(d * (0.35 + 0.3 * k), d * (0.5 + 0.4 * k)); x.fill(path); x.translate(-d * (0.35 + 0.3 * k), -d * (0.5 + 0.4 * k)); }      // it sits on the surface
     x.globalAlpha = o; x.fillStyle = gradOf(x, q, [[0, c0], [1, c1]]); x.fill(path);
     x.save(); x.clip(path);
-    blurDo(x, d * 0.9, () => { x.translate(-d * 0.9, -d); x.globalAlpha = o * 0.5; x.strokeStyle = shade2(mid, -0.55); x.lineWidth = d * 2.2; x.stroke(path); x.translate(d * 0.9, d); }, soft);     // the far edge falls away
-    blurDo(x, d * 0.7, () => { x.translate(d * 0.9, d); x.globalAlpha = o * 0.55; x.strokeStyle = shade2(mid, 0.5); x.lineWidth = d * 1.8; x.stroke(path); x.translate(-d * 0.9, -d); }, soft);    // the lit edge
+    const edge = (dx, dy, col, w0, al) => { x.translate(dx, dy); x.strokeStyle = col; for (let k = 0; k < 3; k++) { x.globalAlpha = o * al * 0.45; x.lineWidth = w0 * (1 - k * 0.36); x.stroke(path); } x.translate(-dx, -dy); };
+    edge(-d * 0.9, -d, shade2(mid, -0.55), d * 2.4, 0.5);      // the far edge falls away
+    edge(d * 0.9, d, shade2(mid, 0.5), d * 2, 0.6);            // the lit edge
     x.globalAlpha = o * 0.1; x.strokeStyle = shade2(mid, -0.6); x.lineWidth = Math.max(0.5, size * 0.012);
     if (stroke) { const L = quadPts(a, 1, 1, 14), w = Math.max(3, a[6]); for (let k = -2; k <= 2; k++) { x.setLineDash([size * 0.2 * (0.5 + R()), size * 0.05 * R()]); x.beginPath(); offsetPts(L, k * w * 0.17).forEach((p, i) => x[i ? 'lineTo' : 'moveTo'](p[0], p[1])); x.stroke(); } x.setLineDash([]); }
     else { const rot = (a[4] || 0) + (R() - 0.5); for (let r = 0.2; r < 0.95; r += 0.11) { x.beginPath(); x.ellipse(b.cx + (R() - 0.5) * size * 0.04, b.cy + (R() - 0.5) * size * 0.04, Math.max(0.5, b.w * 0.5 * r), Math.max(0.5, b.h * 0.5 * r), rot, R() * 2, 5 + R() * 1.2); x.stroke(); } }
