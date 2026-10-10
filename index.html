@@ -275,7 +275,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.18.0">CODE PAINTER</span><span class="lbl">jas.black</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.18.1">CODE PAINTER</span><span class="lbl">jas.black</span></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
       <span><i class="led" id="ledaudio"></i><span class="lbl">audio</span></span>
@@ -1114,7 +1114,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.18.0 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.18.1 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1132,7 +1132,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.18.0', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.18.1', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -1956,6 +1956,7 @@ function reveal(m, anim) {
   const E = S.endless, f = Math.exp(E.Zb - (m.L || 0)), s = f === 1 ? m.s : scaleShape(m.s, f, S.ww / 2, S.wh / 2);
   const q = SHP.quant(s, S.k, E.on ? 'readable' : S.fmt);   // draw exactly what the chosen export format will reproduce
   q.st = s.st; q.brush = BRUSH.name !== 'default' ? BRUSH.name : null;
+  if (!RLF.on && RELIEF[q.st] && S.out && reliefOk()) reliefStart();      // (so the very first relief stroke already arrives lit)
   const now = clock(), c = centreOf(q), prev = S.brush;
   let end = now;
   if (anim) {
@@ -2855,7 +2856,7 @@ function panes(now) {
 function drawQ(x, q) {
   const round = q.t === 'S' || q.t === 'B' || q.t === 'E';
   if (q.st === 'graffiti' && round) spray(x, q);
-  else if (RELIEF[q.st]) reliefFlat(x, q);
+  else if (RELIEF[q.st]) { if (!(RLF.on && x === X)) reliefFlat(x, q); }      // (arriving on the stage: the relief itself shows it, lit)
   else if (STYLE_DRAW[q.st]) STYLE_DRAW[q.st](x, q);
   else if (q.brush) brushed(x, q);
   else SHP.lib(x)[q.t](...q.args);
@@ -3302,6 +3303,7 @@ function reliefSlab(R, q, m) {
   let dmax = 0;
   for (let y = h - 1; y >= 0; y--) for (let x = w - 1; x >= 0; x--) { const i = y * w + x; if (!D[i]) continue; let v = D[i]; if (x < w - 1) v = Math.min(v, D[i + 1] + 1); if (y < h - 1) v = Math.min(v, D[i + w] + 1); if (x < w - 1 && y < h - 1) v = Math.min(v, D[i + w + 1] + 1.414); if (y < h - 1 && x) v = Math.min(v, D[i + w - 1] + 1.414); D[i] = v; if (v > dmax) dmax = v; }
   const cap = Math.max(2, Math.min(dmax, 13 * R.u)), hk = m.hk, rnd = rngFor(q.args);
+  const dome = Math.min(2.2 * cap, Math.max(0, dmax - cap) * 0.45);
   // the ground under it (a few samples), so a slab sits on what is there
   let g = 0; for (let i = 0; i < 6; i++) g = Math.max(g, hAt(R, x0 + w * (0.2 + 0.6 * rnd()), y0 + h * (0.2 + 0.6 * rnd())));
   g = Math.min(18 * R.u, g * m.layer);
@@ -3309,7 +3311,7 @@ function reliefSlab(R, q, m) {
   for (let i = 0; i < D.length; i++) {
     const d = D[i] + (A[i] > 0.5 ? 0 : A[i] - 0.5); if (d <= 0) continue;
     const t = Math.min(1, d / cap), sh = Math.sqrt(1 - (1 - t) * (1 - t));
-    patch[i] = g + hk * (cap * (m.puff ? Math.pow(sh, 0.6) : sh) + Math.min(cap, Math.max(0, d - cap) * 0.08));
+    patch[i] = g + hk * (cap * (m.puff ? Math.pow(sh, 0.6) : sh) + dome * Math.sqrt(Math.max(0, d - cap) / Math.max(1, dmax - cap)));     // (a pillow: shoulders, then a dome over the middle)
   }
   if (m.bead) {                                        // foam / bead areas: a heap of balls instead of a slab
     patch.fill(0); const n = Math.min(400, Math.max(3, Math.round(w * h / (Math.PI * cap * cap * 0.35))));
@@ -3520,9 +3522,40 @@ function reliefRender(R, x) {
 function reliefFlush(force) {
   if (RLF.on && (RLF.st.out !== S.out || !reliefMode())) reliefStop();
   if (!RLF.on || !RLF.st || !S.outX) return;
-  const R = RLF.st, now = performance.now();
-  if (!R.dirty || (!force && now - RLF.last < 40)) return;
-  RLF.last = now; if (!reliefRender(R, S.outX)) reliefStop();
+  const R = RLF.st, now = performance.now(), arriving = reliefArriving();
+  if (!R.dirty && !arriving.length && !RLF.wasArriving) return;
+  if (!force && now - RLF.last < (arriving.length ? 30 : 40)) return;
+  RLF.last = now; RLF.wasArriving = arriving.length > 0;
+  if (!(arriving.length ? reliefRender(reliefScratch(R, arriving), S.outX) : reliefRender(R, S.outX))) { reliefStop(); return; }
+  R.dirty = false;
+}
+// relief strokes still arriving (the draw motion): each with how much of it is down so far
+function reliefArriving() {
+  const out = [], t = clock();
+  for (const L of S.landing || []) {
+    if (!RELIEF[L.q.st] || t < L.t0) continue;
+    const u = clamp01((t - L.t0) / L.dur), drawn = L.q.t === 'S' && !['pop', 'shatter', 'pixel', 'fall', 'spiral', 'ink', 'sketch'].includes(L.mode);
+    out.push({ q: drawn ? quadPart(L.q, S.pen && S.mode === 'auto' ? u : easeInOut(u), L.dir) : L.q });
+    if (out.length >= 32) break;
+  }
+  return out;
+}
+// the first u of a stroke as a stroke of its own (the quadratic split at u, from whichever end it is drawn)
+function quadPart(q, u, dir) {
+  const a = q.args.slice(); if (u >= 0.999) return q;
+  let [x0, y0, x1, y1, x2, y2] = a; if (dir < 0) [x0, y0, x2, y2] = [x2, y2, x0, y0];
+  const v = Math.max(0.02, u), qx = x0 + (x1 - x0) * v, qy = y0 + (y1 - y0) * v, ex = qx + (x1 + (x2 - x1) * v - qx) * v, ey = qy + (y1 + (y2 - y1) * v - qy) * v;
+  a[0] = x0; a[1] = y0; a[2] = qx; a[3] = qy; a[4] = ex; a[5] = ey;
+  return { ...q, args: a };
+}
+// a scratch copy of the relief with the arriving strokes added (the real one only takes them once they have landed)
+function reliefScratch(R, list) {
+  let T = RLF.tmp;
+  if (!T || T.w !== R.w || T.h !== R.h) T = RLF.tmp = makeRelief(R.w, R.h, R.k, R.u);
+  T.u = R.u; T.k = R.k; T.H.set(R.H); T.M.set(R.M);
+  T.ax.setTransform(1, 0, 0, 1, 0, 0); T.ax.globalCompositeOperation = 'copy'; T.ax.drawImage(R.alb, 0, 0); T.ax.globalCompositeOperation = 'source-over';
+  for (const it of list) reliefAdd(T, it.q);
+  return T;
 }
 // endless zoom: the relief scaled about the middle with the canvas (heights too); zooming out keeps the old edge
 function reliefZoom(R, v) {
@@ -4221,7 +4254,7 @@ function rebrush() {
 // one stroke part-way (the draw motion), in whatever renderer it uses
 function strokeAt(x, q, u, dir) {
   if (q.st === 'graffiti') return spray(x, q, u, dir);
-  if (RELIEF[q.st]) return reliefFlat(x, q, u, dir);
+  if (RELIEF[q.st]) { if (RLF.on && x === X) { const p = quadPart(q, u, dir).args; return [p[4], p[5]]; } return reliefFlat(x, q, u, dir); }
   if (MEDIA.has(q.st)) return STYLE_DRAW[q.st](x, q, u, dir);
   if (q.brush) return brushed(x, q, u, dir);
   return strokePart(q.args, u, dir);
@@ -6625,7 +6658,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.18.0');
+    const V = await import('./viewer3d.js?v=4.18.1');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
