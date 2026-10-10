@@ -1,6 +1,6 @@
 # Code Painter by JAS.BLACK
 
-Version 4.16.0
+Version 4.17.0
 
 Drop in any picture and watch it painted in code, stroke by stroke, with the program writing itself underneath.
 Add a song and the painting follows its hits and sections; add stroke sounds and every stroke plays a note.
@@ -37,5 +37,6 @@ Best in Chrome, Edge or Brave on a desktop or laptop (Safari works too).
 
 The wet, pencil and charcoal styles use ideas from p5.brush by Alejandro Campos Uribe (MIT licence, https://github.com/acamposuribe/p5.brush: stamped brush lines with a pressure profile) and Tyler Hobbs' watercolour method (a fractal-edged outline stacked in transparent layers), written again for this painter.
 The *hylics* style is inspired by the claymation graphics of Mason Lindroth's game Hylics.
+The relief materials (clay, ceramic, stone, foam, beads, puffy, terrazzo, metal, chrome, pewter, copper, gold, bronze) are inspired by the relief brushes of Vooolume by krftoools; they are written from scratch for this painter (a height map lit in WebGL 2).
 
 © 2026 JAS.BLACK. All rights reserved.
