@@ -3366,6 +3366,7 @@ function reliefAlbedo(x, q, m) {
 }
 // the stand-in while a relief stroke is still arriving (and the look without WebGL): a shaded tube in the material's colour
 function reliefFlat(x, q, u = 1, dir = 1) {
+  if (x === X) RLF.flat = (RLF.flat || 0) + 1;       // (how often the stand-in reaches the stage: should stay 0 while the relief is lit)
   const m = RELIEF[q.st] || RELIEF.ceramic, [c0, c1, o] = colsOf(q), tint = RELIEF_TINT[q.st], c = tint ? mixHex(tint, mixHex(c0, c1, 0.5), 0.28) : mixHex(c0, c1, 0.5);
   x.save(); x.globalAlpha = Math.max(0.9, o); x.lineCap = 'round'; x.lineJoin = 'round';
   if (q.t === 'S') {
@@ -6698,7 +6699,7 @@ setButtons();
 // anything they open or pick replaces it. ?nodemo opens it empty.
 if (PUBLIC && window.CP_DEMO_JAS && !new URLSearchParams(location.search).has('nodemo'))
   setTimeout(() => { if (S.mode === 'idle') startAuto(demoPicture('jas'), 'demo · JAS.BLACK'); }, 900);
-window.STUDIO = { S, AU, OFF, startAuto, startReplay, loadAudio, setLiveAudio, startLive, autoProgram, codeSize, renderBig, RLF, relief: () => ({ on: RLF.on, gl: !!reliefGL() }), relight, LIGHT, SHP_svg: () => SHP.svg(S.drawn, S.out.width, S.out.height, S.bgHex) };
+window.STUDIO = { S, AU, OFF, startAuto, startReplay, loadAudio, setLiveAudio, startLive, autoProgram, codeSize, renderBig, RLF, LAG, relief: () => ({ on: RLF.on, gl: !!reliefGL() }), relight, LIGHT, SHP_svg: () => SHP.svg(S.drawn, S.out.width, S.out.height, S.bgHex) };
 })();
 
 </script>
