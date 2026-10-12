@@ -333,7 +333,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.23.0">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.23.1">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -675,7 +675,7 @@
     <div class="ttl"><b>speed</b><span>max ×100</span></div>
     <output id="speedval" for="speed">×1</output>
     <input id="speed" class="fad" type="range" min="1" max="100" value="54" aria-label="Painting speed">
-    <div class="row" style="flex-wrap: nowrap"><select id="replay" class="sel" aria-label="Replay a piece" style="flex: 1; min-width: 0"><option value="">replay…</option></select><div class="kn" title="Replay a piece: live strokes joining the hand-coded piece (shapes × this)"><input id="mix" type="range" min="0" max="100" value="0" aria-label="Live strokes mixed into the replay"><span class="lbl">+live</span><output id="mixval" for="mix">off</output></div>
+    <div class="row" style="flex-wrap: nowrap"><select id="replay" class="sel" aria-label="Replay a piece" style="flex: 1; min-width: 0"><option value="">replay…</option></select><button type="button" id="replaylayer" class="mini" style="flex: none" title="Layer: the premade pieces in a random order, each one replayed over the last instead of on a fresh canvas (its background left out, so only its marks land), with live strokes mixed in (+live; turned up to 35% if it is off). Press again for a new order; pick anything else to stop">layer ⤮</button><div class="kn" title="Replay a piece: live strokes joining the hand-coded piece (shapes × this)"><input id="mix" type="range" min="0" max="100" value="0" aria-label="Live strokes mixed into the replay"><span class="lbl">+live</span><output id="mixval" for="mix">off</output></div>
       <div class="kn" title="The last part of a mixed replay is code only: its finishing layers land on top"><input id="mixfin" type="range" min="0" max="80" value="25" aria-label="Code finish"><span class="lbl">finish</span><output id="mixfinval" for="mixfin">25%</output></div></div>
   </div>
   <div class="panel music">
@@ -1226,7 +1226,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.23.0 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.23.1 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1244,7 +1244,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.23.0', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.23.1', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -2741,8 +2741,9 @@ const safeName = () => S.name.replace(/[^\w-]+/g, '_');
 // ═════════════════════════════════════════════════════════════
 //  Replay a hand-coded piece
 // ═════════════════════════════════════════════════════════════
-async function startReplay(id) {
+async function startReplay(id, opts = {}) {
   loadToken++;   // a picture still loading must not take over from the replay
+  const under = opts.layer && S.out ? S.out : null;      // layering: the new piece goes on top of what is there
   stopAll(); applyReelLen(); newRun();
   S.pen = false; S.line = null; S.order = 'free'; S.penEnd = 0;     // (a replay is never one pen: the mixed-in strokes land together)
   const gen = ++S.replayGen;
@@ -2759,14 +2760,21 @@ async function startReplay(id) {
   const info = await S.api.count();
   S.opLines = info.lines; S.opKinds = info.kinds; S.total = info.n;
   S.out = document.createElement('canvas'); S.out.width = info.w; S.out.height = info.h; S.outX = S.out.getContext('2d');
-  S.outX.fillStyle = '#000'; S.outX.fillRect(0, 0, info.w, info.h); S.loopBg = '#000000'; snapMaybe(0);
+  S.outX.fillStyle = '#000'; S.outX.fillRect(0, 0, info.w, info.h); S.loopBg = '#000000';
+  if (under) drawCover(S.outX, under, 0, 0, info.w, info.h);
+  snapMaybe(0);
   // keep a replay to roughly half a minute of rendering: every op for small pieces, evenly sampled for big ones
   const maxSteps = Math.max(40, Math.min(360, Math.round(30000 / Math.max(info.ms, 12))));
   S.sched = info.n <= maxSteps ? Array.from({ length: info.n }, (_, i) => i + 1) : Array.from({ length: maxSteps }, (_, i) => Math.max(1, Math.round((i + 1) * info.n / maxSteps)));
   S.plan = audioActive() && musicMode() === 'hits' ? hitPlan(S.sched.length) : null; S.stepTarget = 0;
   if (mixAmount() > 0) startMix(info);
+  if (under) {             // layering: the code lands only where it changes something, and its first op (the background) is left out
+    if (!S.mix) S.mix = { busy: false, debt: 0, done: 0, strokeSteps: S.sched.length, per: 0, prev: null };
+    const c0 = await S.api.render(1); if (gen !== S.replayGen) return;
+    S.mix.prev = c0.getContext('2d').getImageData(0, 0, info.w, info.h).data; S.mix.bg = S.mix.prev.slice(); S.layered = true;
+  } else S.layered = false;
   S.running = true; S.t0 = clock(); S.pausedTotal = 0; S.pausedAt = 0;
-  $('hint').textContent = `Replaying ${id}: ${info.n} drawing ops from ${S.src.length} lines of code${S.mix ? ` + ${Math.round(S.mix.per * S.mix.strokeSteps)} live strokes${S.mix.strokeSteps < S.sched.length ? ', then the code finishes on its own' : ''}` : ''}${audioActive() ? ` to ♪ ${AU.name} (${fmtTime(AU.in)}–${fmtTime(AU.out)})` : ''}.`;
+  $('hint').textContent = `${opts.layer ? `Layer ${RSHOW.i + 1} of ${RSHOW.ids ? RSHOW.ids.length : 1}: ` : ''}Replaying ${id}: ${info.n} drawing ops from ${S.src.length} lines of code${S.mix ? ` + ${Math.round(S.mix.per * S.mix.strokeSteps)} live strokes${S.mix.strokeSteps < S.sched.length ? ', then the code finishes on its own' : ''}` : ''}${audioActive() ? ` to ♪ ${AU.name} (${fmtTime(AU.in)}–${fmtTime(AU.out)})` : ''}.`;
   playAudioFromStart();
   setButtons();
   replayLoop(gen);
@@ -2797,8 +2805,17 @@ function sendMixFrame() {
   x.setTransform(w / S.out.width, 0, 0, w / S.out.width, 0, 0); for (const it of S.landing) drawQ(x, it.q);
   x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1;
   const current = x.getImageData(0, 0, w, h).data;
+  // layering: the live strokes only go where the new piece's code has drawn so far (elsewhere the target is the canvas
+  // itself, so there is nothing to fix): they follow its marks and leave the pieces below alone
+  if (S.layered && M.bg && M.prev) {
+    const W2 = S.out.width, H2 = S.out.height, bg = M.bg, pv = M.prev;
+    for (let y = 0; y < h; y++) { const sy = Math.min(H2 - 1, Math.floor((y + 0.5) * H2 / h)); for (let xx = 0; xx < w; xx++) {
+      const sx = Math.min(W2 - 1, Math.floor((xx + 0.5) * W2 / w)), j = (sy * W2 + sx) * 4, i = (y * w + xx) * 4;
+      if (Math.abs(pv[j] - bg[j]) + Math.abs(pv[j + 1] - bg[j + 1]) + Math.abs(pv[j + 2] - bg[j + 2]) < 30) { target[i] = current[i]; target[i + 1] = current[i + 1]; target[i + 2] = current[i + 2]; }
+    } }
+  }
   M.busy = true;
-  worker.postMessage({ type: 'frame', gen: S.gen, target, current, n: 24, L: 0, abstract: abstractOn(), outline: outlineMode(), rfill: rfillMode() }, [target.buffer, current.buffer]);
+  worker.postMessage({ type: 'frame', gen: S.gen, target, current, n: 24, L: 0, abstract: abstractOn(), outline: outlineMode(), rfill: rfillMode(), fresh: S.layered ? 0.55 : null }, [target.buffer, current.buffer]);     // (layering: no big washes over the pieces below)
 }
 // a code step lands as the pixels it changed (so it goes on top of the strokes, and the strokes around it stay)
 function codeInto(cv) {
@@ -2806,10 +2823,15 @@ function codeInto(cv) {
   const nd = cv.getContext('2d').getImageData(0, 0, w, h), a = nd.data, p = M.prev;
   if (!M.tmp) { M.tmp = document.createElement('canvas'); M.tmp.width = w; M.tmp.height = h; M.tx = M.tmp.getContext('2d'); M.id = M.tx.createImageData(w, h); }
   const o = M.id.data;
+  let changed = 0;
   for (let i = 0; i < a.length; i += 4) {
     const d = p ? Math.abs(a[i] - p[i]) + Math.abs(a[i + 1] - p[i + 1]) + Math.abs(a[i + 2] - p[i + 2]) : 255;
     o[i] = a[i]; o[i + 1] = a[i + 1]; o[i + 2] = a[i + 2]; o[i + 3] = d <= 12 ? 0 : d >= 40 ? 255 : (d - 12) * 9.1;
+    if (o[i + 3] > 128) changed++;
   }
+  // layering: a step that washes over most of the canvas (a piece's backgrounds and big washes) goes on as a thin glaze,
+  // so the piece underneath still shows through it
+  if (S.layered && changed > a.length / 4 * 0.5) for (let i = 3; i < o.length; i += 4) o[i] = o[i] * 0.12;
   M.tx.putImageData(M.id, 0, 0);
   if (RLF.on && RLF.st && RLF.st.out === S.out) {        // a relief: the code paints its colours (and is paint, not material, where it lands)
     const R = RLF.st; R.ax.setTransform(1, 0, 0, 1, 0, 0); R.ax.drawImage(M.tmp, 0, 0); R.dirty = true;
@@ -2828,7 +2850,7 @@ function mixStrokes(steps = true) {
     reveal(S.queue.shift(), anim && { ...anim, delay: j++ * 12 }); M.debt--; M.painted = (M.painted || 0) + 1;
     [S.count, S.codeBytes, S.sim] = keep;
   }
-  if (!M.busy && S.queue.length < 48 && (M.done < M.strokeSteps || M.debt >= 1)) sendMixFrame();
+  if (M.per > 0 && !M.busy && S.queue.length < 48 && (M.done < M.strokeSteps || M.debt >= 1)) sendMixFrame();
 }
 // the code finish starts: every stroke still due lands first (so none land on top of the finishing layers);
 // in step with a song there's no waiting, the strokes still arriving are simply put down
@@ -7287,6 +7309,11 @@ $('example').onchange = e => {
   if (v.startsWith('__demo:')) return startAuto(demoPicture(v.slice(7)), name);
   if (v) startAuto(v, name);
 };
+$('replaylayer').onclick = () => {
+  $('example').value = ''; $('replay').value = '';
+  if (!(+$('mix').value)) { $('mix').value = 35; $('mix').dispatchEvent(new Event('input', { bubbles: true })); }
+  replayShow(null, true);
+};
 $('replay').onchange = e => {
   const v = e.target.value; if (!v) return;
   $('example').value = '';
@@ -7295,10 +7322,11 @@ $('replay').onchange = e => {
 };
 // replays one after another: every piece of a set (or all of them) in turn, each held for the playlist's hold time
 // once it is done, round and round until something else is picked
-const RSHOW = { ids: null, i: 0 };
-function replayShow(set) {
+const RSHOW = { ids: null, i: 0, layer: false };
+function replayShow(set, layer = false) {
   const ids = PIECES.map(([id]) => id).filter(id => !set || id[0] === set); if (!ids.length) return;
-  RSHOW.ids = ids; RSHOW.i = 0; startReplay(ids[0]);
+  if (layer) for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }     // (a random order)
+  RSHOW.ids = ids; RSHOW.i = 0; RSHOW.layer = layer; startReplay(ids[0], { layer });
 }
 function replayShowNext(gen) {
   if (!RSHOW.ids) return;
@@ -7306,7 +7334,7 @@ function replayShowNext(gen) {
   const tick = () => {
     if (RSHOW.ids !== ids || gen !== S.replayGen || S.mode !== 'replay') return;           // (something else took over)
     if (clock() - t0 < +$('hold').value * 1000) return setTimeout(tick, 200);
-    RSHOW.i = (RSHOW.i + 1) % ids.length; startReplay(ids[RSHOW.i]);
+    RSHOW.i = (RSHOW.i + 1) % ids.length; startReplay(ids[RSHOW.i], { layer: RSHOW.layer });
   };
   setTimeout(tick, 200);
 }
@@ -7599,7 +7627,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.23.0');
+    const V = await import('./viewer3d.js?v=4.23.1');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
