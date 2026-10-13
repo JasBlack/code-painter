@@ -60,10 +60,10 @@ The options are *draw, glide, sketch, ink, spiral, fall, pop, shard, pixel* and 
 ## Path: how the painter travels
 
 - **order**: *free* (the biggest mistake first), *top → bottom*, *bottom → top*, *left → right*, *right → left*, *diagonal*, *spiral out / in*, *rings out / in*, or *clock sweep*.
-- **one line**: a pen that never lifts. With music, *beats: branch* splits the line on every beat.
+- **one line**: a pen that never lifts. With music, *branch* (on the beat) splits the line on every beat.
 - **outlines**: the picture's real lines, drawn first or last.
 - **shapes by hand**: big patches of one colour get their outline traced, then are scribbled in (*outline + scribble*, *outline + rows*, *scribble*).
-- **cuts**: when a video cuts to a new scene, the change is either drawn or pre-drawn.
+- **cuts**: when a video cuts to a new scene, the change is either drawn or pre-drawn. With *pre-drawn*, recordings have no pause: ⏺ render pre-draws between frames, and ⏺ live leaves the pre-draw out of the file (the song waits with it). The video cuts straight to the new scene, already painted.
 
 Order and one line also work in playlists.
 
@@ -82,10 +82,12 @@ Load a song, or use live sound.
 - **flow**: the painting follows the song's energy.
 - **free**: hits throw bursts of strokes.
 - **sections**: drops paint bolder, breaks paint calmer.
-- **beats**:
-  - *glow*: strokes that land on a beat light up.
+- **on the beat** (tick any mix):
+  - *glow*: a spark rides the tip of each stroke landing on the beat, with a thin rim of light along its edges.
+  - *splash*: the brushes being drawn flick drops of their paint off the tip.
+  - *pulse*: strokes on the beat are thicker; the harder the beat, the bolder.
+  - *colour*: strokes on the beat get a brighter, more saturated version of their colour.
   - *branch*: in one-line mode, the line splits on each beat.
-  - *glow + branch*: both.
 - **fx**: punch zoom, flashing border, grid pulse.
 
 ## Recording and export
@@ -114,16 +116,16 @@ Load a song, or use live sound.
 
 | | | |
 |---|---|---|
-| ![pencil](examples/pencil.webp) | ![graffiti](examples/graffiti.webp) | ![oil](examples/oil.webp) |
-| pencil | graffiti | oil |
+| ![pencil](examples/pencil.webp) | ![graffiti](examples/graffiti.webp) | ![foam](examples/foam.webp) |
+| pencil | graffiti | foam |
 | ![acrylic](examples/acrylic.webp) | ![watercolour](examples/watercolour.webp) | ![linocut](examples/linocut.webp) |
 | acrylic | watercolour | linocut |
-| ![riso](examples/riso.webp) | ![bronze](examples/bronze.webp) | ![glass](examples/glass.webp) |
-| riso | bronze | glass |
+| ![riso](examples/riso.webp) | ![bronze](examples/bronze.webp) | ![hylics](examples/hylics.webp) |
+| riso | bronze | hylics |
 
 ## Tips
 
 - A portrait or a picture with a clear subject paints best.
 - **Lower the stroke count** for bold, graphic pictures; **raise it** (or use *hq*) for detail.
-- To make the music obvious, use **one line + beats: glow + branch**.
+- To make the music obvious, use **one line** with **glow + splash + branch** on the beat.
 - Rendering at 4K takes about four times as long as 1080p.

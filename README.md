@@ -1,6 +1,6 @@
 # Code Painter by JAS.BLACK
 
-Version 4.23.1
+Version 4.23.2
 
 Drop in any picture and watch it painted in code, stroke by stroke, with the program writing itself underneath.
 Add a song and the painting follows its hits and sections; add stroke sounds and every stroke plays a note.
@@ -15,15 +15,15 @@ Best in Chrome, Edge or Brave on a desktop or laptop (Safari works too).
 
 | | | |
 |---|---|---|
-| ![pencil](docs/examples/pencil.webp) | ![graffiti](docs/examples/graffiti.webp) | ![oil](docs/examples/oil.webp) |
+| ![pencil](docs/examples/pencil.webp) | ![graffiti](docs/examples/graffiti.webp) | ![foam](docs/examples/foam.webp) |
 | ![acrylic](docs/examples/acrylic.webp) | ![watercolour](docs/examples/watercolour.webp) | ![linocut](docs/examples/linocut.webp) |
-| ![riso](docs/examples/riso.webp) | ![bronze](docs/examples/bronze.webp) | ![glass](docs/examples/glass.webp) |
+| ![riso](docs/examples/riso.webp) | ![bronze](docs/examples/bronze.webp) | ![hylics](docs/examples/hylics.webp) |
 
 ## Quick start
 
 1. Open the site and press **▶ try a demo**, or drop a picture or video anywhere on the page.
 2. Pick a **look** (pencil, graffiti, watercolour, ink, chrome, hylics) and a **path** (free, one line, spiral out, top → bottom).
-3. Add a song if you like; strokes land on its beats (*beats: glow + branch* makes it obvious).
+3. Add a song if you like; strokes land on its beats (*on the beat: glow, splash, pulse, colour, branch* makes it obvious).
 4. **Record** (rendered smooth at 720p – 4K), **save the picture**, or **save as code**: a small web page that paints it again by itself.
 
 48 styles in five groups: paint, draw, graphic, craft and 3d (lit in 3D: metals, ceramic, glass, lens, crystal…). The full tour is in the [guide](docs/GUIDE.md).
