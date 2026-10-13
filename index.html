@@ -333,7 +333,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.24.0">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.24.1">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -1244,7 +1244,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.24.0 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.24.1 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1262,7 +1262,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.24.0', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.24.1', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -2185,7 +2185,7 @@ function reveal(m, anim) {
     let dur = mo === 'pop' ? 220 : Math.max(350, Math.min(1400, 260 + 2.2 * sizeOf(q))) * (anim.k || 1) * (MOTION_TIME[mo] || 1);
     if (from) dur += Math.min(500, Math.hypot(from[0] - c[0], from[1] - c[1]) * 0.6);
     dur = Math.min(dur, anim.max || 1200);
-    const fp = fillParts(q); if (fp) dur = Math.min(3200, dur * Math.min(2.6, 0.7 + 0.3 * Math.sqrt(fp.length)));   // a filled patch: the hand needs a while for all its passes
+    const fp = fillParts(q); if (fp) dur = Math.min(8000, dur * Math.min(8, 0.6 + 0.4 * fp.length));   // a filled patch: the hand needs a while for all its passes (each row is drawn, never flashed in)
     const L = { q, c, dir, from, mode: mo, t0: now + (anim.delay || 0), dur, seed: Math.random() * 100 };
     if (S.pen && S.mode === 'auto') {      // one pen: each stroke starts when the last has finished, travelling at an even pace (the speed slider sets how fast)
       // the pen moves at one steady speed; it is set so that an average stroke takes as long as a stroke does at this speed in the normal painter
@@ -2267,6 +2267,16 @@ function drawMotion(L, u, lib, tips) {
       X[i ? 'lineTo' : 'moveTo'](cx + Math.cos(an) * R * w, cy + Math.sin(an) * R * w);
     }
     X.closePath(); X.clip(); drawQ(X, L.q);
+  } else if (L.mode === 'sketch' && t === 'S') {     // a line: a pencil traces its path first, then the brush paints along it
+    const pu = clamp01(u / 0.4), bu = clamp01((u - 0.25) / 0.75), m = X.getTransform(), px = 1 / Math.hypot(m.a, m.b);
+    if (bu < 1) {
+      const P = quadPts(a, Math.max(0.02, pu), L.dir, 28), j = Math.max(0.6, a[6] * 0.04);
+      X.save(); X.globalAlpha = 0.8 * (1 - bu * bu); X.strokeStyle = colourOf(t, a); X.lineWidth = 1.5 * px; X.lineCap = X.lineJoin = 'round'; X.beginPath();
+      P.forEach((p, i) => X[i ? 'lineTo' : 'moveTo'](p[0] + j * Math.sin(i * 1.7 + L.seed), p[1] + j * Math.cos(i * 2.3 + L.seed)));
+      X.stroke(); X.restore();
+      if (bu === 0) { const e2 = P[P.length - 1]; tip(e2[0], e2[1]); }
+    }
+    if (bu > 0) { const p = strokeAt(X, L.q, easeInOut(bu), L.dir); tip(p[0], p[1]); }
   } else if (L.mode === 'sketch') {     // a pencil outline goes round first, then the colour floods in from the middle
     const poly = SHP.poly({ t, p: a }), pu = clamp01(u / 0.55), fu = clamp01((u - 0.4) / 0.6);
     if (fu > 0) { X.save(); X.beginPath(); X.arc(cx, cy, reachOf(L) * easeOut2(fu), 0, 7); X.clip(); drawQ(X, L.q); X.restore(); }
@@ -7761,7 +7771,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.24.0');
+    const V = await import('./viewer3d.js?v=4.24.1');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
