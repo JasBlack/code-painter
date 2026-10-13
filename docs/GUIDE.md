@@ -82,11 +82,12 @@ Load a song, or use live sound.
 - **flow**: the painting follows the song's energy.
 - **free**: hits throw bursts of strokes.
 - **sections**: drops paint bolder, breaks paint calmer.
-- **on the beat** (tick any mix):
-  - *glow*: a spark rides the tip of each stroke landing on the beat, with a thin rim of light along its edges.
+- **music in the paint** (*amount*): how much the song changes the painting itself. At 0 the music only sets the pace.
+  - Every beat lands **one big, bold stroke**, snapped down on the beat. With *one line*, the line swells on the beat instead.
+  - **Loud parts paint with broad brushes, quiet parts with fine ones.** Loud and quiet are measured against the song itself, so any track gets the full range.
+  - On the **3D styles** (oil, acrylic, metals, glass…), the **light swings round on every beat** and drops lower with the bass, so the whole surface catches it.
+- Extras on the beat:
   - *splash*: the brushes being drawn flick drops of their paint off the tip.
-  - *pulse*: strokes on the beat are thicker; the harder the beat, the bolder.
-  - *colour*: strokes on the beat get a brighter, more saturated version of their colour.
   - *branch*: in one-line mode, the line splits on each beat.
 - **fx**: punch zoom, flashing border, grid pulse.
 
@@ -127,5 +128,5 @@ Load a song, or use live sound.
 
 - A portrait or a picture with a clear subject paints best.
 - **Lower the stroke count** for bold, graphic pictures; **raise it** (or use *hq*) for detail.
-- To make the music obvious, use **one line** with **glow + splash + branch** on the beat.
+- To make the music obvious, turn **amount** up and pick a 3D style such as oil or gold: the beat strokes and the swinging light both show it.
 - Rendering at 4K takes about four times as long as 1080p.
