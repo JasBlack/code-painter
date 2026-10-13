@@ -333,7 +333,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.23.3">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.23.4">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -1246,7 +1246,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.23.3 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.23.4 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1264,7 +1264,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.23.3', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.23.4', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -2141,6 +2141,19 @@ function directionOf(q, c, prev) {
   return Math.random() < 0.5 ? 1 : -1;
 }
 // reveal one shape: its line of code appears now; with `anim` ({delay, k, max}) it is animated onto the stage first
+// one line with music: the pen's pace follows the song — faster when it is loud, a surge on every beat, and (hits /
+// flow) catching up with how far the song says the painting should be by now, so it lands with the music
+function penMusicK() {
+  if (!(S.mode === 'auto' && audioActive() && !AU.ended && !aPaused())) return 1;
+  const energy = Math.min(1, 0.6 * AU.bass + 0.4 * AU.mid);
+  let k = 0.35 + 2.2 * energy + 2.8 * Math.min(1, AU.beat);
+  const m0 = musicMode(), t = aTime();
+  let want = null;
+  if (m0 === 'flow') want = S.total * audioProgress(t);
+  else if (m0 === 'hits' && S.plan) { want = 0; for (let j = 0; j < S.plan.t.length && S.plan.t[j] <= t; j++) want += S.plan.n[j]; }
+  if (want != null) k *= Math.min(4, Math.max(0.06, Math.exp((want - S.count) / Math.max(15, S.total * 0.025))));     // (ahead of the song: it slows right down; behind: it hurries)
+  return k;
+}
 function reveal(m, anim) {
   // every shape picks one of the ticked motions
   let mo = motion();
@@ -2173,7 +2186,7 @@ function reveal(m, anim) {
       // ((12 + 0.06 × strokes so far) × speed strokes a second), so the speed slider means the same here, short strokes or long
       const a = q.args, len = Math.hypot(a[4] - a[0], a[5] - a[1]) * 1.15 + 1;
       S.penLen = S.penLen ? S.penLen * 0.95 + len * 0.05 : len;
-      const target = 1000 / ((12 + 0.06 * S.count) * Math.min(speedFactor(), 400)), v = Math.max(0.02, S.penLen / target);
+      const target = 1000 / ((12 + 0.06 * S.count) * Math.min(speedFactor(), 400)), v = Math.max(0.02, S.penLen / target) * penMusicK();
       const pid = m.pen || 0; S.penEnds = S.penEnds || {};      // (a branch keeps its own time, beside the main line)
       L.t0 = Math.max(now, pid ? S.penEnds[pid] || 0 : S.penEnd || 0); L.dur = dur = Math.max(1, len / v);
       if (pid) S.penEnds[pid] = L.t0 + dur; else S.penEnd = L.t0 + dur;
@@ -2181,7 +2194,7 @@ function reveal(m, anim) {
     const glowOn = S.glow && now - S.glow.t < 320 && (S.glow.n = (S.glow.n || 0) + 1) <= 14 && S.glow.fx.has('glow'), glowAdd = G => { S.glowQ = S.glowQ || []; S.glowQ.push({ L: G, s: S.glow.s }); if (S.glowQ.length > 60) S.glowQ.shift(); };
     if (fp && mo !== 'off') {            // a filled patch: its passes land one after another, each drawn once it is down (no redrawing them all every frame)
       const lens = fp.map(p => Math.hypot(p.args[4] - p.args[0], p.args[5] - p.args[1]) + 1), tot = lens.reduce((a, b) => a + b, 0); let t = L.t0;
-      fp.forEach((p, i) => { const d = Math.max(16, L.dur * lens[i] / tot), P = { q: p, c: centreOf(p), dir: 1, from: null, mode: 'draw', t0: t, dur: d, seed: L.seed, more: i < fp.length - 1 }; S.landing.push(P); if (glowOn && i < 6) glowAdd(P); t += d; });     // (the glow follows the passes actually painted)
+      fp.forEach((p, i) => { const d = Math.max(S.pen ? 0.5 : 16, L.dur * lens[i] / tot), P = { q: p, c: centreOf(p), dir: 1, from: null, mode: 'draw', t0: t, dur: d, seed: L.seed, more: i < fp.length - 1 }; S.landing.push(P); if (glowOn && i < 6) glowAdd(P); t += d; });     // (the glow follows the passes actually painted)
       end = t; if (S.pen && S.mode === 'auto') S.penEnd = t;
     } else { S.landing.push(L); end = L.t0 + dur; if (glowOn) glowAdd(L); }
   } else commitShape(q);
@@ -2333,7 +2346,10 @@ function pace(dt) {
   // (a video's own soundtrack hasn't started yet while its first frame emerges: plain speed pacing until then)
   // (live sound has no plan or energy curve: speed pacing with bursts on its beats)
   const m0 = (S.video && AU.el === S.video) ? 'none' : AU.live && !audioActive() ? 'free' : musicMode(), mode = m0 === 'hits' && !S.plan ? 'flow' : m0, playing = (audioActive() && !AU.ended && !aPaused()) || !!AU.live;
-  if (fitOn()) {
+  if (S.pen && playing && (mode === 'flow' || mode === 'hits') && !AU.ended) {
+    // one line with music: one stroke at a time, as the pen gets there; its pace follows the song (penMusicK)
+    while (S.queue.length && (S.penEnd || 0) - clock() < 120) reveal(S.queue.shift(), { k: 1 });
+  } else if (fitOn()) {
     // timed to the length: the strokes follow a curve that lands the last one on time
     const target = Math.floor(S.total * fitCurve(elapsed() / fitBuild())), rate = S.total / fitBuild();
     const anim = { k: Math.min(2, Math.max(0.1, Math.pow(rate / (12 + 0.06 * S.count), -0.6))), max: 900 };
@@ -7696,7 +7712,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.23.3');
+    const V = await import('./viewer3d.js?v=4.23.4');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
