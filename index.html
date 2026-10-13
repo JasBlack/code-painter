@@ -2355,6 +2355,8 @@ function pace(dt) {
     // painted by the song: each hit that playback passes drops its share of strokes onto the canvas
     const P = S.plan, t = aTime();
     while (AU.moving && P.i < P.t.length && P.t[P.i] <= t) { S.debt += P.n[P.i]; P.i++; }
+    // (before the song's first hit: the first washes go on gently, so the canvas never sits empty waiting for it)
+    if (AU.moving && P.i === 0 && P.t.length && t < P.t[0] - 0.25) { S.acc = Math.min((S.acc || 0) + dt / 1000 * 5, 3); while (S.acc >= 1 && S.queue.length) { reveal(S.queue.shift(), { k: 1.3 }); S.acc--; } }
     // a hit's strokes start in a quick flurry and finish before the next beat
     const burst = S.debt, beatMs = AU.bpm ? 60000 / AU.bpm : 500, stagger = Math.min(12, 120 / burst); let j = 0;
     while (S.debt > 0 && S.queue.length) { const delay = j++ * stagger; reveal(S.queue.shift(), { delay, max: Math.max(120, beatMs * 0.85 - delay) }); S.debt--; }
