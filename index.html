@@ -333,7 +333,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.23.4">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.23.5">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -1246,7 +1246,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.23.4 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.23.5 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1264,7 +1264,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.23.4', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.23.5', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -2143,16 +2143,21 @@ function directionOf(q, c, prev) {
 // reveal one shape: its line of code appears now; with `anim` ({delay, k, max}) it is animated onto the stage first
 // one line with music: the pen's pace follows the song — faster when it is loud, a surge on every beat, and (hits /
 // flow) catching up with how far the song says the painting should be by now, so it lands with the music
+// where the one line should be by now with a song: the song's plan, run a little ahead so the last stroke lands before it ends
+function penWant() {
+  const m0 = musicMode(), t = AU.in + (aTime() - AU.in) / 0.9;
+  if (m0 === 'flow') return S.total * audioProgress(Math.min(t, AU.out));
+  if (m0 === 'hits' && S.plan) { if (t >= AU.out) return S.total; let w = 0; for (let j = 0; j < S.plan.t.length && S.plan.t[j] <= t; j++) w += S.plan.n[j]; return w; }
+  return null;
+}
 function penMusicK() {
+  if (S.mode === 'auto' && AU.ended && S.queue.length) return 12;          // (the song is over and strokes are left: drawn out quickly, never dropped in at once)
   if (!(S.mode === 'auto' && audioActive() && !AU.ended && !aPaused())) return 1;
   const energy = Math.min(1, 0.6 * AU.bass + 0.4 * AU.mid);
   let k = 0.35 + 2.2 * energy + 2.8 * Math.min(1, AU.beat);
-  const m0 = musicMode(), t = aTime();
-  let want = null;
-  if (m0 === 'flow') want = S.total * audioProgress(t);
-  else if (m0 === 'hits' && S.plan) { want = 0; for (let j = 0; j < S.plan.t.length && S.plan.t[j] <= t; j++) want += S.plan.n[j]; }
-  if (want != null) k *= Math.min(4, Math.max(0.06, Math.exp((want - S.count) / Math.max(15, S.total * 0.025))));     // (ahead of the song: it slows right down; behind: it hurries)
-  return k;
+  const want = penWant();
+  if (want != null) k *= Math.min(6, Math.max(0.06, Math.exp((want - S.count) / Math.max(12, S.total * 0.02))));     // (ahead of the song: it slows right down; behind: it hurries)
+  return Math.min(9, k);          // (never so fast that a burst of strokes lands in one frame)
 }
 function reveal(m, anim) {
   // every shape picks one of the ticked motions
@@ -2346,9 +2351,9 @@ function pace(dt) {
   // (a video's own soundtrack hasn't started yet while its first frame emerges: plain speed pacing until then)
   // (live sound has no plan or energy curve: speed pacing with bursts on its beats)
   const m0 = (S.video && AU.el === S.video) ? 'none' : AU.live && !audioActive() ? 'free' : musicMode(), mode = m0 === 'hits' && !S.plan ? 'flow' : m0, playing = (audioActive() && !AU.ended && !aPaused()) || !!AU.live;
-  if (S.pen && playing && (mode === 'flow' || mode === 'hits') && !AU.ended) {
+  if (S.pen && (mode === 'flow' || mode === 'hits') && (playing || (AU.ended && S.queue.length))) {
     // one line with music: one stroke at a time, as the pen gets there; its pace follows the song (penMusicK)
-    while (S.queue.length && (S.penEnd || 0) - clock() < 120) reveal(S.queue.shift(), { k: 1 });
+    for (let n = 0; n < 12 && S.queue.length && (S.penEnd || 0) - clock() < 120; n++) reveal(S.queue.shift(), { k: 1 });     // (at most a dozen a frame: a catch-up is spread out, never a jump)
   } else if (fitOn()) {
     // timed to the length: the strokes follow a curve that lands the last one on time
     const target = Math.floor(S.total * fitCurve(elapsed() / fitBuild())), rate = S.total / fitBuild();
@@ -6624,6 +6629,7 @@ function demand(dt) {
   const m0 = (S.video && AU.el === S.video) ? 'none' : musicMode(), mode = m0 === 'hits' && !S.plan ? 'flow' : m0;
   let n;
   if (fitOn()) n = S.total * fitCurve((elapsed() + dt / 1000) / fitBuild()) - S.count;
+  else if (S.pen && (mode === 'hits' || mode === 'flow') && !AU.ended && penWant() != null) n = penWant() - S.count + 24;     // (one line: what the pen will draw, a little ahead)
   else if (mode === 'hits' && S.plan && !AU.ended) { n = S.debt; for (let i = S.plan.i; i < S.plan.t.length && S.plan.t[i] <= OFF.aT; i++) n += S.plan.n[i]; }
   else if (mode === 'flow' && !AU.ended) n = S.total * audioProgress(OFF.aT) - S.count;
   else n = f === Infinity || AU.ended ? 60 : S.acc + dt / 1000 * f * (mode === 'free' ? 2.7 : 1) * (12 + 0.06 * S.count);
@@ -7712,7 +7718,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.23.4');
+    const V = await import('./viewer3d.js?v=4.23.5');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
