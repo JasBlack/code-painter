@@ -333,7 +333,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.23.2">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.23.3">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -464,7 +464,7 @@
     <div class="ttl"><b>brush</b><span>strokes</span></div>
     <div class="row">
       <select id="brush" class="sel" title="What the plain styles are painted with: paint, soft, flat, geo, hatch and string (every other style draws with its own tool). Changing it repaints the picture with the new brush" aria-label="Brush" style="flex: 1"><option value="default" selected>shapes</option><option value="bristle">bristle</option><option value="chalk">chalk</option><option value="sponge">sponge</option><option value="canvas">canvas weave</option><option value="crackle">crackle</option><option value="grain">pastel grain</option><option value="dry">dry brush</option><option value="wood">wood grain</option><option value="splat">ink splat</option><option value="star">sparkle</option><option value="leaf">leaf</option><option value="drop">drop</option><option value="smoke">smoke</option><option value="custom">your own…</option></select>
-      <select id="fillmode" class="sel" aria-label="Fill" title="How wide strokes and big patches are filled by the tools that have a size of their own (spray, marker, pencil, pen, charcoal, pastel, ink, sumi, calligraphy, gouache, watercolour, oil, acrylic, knife, neon, hylics, thread): zigzag — back and forth across it, like a hand filling a wall · cross — zigzag, then rows over it the other way · one stroke — the tool simply grows to the size asked" style="flex: none; width: 76px"><option value="zigzag" selected>zigzag</option><option value="cross">cross</option><option value="off">one stroke</option></select>
+      <select id="fillmode" class="sel" aria-label="Fill" title="How wide strokes and big patches are filled by the tools that have a size of their own (paint, soft, spray, marker, pencil, pen, charcoal, pastel, ink, sumi, calligraphy, gouache, watercolour, oil, acrylic, knife, neon, hylics, thread): zigzag — back and forth across it, like a hand filling a wall · cross — zigzag, then rows over it the other way · one stroke — the tool simply grows to the size asked" style="flex: none; width: 76px"><option value="zigzag" selected>zigzag</option><option value="cross">cross</option><option value="off">one stroke</option></select>
     </div>
     <input id="brushfile" type="file" accept="image/*" hidden>
     <div class="row">
@@ -1246,7 +1246,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.23.2 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.23.3 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1264,7 +1264,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.23.2', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.23.3', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -2513,6 +2513,8 @@ const hqOn = () => +$('detail').value >= 1024;
 const workRes = () => +$('detail').value;
 const outLong = () => hqOn() ? 2000 : 1000;
 const fillMode = () => $('fillmode').value;
+// (which of the ticked styles the fill changes: only the ones with a tool size of their own)
+const fillNote = () => { if ($('fillmode').value === 'off') return ''; const v = stylePick.values().filter(st => TOOL[st]); return v.length ? ` For: ${v.join(', ')}.` : ' None of the ticked styles has a tool size of its own (flat, geo, the 3D materials… are drawn as one shape), so this changes nothing for them.'; };
 { const v = store('cp-fill'); if (['zigzag', 'cross', 'off'].includes(v)) $('fillmode').value = v; }
 const linesOn = () => $('lines').checked;
 { const v = store('cp-lines'); if (v === '0') $('lines').checked = false; }
@@ -3182,8 +3184,8 @@ function panes(now) {
 // for a stroke (or a patch) much wider than that, it is filled the way a hand would fill it: zigzag passes across it,
 // or zigzags and then rows along it (cross). Each pass is a stroke of the style at the tool's own width; they are drawn
 // one after another as the stroke arrives.
-const TOOL = { graffiti: 26, marker: 12, pencil: 5, pen: 3, charcoal: 14, pastel: 18, ink: 24, sumi: 30, calligraphy: 16, gouache: 40, watercolour: 50, oil: 56, acrylic: 56, knife: 64, neon: 10, hylics: 40, thread: 18 };
-const FILLS = new WeakMap(), SWEEP = new Set(['gouache', 'watercolour', 'sumi', 'oil', 'acrylic', 'knife']);   // (brushes sweep across on a slant)
+const TOOL = { painterly: 44, soft: 34, graffiti: 26, marker: 12, pencil: 5, pen: 3, charcoal: 14, pastel: 18, ink: 24, sumi: 30, calligraphy: 16, gouache: 40, watercolour: 50, oil: 56, acrylic: 56, knife: 64, neon: 10, hylics: 40, thread: 18 };
+const FILLS = new WeakMap(), SWEEP = new Set(['painterly', 'gouache', 'watercolour', 'sumi', 'oil', 'acrylic', 'knife']);   // (brushes sweep across on a slant)
 function fillParts(q) {
   if (q.sub || fillMode() === 'off') return null;
   const cap0 = TOOL[q.st]; if (!cap0 || (q.t !== 'S' && RELIEF[q.st] && RELIEF[q.st].bristle)) return null;    // (paint areas: bristleFill already lays them in brush strokes)
@@ -6937,7 +6939,7 @@ $('outline').onchange = () => {
   $('hint').textContent = outlineMode() === 'off' ? 'Outlines off.' : outlineMode() === 'first' ? 'Outlines: the picture\'s lines are drawn first, then the colour fills between them. Repainting.' : 'Outlines: the colour first, then the picture\'s lines as a final pass. Repainting.';
   if (S.mode === 'auto' && S.endless.on) { worker.postMessage({ type: 'outline', on: outlineMode() }); helpersPost({ type: 'outline', on: outlineMode() }); } else rerunSoon();
 };
-$('fillmode').onchange = () => { store('cp-fill', $('fillmode').value); $('hint').textContent = { zigzag: 'Fill zigzag: wide strokes and big patches are filled back and forth at the tool\'s own size.', cross: 'Fill cross: zigzag, then rows over it the other way.', off: 'Fill one stroke: every tool grows to whatever size is asked.' }[$('fillmode').value]; };
+$('fillmode').onchange = () => { store('cp-fill', $('fillmode').value); $('hint').textContent = { zigzag: 'Fill zigzag: wide strokes and big patches are filled back and forth at the tool\'s own size.', cross: 'Fill cross: zigzag, then rows over it the other way.', off: 'Fill one stroke: every tool grows to whatever size is asked.' }[$('fillmode').value] + fillNote(); };
 $('cuts').onchange = () => { store('cp-cuts', $('cuts').value); $('hint').textContent = $('cuts').value === 'pre' ? 'Cuts pre-drawn: a new scene is painted before it is shown.' : 'Cuts drawn: the painter paints the change as it happens.'; };
 { const o = store('cp-outline'), c = store('cp-cuts'); if (['off', 'first', 'last'].includes(o)) $('outline').value = o; if (c === 'pre') $('cuts').value = 'pre'; }
 $('line').onchange = () => { $('hint').textContent = $('line').value === 'off' ? 'One line off.' : 'One line: a pen that never lifts, one stroke after another in the ticked styles. Repainting.'; rerunSoon(); };
@@ -7694,7 +7696,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.23.2');
+    const V = await import('./viewer3d.js?v=4.23.3');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
