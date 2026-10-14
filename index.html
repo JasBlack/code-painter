@@ -333,7 +333,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.24.1">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.25.0">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -464,7 +464,7 @@
     <div class="ttl"><b>brush</b><span>strokes</span></div>
     <div class="row">
       <select id="brush" class="sel" title="What the plain styles are painted with: paint, soft, flat, geo, hatch and string (every other style draws with its own tool). Changing it repaints the picture with the new brush" aria-label="Brush" style="flex: 1"><option value="default" selected>shapes</option><option value="bristle">bristle</option><option value="chalk">chalk</option><option value="sponge">sponge</option><option value="canvas">canvas weave</option><option value="crackle">crackle</option><option value="grain">pastel grain</option><option value="dry">dry brush</option><option value="wood">wood grain</option><option value="splat">ink splat</option><option value="star">sparkle</option><option value="leaf">leaf</option><option value="drop">drop</option><option value="smoke">smoke</option><option value="custom">your own…</option></select>
-      <select id="fillmode" class="sel" aria-label="Fill" title="How wide strokes and big patches are filled by the tools that have a size of their own (paint, soft, spray, marker, pencil, pen, charcoal, pastel, ink, sumi, calligraphy, gouache, watercolour, oil, acrylic, knife, neon, hylics, thread): zigzag — back and forth across it, like a hand filling a wall · cross — zigzag, then rows over it the other way · one stroke — the tool simply grows to the size asked" style="flex: none; width: 76px"><option value="zigzag" selected>zigzag</option><option value="cross">cross</option><option value="off">one stroke</option></select>
+      <select id="fillmode" class="sel" aria-label="Fill" title="How wide strokes and big patches are filled by the tools that have a size of their own (paint, soft, spray, marker, pencil, pen, charcoal, pastel, ink, sumi, calligraphy, gouache, watercolour, oil, acrylic, knife, neon, hylics, thread): zigzag — back and forth across it, like a hand filling a wall · cross — zigzag, then rows over it the other way · one stroke — the tool simply grows to the size asked" style="flex: none; width: 76px"><option value="zigzag">zigzag</option><option value="cross">cross</option><option value="off" selected>one stroke</option></select>
     </div>
     <input id="brushfile" type="file" accept="image/*" hidden>
     <div class="row">
@@ -687,12 +687,13 @@
     <div class="row">
       <label class="key w" title="Load a song or audio clip (or drop it on the page)">load<input id="audio" type="file" accept="audio/*"></label>
       <button id="vsound" class="key w" hidden title="The video's own sound. off: silent · keep: its sound plays and goes into the recording, nothing else changes · music: its sound drives the painting like a song (hits, flow…)">🎞 sound: off</button>
+      <select id="demosong" class="sel" aria-label="Demo songs" title="Ten short demo songs (18–28 s) for trying the music out: each has a quiet part, a build and a drop" style="flex: none; width: 92px"><option value="">demo ♪</option><option value="01-house-124">house 124</option><option value="02-boom-bap-90">boom bap 90</option><option value="03-drum-and-bass-174">drum &amp; bass 174</option><option value="04-techno-130">techno 130</option><option value="05-trap-140">trap 140</option><option value="06-lo-fi-78">lo-fi 78</option><option value="07-dubstep-140">dubstep 140</option><option value="08-synthwave-100">synthwave 100</option><option value="09-breakbeat-110">breakbeat 110</option><option value="10-ambient-pulse-70">ambient 70</option></select>
       <button id="listen" class="key w" title="Preview the selected part">▶ listen</button>
       <select id="musicmode" data-seg title="How the music drives the painting" aria-label="Paint mode"><option value="hits" selected>hits</option><option value="flow">flow</option><option value="free">free</option></select>
       <div class="kn" data-knob="p" title="Lower: only the big hits (kicks, snares). Higher: every small accent"><input id="sens" type="range" min="0" max="100" value="50" aria-label="Hit sensitivity"><span class="lbl">sens</span></div>
       <select id="perhit" class="sel" title="Strokes per hit" aria-label="Strokes per hit"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>6</option><option>8</option><option>12</option><option>16</option><option>24</option><option>32</option></select>
       <button id="matchshapes" class="key w" title="Set the shape count to hits × strokes per hit">= hits × 4</button>
-      <label class="key" title="Song sections: the song's parts (intro, build, drop, break, outro) are found on its bars and shown on the timeline. Drops paint denser and bolder with a punch, breaks go finer and calmer, builds push in slowly; camera and beat fx follow the energy"><input id="sections" type="checkbox" checked><span class="led"></span>sect</label>
+      <label class="key" title="Song sections: the song's parts (intro, build, drop, break, outro) are found on its bars and shown on the timeline. Drops paint denser and bolder, breaks go finer and calmer; the camera move and beat fx follow the energy"><input id="sections" type="checkbox" checked><span class="led"></span>sect</label>
       <label class="key p" title="Punch zoom, flashing border and outline colours, grid pulse on every beat"><input id="beatfx" type="checkbox"><span class="led"></span>fx</label>
       <div class="kn" title="How strongly the beat effects react"><input id="react" type="range" min="0" max="100" value="70" aria-label="Beat effects strength"><span class="lbl">amt</span></div>
 
@@ -700,8 +701,9 @@
     <div class="row" id="beatrow" title="Make the music show in the painting itself">
       <span class="lbl" style="flex: none">music in the paint</span>
       <div class="kn" title="How much the song changes the painting itself (0: it only sets the pace). Every beat lands one big bold stroke, snapped down on the beat; loud parts paint with broad brushes and quiet parts with fine ones; on the 3D styles the light swings with the bass"><input id="musicamt" type="range" min="0" max="100" value="65" aria-label="Music in the paint"><span class="lbl">amount</span></div>
-      <label class="key" title="splash: on the beat, the brushes being drawn flick drops of their paint off the tip"><input type="checkbox" value="splash"><span class="led"></span>splash</label>
-      <label class="key" title="branch: with one line, every beat splits the line into a new branch that draws on beside it (up to four)"><input type="checkbox" value="branch"><span class="led"></span>branch</label>
+      <label class="key" title="splash: on the beat, the brushes being drawn flick drops of their paint off the tip"><input type="checkbox" id="beat_splash" value="splash"><span class="led"></span>splash</label>
+      <label class="key" title="branch: with one line, every beat splits the line into a new branch that draws on beside it (up to four)"><input type="checkbox" id="beat_branch" value="branch"><span class="led"></span>branch</label>
+      <label class="key" title="glow: on the beat, the tip of each brush being drawn lights up in its own shape and colour, and fades as it moves on"><input type="checkbox" id="beat_glow" value="glow"><span class="led"></span>glow</label>
     </div>
   </div>
   <div class="panel">
@@ -1244,7 +1246,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.24.1 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.25.0 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1262,7 +1264,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.24.1', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.25.0', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -1513,7 +1515,8 @@ async function loadAudio(file, media) {
     AU.srcNode = mediaSource(AU.el);
     if (!AU.an) { AU.an = AU.ctx.createAnalyser(); AU.an.fftSize = 2048; AU.an.smoothingTimeConstant = 0.55; AU.fft = new Uint8Array(AU.an.frequencyBinCount); AU.an.connect(AU.ctx.destination); AU.an.connect(AU.mix); }
     AU.srcNode.connect(AU.an);
-    AU.name = file.name.replace(/\.[^.]+$/, ''); AU.dur = buf.duration; AU.ended = false; AU.file = file;
+    AU.name = file.name.replace(/\.[^.]+$/, ''); if ($('demosong') && $('demosong').value !== AU.name) $('demosong').value = '';     // (a song of your own: the demo menu goes back to its title)
+    AU.dur = buf.duration; AU.ended = false; AU.file = file;
     AU.in = 0; AU.out = AU.dur;
     AU.el.onended = onAudioEnded;
     detectHits();
@@ -1738,6 +1741,7 @@ function onBeat(h) {
     if (S.running && !S.pen && !S.endless.on && !S.workerDone && !S.accWant && S.count < S.total - 2) { S.accWant = { t: clock(), s: st }; worker.postMessage({ type: 'accent', k: 1.8 + 2.6 * st * amt }); }
   }
   if (bt.has('splash') && S.mode === 'auto' && S.running) beatSplash(st);
+  if (bt.has('glow') && S.mode === 'auto') S.tipGlow = { t: clock(), s: Math.min(1, 0.45 + 0.7 * h.s) };
   if (bt.has('branch') && S.mode === 'auto' && S.pen && S.running) worker.postMessage({ type: 'branch', n: h.s > 0.75 ? 2 : 1 });
   if (S.wantNext && S.endless && S.endless.on) advancePlaylist();       // playlist: change picture on the beat
   // "free" mode: a hit throws a burst of strokes onto the canvas
@@ -1746,7 +1750,7 @@ function onBeat(h) {
   if (S.mode === 'auto' && S.running && S.endless.on && musicMode() === 'hits') { S.debt += Math.max(1, Math.round(+$('perhit').value * (0.5 + h.s))); }
 }
 const react = () => +$('react').value / 100;
-// how much the song changes the painting itself (0..1); and the extras on the beat: splash · branch
+// how much the song changes the painting itself (0..1); and the extras on the beat: splash · branch · glow
 const musicAmt = () => +$('musicamt').value / 100;
 { const v = store('cp-musicamt'); if (v != null) $('musicamt').value = v; $('musicamt').addEventListener('input', () => store('cp-musicamt', $('musicamt').value)); }
 const beatsOn = () => new Set([...document.querySelectorAll('#beatrow input:checked')].map(i => i.value));
@@ -1981,7 +1985,7 @@ async function startAuto(src, name, fileName = '', opts = {}) {
   S.startArgs = [src, name, fileName, opts];
   S.mode = 'auto'; S.name = name; S.orig = img; S.done = false; S.lines = []; S.items = []; S.drawn = []; S.bits = 0; S.count = 0; S.sim = null; S.recent = [];
   S.queue = []; S.acc = 0; S.workerDone = false; const pk = !liveRun() || (!zoomWanted() && !S.video); S.line = pk ? lineSpec() : null; S.order = pk ? $('order').value : 'free'; S.picN = 0;     // (an order / one line: a still picture, or a playlist without zoom) S.lineSeed = 1 + Math.floor(Math.random() * 1e6); if (S.line) S.line.seed = S.lineSeed;
-  S.pen = !!S.line; S.penCut = false; S.penEnd = 0; S.penEnds = {}; S.hit = null; S.accWant = null; S.held = false; S.until = null; S.wCount = 0; S.hurry = 1; S.wr = null; S.loud = 0; S.loudLo = S.loudHi = null; S.penLen = 0; S.fmt = $('export').value; S.codeBytes = 0; S.landing = []; S.big = null; S.debt = 0; S.brush = null;
+  S.pen = !!S.line; S.penCut = false; S.penEnd = 0; S.penEnds = {}; S.hit = null; S.tipGlow = null; S.accWant = null; S.held = false; S.until = null; S.wCount = 0; S.hurry = 1; S.wr = null; S.loud = 0; S.loudLo = S.loudHi = null; S.penLen = 0; S.fmt = $('export').value; S.codeBytes = 0; S.landing = []; S.big = null; S.debt = 0; S.brush = null;
   S.endless = newEndless();
   S.total = shapesWanted();
   // a video's own soundtrack only starts once the video does (after the first frame has emerged)
@@ -2220,6 +2224,37 @@ function commitLandings(now) { while (S.landing && S.landing.length && now >= S.
 const pendingN = () => S.landing.reduce((n, L) => n + (L.more ? 0 : 1), 0);     // (shapes still arriving: a filled patch's passes count once)
 function flushLandings() { commitLandings(Infinity); }
 // the first u (0..1) of a quadratic brush stroke, coloured with the whole stroke's gradient (same maths as the runtime's S)
+// glow (on the beat): the tip of each brush being drawn lights up in its own shape and colour — the brush's own marks
+// around its tip, cut out with a soft round falloff the size of the brush, brightened, with a soft bloom — and fades
+// as the brush moves on (a flash on the beat, gone within about half a second)
+const TIPG = { cv: null, x: null, sm: null, sx: null };
+function tipGlowNow() { const G = S.tipGlow; if (!G) return 0; const d = clock() - G.t; return d < 0 || d > 700 ? 0 : G.s * Math.exp(-d / 210); }
+function glowTip(L, u, tip, g) {
+  const q = L.q, t = q.t; if (L.mode !== 'draw' && L.mode !== 'sketch') return;      // (only the motions that are drawn along have a tip)
+  const m = X.getTransform(), k = Math.hypot(m.a, m.b), w = t === 'S' ? q.args[6] : Math.max(4, sizeOf(q) * 0.25);
+  const r = Math.max(5, Math.min(120, w * k * 0.7 + 3)), D = Math.ceil(2 * r) + 2;
+  if (!TIPG.cv) { TIPG.cv = document.createElement('canvas'); TIPG.x = TIPG.cv.getContext('2d'); TIPG.sm = document.createElement('canvas'); TIPG.sx = TIPG.sm.getContext('2d'); }
+  const c = TIPG.cv, x = TIPG.x; if (c.width < D || c.height < D) { c.width = c.height = Math.max(D, 64); }
+  x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.clearRect(0, 0, c.width, c.height);
+  const ox = tip[0] - r, oy = tip[1] - r;
+  x.setTransform(m.a, m.b, m.c, m.d, m.e - ox, m.f - oy);
+  // the brush itself, drawn as far as it has got (the same marks as on the stage)
+  const pos = L.mode === 'sketch' && t === 'S' ? easeInOut(clamp01((u - 0.25) / 0.75)) : t === 'S' ? (S.pen && S.mode === 'auto' ? u : easeInOut(u)) : u;
+  if (t === 'S' || fillParts(q)) { if (pos > 0) strokeAt(x, q, pos, L.dir); } else drawQ(x, q);
+  // only its tip: a soft round falloff the size of the brush
+  x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'destination-in';
+  const R = x.createRadialGradient(r, r, 0, r, r, r); R.addColorStop(0, 'rgba(0,0,0,1)'); R.addColorStop(0.3, 'rgba(0,0,0,0.8)'); R.addColorStop(0.7, 'rgba(0,0,0,0.25)'); R.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = R; x.fillRect(0, 0, D, D);
+  x.globalCompositeOperation = 'source-over';      // (added onto itself below: its own colour, brighter, its texture kept)
+  X.save(); X.setTransform(1, 0, 0, 1, 0, 0); X.globalCompositeOperation = 'lighter';
+  // bloom: the tip, small and back up again (soft in every browser), a little wider than the brush
+  const sd = Math.max(4, Math.round(D / 6)); if (TIPG.sm.width < sd) TIPG.sm.width = TIPG.sm.height = Math.max(sd, 32);
+  const sx = TIPG.sx; sx.setTransform(1, 0, 0, 1, 0, 0); sx.clearRect(0, 0, TIPG.sm.width, TIPG.sm.height); sx.imageSmoothingEnabled = true; sx.drawImage(c, 0, 0, D, D, 1, 1, sd - 2, sd - 2);     // (a clear pixel all round: no square edge when it is blown up)
+  X.imageSmoothingEnabled = true; X.globalAlpha = Math.min(1, 0.4 * g);
+  X.drawImage(TIPG.sm, 0, 0, sd, sd, ox - r * 0.25, oy - r * 0.25, D + r * 0.5, D + r * 0.5);
+  X.globalCompositeOperation = 'screen'; X.globalAlpha = Math.min(1, g); X.drawImage(c, 0, 0, D, D, ox, oy, D, D); TIPG.last = [ox, oy, D];     // (screen: brighter in its own colour, never burnt white)
+  X.restore();
+}
 // one shape part-way through its motion (X is already in painting coordinates); brush tips are collected in stage pixels
 function drawMotion(L, u, lib, tips) {
   // brushes (strokes, bars, triangles) travel at an even, visible pace; ellipses and blobs open with a gentle ease-out
@@ -2530,7 +2565,7 @@ const outLong = () => hqOn() ? 2000 : 1000;
 const fillMode = () => $('fillmode').value;
 // (which of the ticked styles the fill changes: only the ones with a tool size of their own)
 const fillNote = () => { if ($('fillmode').value === 'off') return ''; const v = stylePick.values().filter(st => TOOL[st]); return v.length ? ` For: ${v.join(', ')}.` : ' None of the ticked styles has a tool size of its own (flat, geo, the 3D materials… are drawn as one shape), so this changes nothing for them.'; };
-{ const v = store('cp-fill'); if (['zigzag', 'cross', 'off'].includes(v)) $('fillmode').value = v; }
+{ let v = store('cp-fill'); if (v === 'zigzag' && !store('cp-fill2')) v = 'off'; store('cp-fill2', '1'); if (['zigzag', 'cross', 'off'].includes(v)) $('fillmode').value = v; }     // (one stroke is the default now: an old stored zigzag default is moved over once)
 const linesOn = () => $('lines').checked;
 { const v = store('cp-lines'); if (v === '0') $('lines').checked = false; }
 $('lines').onchange = () => {
@@ -2833,7 +2868,75 @@ async function renderBig(longSide) {
   }
   return S.api.render(S.total, longSide / Math.max(S.out.width, S.out.height));
 }
-const download = (blob, name) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 60000); };
+const download = (blob, name) => { tagFile(blob, name).then(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 60000); }); };
+// ── the settings travel with what you make (like ComfyUI's workflows): every PNG, MP4, SVG and code page saved carries
+// the settings it was made with, and dropping one back onto the page brings them back (the picture stays as it is) ──
+//   PNG: a tEXt chunk 'code-painter' · MP4: a top-level 'uuid' box at the end (players skip it) · SVG: <metadata> ·
+//   HTML: a <script type="application/json" id="code-painter-settings">
+const META_UUID = [0x63, 0x6f, 0x64, 0x65, 0x2d, 0x70, 0x61, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x2d, 0x76, 0x31, 0x00];    // "code-painter-v1\0"
+function settingsMeta() {
+  return { app: 'code-painter', version: APP_VERSION, made: new Date().toISOString(), picture: S.name || null, song: audioActive() ? AU.name : null, settings: presetGet() };
+}
+const asciiJSON = o => JSON.stringify(o).replace(/[\u007f-￿]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
+async function tagFile(blob, name) {
+  try {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    if (!['png', 'mp4', 'svg', 'html'].includes(ext) || /presets\.json$/.test(name)) return blob;
+    const json = asciiJSON(settingsMeta());
+    if (ext === 'png') {
+      const b = new Uint8Array(await blob.arrayBuffer());
+      if (b.length < 33 || b[12] !== 0x49 || b[13] !== 0x48) return blob;          // (not a PNG with IHDR first)
+      const body = new TextEncoder().encode('tEXtcode-painter\0' + json), n = body.length - 4, ch = new Uint8Array(body.length + 8), dv = new DataView(ch.buffer);
+      dv.setUint32(0, n); ch.set(body, 4); dv.setUint32(4 + body.length, crc32(body));
+      return new Blob([b.subarray(0, 33), ch, b.subarray(33)], { type: 'image/png' });
+    }
+    if (ext === 'mp4') {
+      const body = new TextEncoder().encode(json), box = new Uint8Array(24 + body.length), dv = new DataView(box.buffer);
+      dv.setUint32(0, box.length); box.set([0x75, 0x75, 0x69, 0x64], 4); box.set(META_UUID, 8); box.set(body, 24);
+      return new Blob([blob, box], { type: blob.type || 'video/mp4' });
+    }
+    const t = await blob.text(), esc = json.replace(/</g, '\\u003c');
+    if (ext === 'svg') return new Blob([t.replace(/(<svg\b[^>]*>)/, `$1<metadata id="code-painter">${esc}</metadata>`)], { type: 'image/svg+xml' });
+    const tag = `<script type="application/json" id="code-painter-settings">${esc}<\/script>`;
+    return new Blob([/<\/body>/.test(t) ? t.replace(/<\/body>(?![\s\S]*<\/body>)/, tag + '</body>') : t + '\n' + tag + '\n'], { type: 'text/html' });
+  } catch (e) { return blob; }
+}
+// the settings a file carries (or null)
+async function readMeta(f) {
+  try {
+    const name = (f.name || '').toLowerCase(), ok = o => o && o.app === 'code-painter' && o.settings ? o : null;
+    if (/\.png$/.test(name) || f.type === 'image/png') {
+      const b = new Uint8Array(await f.slice(0, Math.min(f.size, 8 << 20)).arrayBuffer()), dv = new DataView(b.buffer);
+      for (let i = 8; i + 8 <= b.length;) {
+        const n = dv.getUint32(i), ty = String.fromCharCode(b[i + 4], b[i + 5], b[i + 6], b[i + 7]);
+        if (ty === 'tEXt') { const t = new TextDecoder('latin1').decode(b.subarray(i + 8, i + 8 + n)); if (t.startsWith('code-painter\0')) return ok(JSON.parse(t.slice(13))); }
+        if (ty === 'IDAT' || ty === 'IEND') break;
+        i += 12 + n;
+      }
+      return null;
+    }
+    if (/\.(mp4|m4v|mov)$/.test(name) || f.type === 'video/mp4') {
+      for (let i = 0; i + 8 <= f.size;) {
+        const h = new DataView(await f.slice(i, i + 24).arrayBuffer()); let n = h.getUint32(0);
+        const ty = String.fromCharCode(h.getUint8(4), h.getUint8(5), h.getUint8(6), h.getUint8(7));
+        if (n === 1) n = Number(h.getBigUint64(8)); else if (n === 0) n = f.size - i;
+        if (n < 8) break;
+        if (ty === 'uuid' && h.byteLength >= 24 && META_UUID.every((v, k) => h.getUint8(8 + k) === v)) return ok(JSON.parse(await f.slice(i + 24, i + n).text()));
+        i += n;
+      }
+      return null;
+    }
+    if (/\.(svg|html?)$/.test(name)) {
+      const t = await f.text(), m = t.match(/<metadata id="code-painter">([\s\S]*?)<\/metadata>/) || t.match(/<script type="application\/json" id="code-painter-settings">([\s\S]*?)<\/script>/);
+      return m ? ok(JSON.parse(m[1])) : null;
+    }
+  } catch (e) { /* not ours */ }
+  return null;
+}
+function applyMeta(m, file) {
+  presetApply(m.settings);
+  $('hint').textContent = `Loaded the settings ${file} was made with${m.version ? ` (version ${m.version})` : ''}${m.picture ? `, from the picture “${m.picture}”` : ''}${m.song ? ` and the song “${m.song}”` : ''}. Open a picture (and a song) to paint with them.`;
+}
 const safeName = () => S.name.replace(/[^\w-]+/g, '_');
 
 // ═════════════════════════════════════════════════════════════
@@ -3629,7 +3732,7 @@ const RELIEF = {
   beads:    { id: 12, layer: 0.75, fuse: 0, hk: 1, bead: 'chain' },
   puffy:    { id: 13, layer: 0.5, fuse: 2, hk: 1.15, puff: true },
   // paint with body (a bristle brush, see reliefBristle): thick oil, flatter acrylic, a palette knife
-  oil:      { id: 14, layer: 0.55, fuse: 0, hk: 1, bristle: 'oil', thick: 0.9 },
+  oil:      { id: 14, layer: 0.55, fuse: 0, hk: 1, bristle: 'oil', thick: 0.62 },
   acrylic:  { id: 15, layer: 0.5, fuse: 0, hk: 1, bristle: 'acrylic', thick: 0.32 },
   knife:    { id: 16, layer: 0.5, fuse: 1, hk: 1, bristle: 'knife', thick: 0.6 },
   // clear materials (see reliefClear): what lies under them is bent through their surface by the shader
@@ -3753,7 +3856,14 @@ function reliefBristle(R, q, m) {
       const lead = Math.min(1, s / 0.06), start = Math.min(1, 0.35 + lead);       // (the first touch: rounder, then the full band)
       const edge = 1 - Math.pow(Math.abs(tt), knife ? 16 : 4), load = knife ? 1 : 1.25 - 0.5 * s, ridge = (0.5 - 0.5 * Math.cos(2 * Math.PI * f)) * br.amp;     // (smooth-shouldered ridges, no sharp grooves)
       let h = hr * edge * load * start * dry;
-      h *= knife ? 0.92 + 0.08 * ridge : acr ? 0.94 + 0.06 * ridge : 0.8 + 0.2 * ridge;
+      if (oilB) {        // oil: a soft domed body of wet paint, a little lip at each edge, fine bristle streaks that wander, a pile where it lifts
+        const wide = Math.min(1, rl / (24 * R.u)), dome = Math.sqrt(Math.max(0, 1 - Math.pow(Math.abs(tt), 2 + 6 * wide))), lip = (0.18 - 0.1 * wide) * Math.exp(-(((Math.abs(tt) - 0.86) / 0.08) ** 2));     // (a wide wash lies flatter: a plateau with rounded shoulders)
+        // (bristle marks a few pixels apart whatever the brush's size — a big brush gets more of them, never bigger ones — uneven, and wandering a little)
+        const qq = tt * rl / (2.2 * R.u) + 1.3 * Math.sin(s * 6 + br.amp * 5), i0 = Math.floor(qq), ff = qq - i0, hh = v => { const z = Math.sin(v * 127.1 + br.amp * 311.7) * 43758.5453; return z - Math.floor(z); };
+        const streak = hh(i0) + (hh(i0 + 1) - hh(i0)) * ff * ff * (3 - 2 * ff);
+        const pile = 0.28 * Math.exp(-(((s - br.end + 0.04) / 0.045) ** 2));
+        h = hr * load * start * dry * (0.85 * dome + lip + 0.07 * streak * dome + pile);
+      } else h *= knife ? 0.92 + 0.08 * ridge : acr ? 0.94 + 0.06 * ridge : 0.8 + 0.2 * ridge;
       if (knife) h = hr * 0.75 * edge * dry * start + hr * 0.4 * Math.exp(-(((Math.abs(tt) - 0.92) / 0.05) ** 2)) * dry; // flat, and the raised edges
       patch[o] = base[i] + (base[i + 1] - base[i]) * t + h;
     }
@@ -3771,7 +3881,10 @@ function reliefBristle(R, q, m) {
   for (let i = 0; i < nFill; i++) fill[i ? 'lineTo' : 'moveTo'](Lp[i][0], Lp[i][1]); for (let i = nFill - 1; i >= 0; i--) fill.lineTo(Rp[i][0], Rp[i][1]); fill.closePath();
   const oil = m.bristle === 'oil', dx = (pts[pts.length - 1].x - pts[0].x), dy = (pts[pts.length - 1].y - pts[0].y), dl = Math.hypot(dx, dy) || 1;
   if (knife) { const G = ax.createLinearGradient(pts[0].x, pts[0].y, pts[pts.length - 1].x, pts[pts.length - 1].y); G.addColorStop(0, c0); G.addColorStop(0.5, mixHex(c0, c1, 0.6)); G.addColorStop(1, c1); ax.fillStyle = G; }     // (a knife smears its two colours into each other)
-  else ax.fillStyle = mixHex(c0, c1, 0.5);
+  else if (oil) {      // (oil: the two colours blend softly across the brush, wet into each other)
+    const mi = Math.floor(pts.length / 2), mp = P1[mi], mn = N1[mi], G = ax.createLinearGradient(mp[0] + (mn[0] - mp[0]) * r, mp[1] + (mn[1] - mp[1]) * r, mp[0] - (mn[0] - mp[0]) * r, mp[1] - (mn[1] - mp[1]) * r);
+    G.addColorStop(0, c0); G.addColorStop(0.5, mixHex(c0, c1, 0.5)); G.addColorStop(1, c1); ax.fillStyle = G;
+  } else ax.fillStyle = mixHex(c0, c1, 0.5);
   ax.fill(fill); ax.lineCap = 'round';
   const line = (off, from, upto, col, lw, al) => { const L = offsetPts(pts.map(p => [p.x, p.y]), off); ax.globalAlpha = al; ax.strokeStyle = col; ax.lineWidth = lw; ax.beginPath(); let st = false; for (let i = 0; i < pts.length && pts[i].s <= upto; i++) { if (pts[i].s < from) continue; ax[st ? 'lineTo' : 'moveTo'](L[i][0], L[i][1]); st = true; } ax.stroke(); };
   if (knife) {                                   // a palette knife: one flat colour, a couple of long scrape marks
@@ -3786,15 +3899,15 @@ function reliefBristle(R, q, m) {
         ii.forEach((i, k) => { const q2 = at(i, br.lo); rb[k ? 'lineTo' : 'moveTo'](q2[0], q2[1]); }); for (let k = ii.length - 1; k >= 0; k--) { const q2 = at(ii[k], br.hi); rb.lineTo(q2[0], q2[1]); } rb.closePath();
         ax.globalAlpha = 1; ax.fillStyle = col; ax.fill(rb); continue;
       }
-      if (oil) { line(off, 0, br.end * 0.45, col, lw, 1); line(off, br.end * 0.4, br.end * 0.75, col, lw, 0.85); line(off, br.end * 0.7, br.end, col, lw, 0.65); }
+      if (oil) { line(off, 0, br.end * 0.6, col, lw * 0.7, 0.32); line(off, br.end * 0.55, br.end, col, lw * 0.6, 0.22); }     // (faint: the colour is in the blend, the bristles only streak it)
       else line(off, 0, br.end, col, lw, 1);
     }
     const hairs = acr ? 0 : Math.min(40, Math.round(r * 0.9));
-    for (let j = 0; j < hairs; j++) { const v = rnd(), br = B[Math.min(N - 1, Math.floor(v * N))]; line((v * 2 - 1) * r * 0.95, 0, br.end * (0.85 + 0.15 * rnd()), rnd() < 0.5 ? shade2(mixHex(c0, c1, v), 0.16) : shade2(mixHex(c0, c1, v), -0.16), Math.max(0.6, r * 0.05), oil ? 0.35 : 0.2); }   // fine streaks
+    for (let j = 0; j < hairs; j++) { const v = rnd(), br = B[Math.min(N - 1, Math.floor(v * N))]; line((v * 2 - 1) * r * 0.95, 0, br.end * (0.85 + 0.15 * rnd()), rnd() < 0.5 ? shade2(mixHex(c0, c1, v), 0.16) : shade2(mixHex(c0, c1, v), -0.16), Math.max(0.6, r * 0.04), oil ? 0.16 : 0.2); }   // fine streaks
   }
   if (before && (oil || knife)) {                // wet-in-wet: the paint that was there dragged along inside the stroke
     ax.save(); ax.clip(fill);
-    for (let kk = 1; kk <= 2; kk++) { ax.globalAlpha = oil ? 0.2 : 0.12; ax.drawImage(before, x0 + dx / dl * r * 0.7 * kk, y0 + dy / dl * r * 0.7 * kk); }
+    for (let kk = 1; kk <= (oil ? 3 : 2); kk++) { ax.globalAlpha = oil ? 0.16 : 0.12; ax.drawImage(before, x0 + dx / dl * r * 0.55 * kk, y0 + dy / dl * r * 0.55 * kk); }
     ax.restore();
   }
   ax.globalAlpha = 1;
@@ -4128,8 +4241,10 @@ void main() {
   } else if (m == 12) {                             // beads: glossy, lacquered
     vec3 b = c * 1.05;
     o = b * (.18 + .85 * dif * sh) * ao + vec3(1.2) * spec(n, Hh, 180.) * sh + b * .25 * pow(1. - n.z, 3.);
-  } else if (m == 14 || m == 16) {                  // oil paint, palette knife: wet, glossy paint, a sharp highlight on every ridge
-    o = c * (.26 + .84 * dif * sh) * ao + vec3(.26) * spec(n, Hh, m == 16 ? 60. : 34.) * sh + vec3(.05) * spec(n, Hh, 8.) * sh;
+  } else if (m == 14) {                             // oil paint: wet and glossy, a soft broad sheen over the body of the paint
+    o = c * (.28 + .8 * dif * sh) * ao + vec3(.15) * spec(n, Hh, 20.) * sh + vec3(.07) * spec(n, Hh, 5.) * sh;
+  } else if (m == 16) {                             // palette knife: wet, glossy paint, a sharp highlight on every ridge
+    o = c * (.26 + .84 * dif * sh) * ao + vec3(.26) * spec(n, Hh, 60.) * sh + vec3(.05) * spec(n, Hh, 8.) * sh;
   } else if (m == 15) {                             // acrylic: satin, flatter
     o = c * (.3 + .78 * dif * sh) * ao + vec3(.07) * spec(n, Hh, 9.) * sh;     // (a matte satin sheen, no wet highlight)
   } else if (m >= 17 && m <= 19) {                  // glass, lens, crystal: looked through
@@ -5609,9 +5724,8 @@ function paintContent(b, now, r) {
   X.save();
   const cx = b.x + b.w / 2, cy = b.y + b.h / 2, cam = cameraMove(b);
   if (cam) { X.beginPath(); X.rect(b.x, b.y, b.w, b.h); X.clip(); X.translate(cx + cam[1], cy + cam[2]); X.rotate(cam[3]); X.scale(cam[0], cam[0]); X.translate(-cx, -cy); }
-  // beat punch (beat FX only): the painting pops a little towards the viewer on every hit; with the song's sections
-  // a drop punches in and a build pushes in slowly
-  const z = 1 + 0.035 * AU.beat * r + (sectOn() ? 0.06 * (S.kick || 0) + 0.05 * easeInOut(S.push || 0) : 0);
+  // beat punch (beat FX only): the painting pops a little towards the viewer on every hit
+  const z = 1 + 0.035 * AU.beat * r;
   X.translate(cx, cy); X.scale(z, z); X.translate(-cx, -cy);
   // endless zoom: the camera's scale since the canvas was last re-baked (everything below moves with it)
   const E = S.endless, v = S.mode === 'auto' && E.on ? Math.exp(E.Z - E.Zb) : 1;
@@ -5644,7 +5758,14 @@ function paintContent(b, now, r) {
     // shapes still arriving: drawn / swept / stretched in (they are committed to the painting once finished)
     const L = SHP.lib(X), tips = [];
     X.save(); X.translate(b.x, b.y); X.scale(b.k, b.k);
-    for (const it of S.landing) { if (now >= it.t0) drawMotion(it, clamp01((now - it.t0) / it.dur), L, tips); }
+    const tg = tipGlowNow(), lit = [];
+    for (const it of S.landing) {
+      if (now < it.t0) continue;
+      const u = clamp01((now - it.t0) / it.dur), n0 = tips.length; drawMotion(it, u, L, tips);
+      if (tg > 0.01 && u < 1 && tips.length > n0) lit.push([it, u, tips[tips.length - 1], it.q.t === 'S' ? it.q.args[6] : sizeOf(it.q) * 0.25]);
+    }
+    // (the biggest few brushes in flight glow — never a field of dots)
+    if (lit.length) { lit.sort((a, b) => b[3] - a[3]); for (const [it, u, tp] of lit.slice(0, 6)) glowTip(it, u, tp, tg); }
     X.restore(); X.globalAlpha = 1;
     // highlights (optional, in the chosen colour): small glowing points riding the ends of the strokes being drawn...
     const hl = marks(), hc = markCol();
@@ -7531,6 +7652,15 @@ $('vsound').onclick = () => setVideoSound({ off: 'keep', keep: 'music', music: '
 $('sens').oninput = () => { if (AU.on) detectHits(); };
 $('perhit').onchange = updateSelectionInfo;
 $('listen').onclick = toggleListen;
+// the demo songs (audio/demo/): loaded just like a song you drop in
+$('demosong').onchange = async () => {
+  const k = $('demosong').value; if (!k) return;
+  $('hint').textContent = `Loading the demo song ${$('demosong').selectedOptions[0].textContent}…`;
+  try {
+    const r = await fetch(`audio/demo/${k}.mp3`); if (!r.ok) throw new Error(r.status);
+    await loadAudio(new File([await r.blob()], `${k}.mp3`, { type: 'audio/mpeg' }));
+  } catch (e) { $('hint').textContent = `Couldn't load the demo song (${e.message}).`; }
+};
 // set the shape count so every hit of the selection gets about "strokes per hit" shapes
 $('matchshapes').onclick = () => {
   const n = Math.max(20, hitsInSel().length * +$('perhit').value), sel = $('shapes');
@@ -7772,7 +7902,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.24.1');
+    const V = await import('./viewer3d.js?v=4.25.0');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
@@ -7790,6 +7920,8 @@ function stopLive(all) {
 }
 async function openFiles(files) {
   menusClear();
+  // a file made here (PNG, MP4, SVG, code page) carries its settings: dropping it brings them back instead of painting it
+  if (files.length === 1 && /\.(png|mp4|m4v|svg|html?)$/i.test(files[0].name)) { const m = await readMeta(files[0]); if (m) return applyMeta(m, files[0].name); }
   const model = files.find(f => MODEL_EXT.test(f.name)); if (model) return open3D(model);
   stopLive();
   const vid = files.find(isVideo), au = files.find(isAudio);
@@ -7904,7 +8036,7 @@ showAutoShapes();
   h.addEventListener('mouseenter', () => { if (h.scrollWidth > h.clientWidth + 1) { f.textContent = h.textContent; f.hidden = false; } });
   h.addEventListener('mouseleave', () => { f.hidden = true; });
   new MutationObserver(() => { h.title = h.textContent; if (!f.hidden) f.textContent = h.textContent; }).observe(h, { childList: true, characterData: true, subtree: true }); }
-window.STUDIO = { S, AU, OFF, LDANCE, startAuto, startReplay, loadAudio, setLiveAudio, startLive, autoProgram, codeSize, renderBig, RLF, LAG, _relief: { makeRelief, reliefAdd, reliefRender }, _draw: { drawQ, strokeAt, fillParts }, relief: () => ({ on: RLF.on, gl: !!reliefGL() }), relight, LIGHT, SHP_svg: () => SHP.svg(S.drawn, S.out.width, S.out.height, S.bgHex) };
+window.STUDIO = { S, AU, OFF, LDANCE, tagFile, readMeta, presetGet, TIPG, startAuto, startReplay, loadAudio, setLiveAudio, startLive, autoProgram, codeSize, renderBig, RLF, LAG, _relief: { makeRelief, reliefAdd, reliefRender }, _draw: { drawQ, strokeAt, fillParts }, relief: () => ({ on: RLF.on, gl: !!reliefGL() }), relight, LIGHT, SHP_svg: () => SHP.svg(S.drawn, S.out.width, S.out.height, S.bgHex) };
 })();
 
 </script>

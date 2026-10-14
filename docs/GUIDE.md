@@ -72,11 +72,11 @@ Order and one line also work in playlists.
 - **detail**: *fast*, *sharp*, *ultra*, *max* or *hq*.
 - **shapes**: *auto* picks a stroke count from the stroke size.
 - **size**: the stroke-size knob, or *rnd* for random sizes.
-- **fill**: how a tool fills a stroke much wider than itself: *zigzag*, *cross* or *one stroke*.
+- **fill**: how a tool fills a stroke much wider than itself: *one stroke* (the default), *zigzag* or *cross*.
 
 ## Music
 
-Load a song, or use live sound.
+Load a song, pick one of the 10 **demo ♪** songs (house, boom bap, drum & bass, techno, trap, lo-fi, dubstep, synthwave, breakbeat, ambient: 18–28 s each, each with a quiet part, a build and a drop), or use live sound.
 
 - **hits**: strokes land on the song's hits.
 - **flow**: the painting follows the song's energy.
@@ -89,7 +89,12 @@ Load a song, or use live sound.
 - Extras on the beat:
   - *splash*: the brushes being drawn flick drops of their paint off the tip.
   - *branch*: in one-line mode, the line splits on each beat.
+  - *glow*: on the beat, the tip of each brush being drawn lights up in its own shape and colour, then fades as it moves on.
 - **fx**: punch zoom, flashing border, grid pulse.
+
+## Settings travel with what you make
+
+Every PNG, MP4 (⏺ render or ⏺ live), SVG and ⬇ code page you save carries the settings it was made with, like ComfyUI does with its workflows. **Drop one of those files back onto the page and its settings come back**: styles, motion, path, brush, music mode and amount, splash / branch / glow, recording size and the rest. The picture and the song are not stored: open them again to paint with those settings (a demo song is picked again by itself).
 
 ## Recording and export
 
