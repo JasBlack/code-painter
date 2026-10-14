@@ -85,7 +85,7 @@ Load a song, or use live sound.
 - **music in the paint** (*amount*): how much the song changes the painting itself. At 0 the music only sets the pace.
   - Every beat lands **one big, bold stroke**, snapped down on the beat. With *one line*, the line swells on the beat instead.
   - **Loud parts paint with broad brushes, quiet parts with fine ones.** Loud and quiet are measured against the song itself, so any track gets the full range.
-  - On the **3D styles** (oil, acrylic, metals, glass…), the **light swings round on every beat** and drops lower with the bass, so the whole surface catches it.
+  - On the **3D styles** (oil, acrylic, metals, glass…), **every beat flares the surface**: the light snaps to one side and rakes low, then settles and holds still until the next beat.
 - Extras on the beat:
   - *splash*: the brushes being drawn flick drops of their paint off the tip.
   - *branch*: in one-line mode, the line splits on each beat.
