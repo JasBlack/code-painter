@@ -333,7 +333,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.25.0">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.25.1">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -561,8 +561,8 @@
       <button type="button" class="key sm" data-p="A">A</button><button type="button" class="key sm" data-p="B">B</button><button type="button" class="key sm" data-p="C">C</button><button type="button" class="key sm" data-p="D">D</button>
       <button type="button" class="mini" id="pstore" title="Store: press this, then a letter">store</button>
       <button type="button" class="mini" id="psave" title="Save presets A–D to a file (to keep them, or use them on another computer)">save</button>
-      <button type="button" class="mini" id="pload" title="Load presets from a file (its letters replace these)">load</button>
-      <input id="pfile" type="file" accept=".json,application/json" hidden>
+      <button type="button" class="mini" id="pload" title="Load presets from a file (its letters replace these), or the settings a picture, video, SVG or code page saved here was made with">load</button>
+      <input id="pfile" type="file" accept=".json,application/json,.png,.mp4,.m4v,.svg,.html,.htm" hidden>
     </div>
   </div>
   <div id="phone" aria-label="Phone controls">
@@ -675,7 +675,8 @@
     <div class="ttl"><b>speed</b><span>max ×100</span></div>
     <output id="speedval" for="speed">×1</output>
     <input id="speed" class="fad" type="range" min="1" max="100" value="54" aria-label="Painting speed">
-    <div class="row" style="flex-wrap: nowrap"><select id="replay" class="sel" aria-label="Replay a piece" style="flex: 1; min-width: 0"><option value="">replay…</option></select><button type="button" id="replaylayer" class="mini" style="flex: none" title="Layer: the premade pieces in a random order, each one replayed over the last instead of on a fresh canvas (its background left out, so only its marks land), with live strokes mixed in (+live; turned up to 35% if it is off). Press again for a new order; pick anything else to stop">layer ⤮</button><div class="kn" title="Replay a piece: live strokes joining the hand-coded piece (shapes × this)"><input id="mix" type="range" min="0" max="100" value="0" aria-label="Live strokes mixed into the replay"><span class="lbl">+live</span><output id="mixval" for="mix">off</output></div>
+    <div class="row" style="flex-wrap: nowrap"><select id="replay" class="sel" aria-label="Replay a piece" style="flex: 1; min-width: 0"><option value="">replay…</option></select><button type="button" id="replaylayer" class="mini" style="flex: none" title="Layer: the premade pieces in a random order, each one replayed over the last instead of on a fresh canvas (its background left out, so only its marks land), with live strokes mixed in (+live; turned up to 35% if it is off). Press again for a new order; pick anything else to stop">layer ⤮</button></div>
+    <div class="row" style="flex-wrap: wrap; gap: 14px"><div class="kn" title="Replay a piece: live strokes joining the hand-coded piece (shapes × this)"><input id="mix" type="range" min="0" max="100" value="0" aria-label="Live strokes mixed into the replay"><span class="lbl">+live</span><output id="mixval" for="mix">off</output></div>
       <div class="kn" title="The last part of a mixed replay is code only: its finishing layers land on top"><input id="mixfin" type="range" min="0" max="80" value="25" aria-label="Code finish"><span class="lbl">finish</span><output id="mixfinval" for="mixfin">25%</output></div></div>
   </div>
   <div class="panel music">
@@ -1246,7 +1247,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.25.0 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.25.1 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1264,7 +1265,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.25.0', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.25.1', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -1405,7 +1406,7 @@ if (PUBLIC) {
   // (the public page can carry one picture of its own, first: window.CP_DEMO_JAS)
   const demos = [['orb', 'demo · chrome orb'], ['dusk', 'demo · dusk waves'], ['bloom', 'demo · bloom'], ['blocks', 'demo · colour blocks']];
   for (const [k, name] of demos) $('example').add(new Option(name, '__demo:' + k));
-  $('replay').closest('.row').style.display = 'none';
+  $('replay').closest('.row').style.display = 'none'; $('mix').closest('.row').style.display = 'none';     // (replay and its knobs: the local version, which has the pieces)
 }
 // all of a set at once, as a playlist
 {
@@ -2935,7 +2936,7 @@ async function readMeta(f) {
 }
 function applyMeta(m, file) {
   presetApply(m.settings);
-  $('hint').textContent = `Loaded the settings ${file} was made with${m.version ? ` (version ${m.version})` : ''}${m.picture ? `, from the picture “${m.picture}”` : ''}${m.song ? ` and the song “${m.song}”` : ''}. Open a picture (and a song) to paint with them.`;
+  $('hint').textContent = `Loaded the settings ${file} was made with${m.version ? ` (version ${m.version})` : ''}${m.picture ? `, from the picture “${m.picture}”` : ''}${m.song ? ` and the song “${m.song}”` : ''}. Open a picture (and a song) to paint with them — or drop it again holding Alt (Option) to paint the file itself.`;
 }
 const safeName = () => S.name.replace(/[^\w-]+/g, '_');
 
@@ -7758,6 +7759,7 @@ $('psave').onclick = () => {
 $('pload').onclick = () => $('pfile').click();
 $('pfile').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  if (!/\.json$/i.test(f.name)) { const m = await readMeta(f); if (m) applyMeta(m, f.name); else $('hint').textContent = `${f.name} carries no settings: only pictures, videos, SVGs and code pages saved from Code Painter 4.25.1 on do.`; return; }
   try {
     const j = JSON.parse(await f.text()), P = j && j.presets; if (!P || typeof P !== 'object') throw new Error('not a presets file');
     const got = Object.keys(P).filter(k => /^[ABCD]$/.test(k) && P[k] && P[k].v);
@@ -7902,7 +7904,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.25.0');
+    const V = await import('./viewer3d.js?v=4.25.1');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
@@ -7918,10 +7920,11 @@ function stopLive(all) {
   if (AU.live && (all || AU.live.label === 'screen sound')) releaseLiveAudio();
   if (all && S.video && S.video.srcObject) { S.running = false; S.pausedAt = clock(); setButtons(); }
 }
-async function openFiles(files) {
+async function openFiles(files, asInput) {
   menusClear();
   // a file made here (PNG, MP4, SVG, code page) carries its settings: dropping it brings them back instead of painting it
-  if (files.length === 1 && /\.(png|mp4|m4v|svg|html?)$/i.test(files[0].name)) { const m = await readMeta(files[0]); if (m) return applyMeta(m, files[0].name); }
+  // (hold Alt / Option while dropping to paint it instead)
+  if (!asInput && files.length === 1 && /\.(png|mp4|m4v|svg|html?)$/i.test(files[0].name)) { const m = await readMeta(files[0]); if (m) return applyMeta(m, files[0].name); }
   const model = files.find(f => MODEL_EXT.test(f.name)); if (model) return open3D(model);
   stopLive();
   const vid = files.find(isVideo), au = files.find(isAudio);
@@ -7935,7 +7938,7 @@ async function openFiles(files) {
 addEventListener('drop', e => {
   e.preventDefault(); document.body.classList.remove('drag');
   const files = [...e.dataTransfer.files];
-  if (files.length) return openFiles(files);
+  if (files.length) return openFiles(files, e.altKey);
   const url = (e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain') || '').split('\n').find(l => /^https?:/.test(l.trim()));
   if (url) startAuto(url.trim(), decodeURIComponent(url.trim().split('/').pop().split('?')[0]).replace(/\.[^.]+$/, '') || 'image');
 });
