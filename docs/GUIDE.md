@@ -96,6 +96,10 @@ Load a song, pick one of the 10 **demo ♪** songs (house, boom bap, drum & bass
 
 Every PNG, MP4 (⏺ render or ⏺ live), SVG and ⬇ code page you save carries the settings it was made with, like ComfyUI does with its workflows. **Drop one of those files back onto the page and its settings come back**: styles, motion, path, brush, music mode and amount, splash / branch / glow, recording size and the rest. The picture and the song are not stored: open them again to paint with those settings (a demo song is picked again by itself).
 
+- **Drop it anywhere on the page**, or use **load** in the preset row (under the painting).
+- To paint a file that carries settings (instead of loading them), **hold Alt (Option on a Mac) while you drop it**.
+- Only files saved from version 4.25.0 on carry settings; an older file is simply opened as a picture or video.
+
 ## Recording and export
 
 - **⏺ render** (the default): the run starts again and is rendered frame by frame, perfectly smooth, at **720p, 1080p, 1440p or 4K**. The message line shows how long is left.
