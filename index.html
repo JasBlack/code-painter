@@ -203,6 +203,7 @@
   .key.short { height: 30px; border-radius: 7px; padding: 0 10px 5px; box-shadow: 0 1.5px 0 var(--keyshadow); }
   .key.short .led { top: 4px; width: 4px; height: 4px; margin-left: -2px; }
   .mini.arm { color: var(--text); }
+  .kgrid > .key { width: 100%; min-width: 0; box-sizing: border-box; }
   /* the style panel's background layer: its keys light violet */
   .panel.bgset .key:has(input:checked) .led { background: var(--accent2); box-shadow: 0 0 4px color-mix(in srgb, var(--accent2) 90%, transparent); }
   #stybg.set::before, #stybg.on::before { background: var(--accent2); box-shadow: 0 0 4px color-mix(in srgb, var(--accent2) 90%, transparent); }
@@ -471,13 +472,15 @@
       <select id="detail" data-seg data-tight aria-label="Detail" title="How fine the painter works: fast · sharp · ultra · max (the finest strokes; slower, best for stills and offline renders) · hq (render quality: a twice as big canvas, the finest strokes, and three times the strokes in every frame of an offline render — slow live, made for ⏺ offline)"><option value="256">fast</option><option value="384" selected>sharp</option><option value="512">ultra</option><option value="768">max</option><option value="1024">hq</option></select>
       <select id="shapes" class="sel" aria-label="Shapes" title="How many strokes paint the picture. auto: about as many as it takes to cover the canvas at the chosen stroke size (and the styles' own sizes)" style="flex: 1"><option value="auto" selected>auto</option><option>100</option><option>250</option><option>500</option><option>1000</option><option>1500</option><option>3000</option><option>6000</option><option>10000</option></select>
     </div>
-    <div class="row" style="justify-content: space-between; flex-wrap: nowrap; gap: 6px">
+    <div class="row" style="justify-content: space-between; flex-wrap: nowrap; gap: 8px; align-items: center">
       <div class="kn" data-knob="p" title="Stroke size, ×0.1 (the finest) to ×4 (big strokes and washes); each stroke's size is still random within the range. Right-click: ×1"><input id="ssize" type="range" min="-100" max="100" value="0" aria-label="Stroke size"><span class="lbl">size</span><output id="ssizeval" for="ssize">×1</output></div>
-      <label class="key p" title="Every stroke picks its own size, anywhere from ×0.1 to ×4"><input id="ssizerand" type="checkbox"><span class="led"></span>rnd</label>
-      <label class="key" title="Looser and a bit random: strokes wander, colours drift, the picture is warped (and flows with the bass while zooming)"><input id="abstract" type="checkbox"><span class="led"></span>abst</label>
-      <label class="key" title="Lines: every style draws with strokes (lines, ropes) instead of ovals and blobs — except the styles whose look is their shape (tiles, bars, dots, lights, glass pieces…)"><input id="lines" type="checkbox" checked><span class="led"></span>lines</label>
-      <label class="key p" title="Stroke sounds: every stroke plays a note — its style is the instrument, its colour the note, its size the octave, where it lands the stereo position. In key and in time with a song (quieter under it). Recorded, and rendered offline too"><input id="sndon" type="checkbox"><span class="led"></span>sound</label>
-      <div class="kn" data-knob="p" title="Stroke sounds: volume"><input id="sndvol" type="range" min="0" max="100" value="60" aria-label="Stroke sound volume"><span class="lbl">vol</span></div>
+      <div class="kgrid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex: 1; min-width: 0">
+        <label class="key p" title="Every stroke picks its own size, anywhere from ×0.1 to ×4"><input id="ssizerand" type="checkbox"><span class="led"></span>rnd</label>
+        <label class="key" title="Looser and a bit random: strokes wander, colours drift, the picture is warped (and flows with the bass while zooming)"><input id="abstract" type="checkbox"><span class="led"></span>abst</label>
+        <label class="key" title="Lines: every style draws with strokes (lines, ropes) instead of ovals and blobs — except the styles whose look is their shape (tiles, bars, dots, lights, glass pieces…)"><input id="lines" type="checkbox" checked><span class="led"></span>lines</label>
+        <label class="key p" title="Stroke sounds: every stroke plays a note — its style is the instrument, its colour the note, its size the octave, where it lands the stereo position. In key and in time with a song (quieter under it). Recorded, and rendered offline too"><input id="sndon" type="checkbox"><span class="led"></span>sound</label>
+      </div>
+      <div class="kn" data-knob="p" title="Stroke sounds: volume"><input id="sndvol" type="range" min="0" max="100" value="60" aria-label="Stroke sound volume"><span class="lbl">vol</span><output id="sndvolval" for="sndvol">60%</output></div>
     </div>
   </div>
 </aside>
@@ -562,6 +565,7 @@
       <button type="button" class="mini" id="pstore" title="Store: press this, then a letter">store</button>
       <button type="button" class="mini" id="psave" title="Save presets A–D to a file (to keep them, or use them on another computer)">save</button>
       <button type="button" class="mini" id="pload" title="Load presets from a file (its letters replace these), or the settings a picture, video, SVG or code page saved here was made with">load</button>
+      <button type="button" class="mini" id="preset_reset" title="Reset: every setting back to its default (press twice). Presets A–D are kept">reset</button>
       <input id="pfile" type="file" accept=".json,application/json,.png,.mp4,.m4v,.svg,.html,.htm" hidden>
     </div>
   </div>
@@ -676,6 +680,11 @@
     <output id="speedval" for="speed">×1</output>
     <input id="speed" class="fad" type="range" min="1" max="100" value="54" aria-label="Painting speed">
     <div class="row" style="flex-wrap: nowrap"><select id="replay" class="sel" aria-label="Replay a piece" style="flex: 1; min-width: 0"><option value="">replay…</option></select><button type="button" id="replaylayer" class="mini" style="flex: none" title="Layer: the premade pieces in a random order, each one replayed over the last instead of on a fresh canvas (its background left out, so only its marks land), with live strokes mixed in (+live; turned up to 35% if it is off). Press again for a new order; pick anything else to stop">layer ⤮</button></div>
+    <div class="row" id="layerrow" style="flex-wrap: nowrap; gap: 6px" title="Layering: the frame every piece is placed in, which pieces go in it, and how each one fits">
+      <select id="layerfmt" class="sel" aria-label="Layer frame" title="The frame for the whole layered show: the first piece's shape, or a fixed one" style="flex: 1; min-width: 0"><option value="first" selected>frame: first</option><option value="5:7">5:7</option><option value="1:1">1:1</option><option value="4:5">4:5</option><option value="9:16">9:16</option><option value="16:9">16:9</option><option value="7:5">7:5</option></select>
+      <select id="layershape" class="sel" aria-label="Which pieces" title="only that shape: just the pieces whose own shape matches the frame (most are 5:7) · all: every piece, cropped or fitted to the frame" style="flex: 1; min-width: 0"><option value="same" selected>same shape</option><option value="all">all shapes</option></select>
+      <select id="layerfit" class="sel" aria-label="Fit" title="A piece of another shape: crop it to fill the frame, or fit it whole inside (black bars)" style="flex: none; width: 58px"><option value="crop" selected>crop</option><option value="fit">fit</option></select>
+    </div>
     <div class="row" style="flex-wrap: wrap; gap: 14px"><div class="kn" title="Replay a piece: live strokes joining the hand-coded piece (shapes × this)"><input id="mix" type="range" min="0" max="100" value="0" aria-label="Live strokes mixed into the replay"><span class="lbl">+live</span><output id="mixval" for="mix">off</output></div>
       <div class="kn" title="The last part of a mixed replay is code only: its finishing layers land on top"><input id="mixfin" type="range" min="0" max="80" value="25" aria-label="Code finish"><span class="lbl">finish</span><output id="mixfinval" for="mixfin">25%</output></div></div>
   </div>
@@ -1406,7 +1415,7 @@ if (PUBLIC) {
   // (the public page can carry one picture of its own, first: window.CP_DEMO_JAS)
   const demos = [['orb', 'demo · chrome orb'], ['dusk', 'demo · dusk waves'], ['bloom', 'demo · bloom'], ['blocks', 'demo · colour blocks']];
   for (const [k, name] of demos) $('example').add(new Option(name, '__demo:' + k));
-  $('replay').closest('.row').style.display = 'none'; $('mix').closest('.row').style.display = 'none';     // (replay and its knobs: the local version, which has the pieces)
+  $('replay').closest('.row').style.display = 'none'; $('mix').closest('.row').style.display = 'none'; $('layerrow').style.display = 'none';     // (replay and its knobs: the local version, which has the pieces)
 }
 // all of a set at once, as a playlist
 {
@@ -2867,7 +2876,15 @@ async function renderBig(longSide) {
     for (const d of S.drawn) drawQ(x, d);
     return cv;
   }
+  if (S.mix || S.place) return canvasAsShown(longSide);        // (replay + live strokes, or layers: the canvas as it is — the code alone would leave them out)
   return S.api.render(S.total, longSide / Math.max(S.out.width, S.out.height));
+}
+// the painting as it is on the stage now (strokes still arriving included, as if landed), at a size
+function canvasAsShown(longSide) {
+  const k = longSide / Math.max(S.out.width, S.out.height), cv = document.createElement('canvas'); cv.width = Math.round(S.out.width * k); cv.height = Math.round(S.out.height * k);
+  const x = cv.getContext('2d'); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(S.out, 0, 0, cv.width, cv.height);
+  x.setTransform(k, 0, 0, k, 0, 0); for (const L of S.landing || []) if (clock() >= L.t0) drawQ(x, L.q);
+  return cv;
 }
 const download = (blob, name) => { tagFile(blob, name).then(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 60000); }); };
 // ── the settings travel with what you make (like ComfyUI's workflows): every PNG, MP4, SVG and code page saved carries
@@ -2961,9 +2978,17 @@ async function startReplay(id, opts = {}) {
   S.api = S.frame.contentWindow.REPLAY;
   const info = await S.api.count();
   S.opLines = info.lines; S.opKinds = info.kinds; S.total = info.n;
-  S.out = document.createElement('canvas'); S.out.width = info.w; S.out.height = info.h; S.outX = S.out.getContext('2d');
-  S.outX.fillStyle = '#000'; S.outX.fillRect(0, 0, info.w, info.h); S.loopBg = '#000000';
-  if (under) drawCover(S.outX, under, 0, 0, info.w, info.h);
+  // (layering: the show's frame; the piece is placed in it — cropped to fill it, or fitted inside with black bars)
+  let W = info.w, H = info.h; S.place = null;
+  if (opts.layer && RSHOW.frame) {
+    const L = Math.max(info.w, info.h), A = RSHOW.frame.A; W = Math.round(A >= 1 ? L : L * A); H = Math.round(A >= 1 ? L / A : L);
+    const sc = (RSHOW.frame.fit === 'fit' ? Math.min : Math.max)(W / info.w, H / info.h), dw = info.w * sc, dh = info.h * sc;
+    if (W !== info.w || H !== info.h) S.place = { dx: (W - dw) / 2, dy: (H - dh) / 2, dw, dh, iw: info.w, ih: info.h };
+  }
+  S.out = document.createElement('canvas'); S.out.width = W; S.out.height = H; S.outX = S.out.getContext('2d');
+  S.outX.fillStyle = '#000'; S.outX.fillRect(0, 0, W, H); S.loopBg = '#000000';
+  if (under) drawCover(S.outX, under, 0, 0, W, H);
+  S.mixSnaps = [];
   snapMaybe(0);
   // keep a replay to roughly half a minute of rendering: every op for small pieces, evenly sampled for big ones
   const maxSteps = Math.max(40, Math.min(360, Math.round(30000 / Math.max(info.ms, 12))));
@@ -2976,7 +3001,7 @@ async function startReplay(id, opts = {}) {
     S.mix.prev = c0.getContext('2d').getImageData(0, 0, info.w, info.h).data; S.mix.bg = S.mix.prev.slice(); S.layered = true;
   } else S.layered = false;
   S.running = true; S.t0 = clock(); S.pausedTotal = 0; S.pausedAt = 0;
-  $('hint').textContent = `${opts.layer ? `Layer ${RSHOW.i + 1} of ${RSHOW.ids ? RSHOW.ids.length : 1}: ` : ''}Replaying ${id}: ${info.n} drawing ops from ${S.src.length} lines of code${S.mix ? ` + ${Math.round(S.mix.per * S.mix.strokeSteps)} live strokes${S.mix.strokeSteps < S.sched.length ? ', then the code finishes on its own' : ''}` : ''}${audioActive() ? ` to ♪ ${AU.name} (${fmtTime(AU.in)}–${fmtTime(AU.out)})` : ''}.`;
+  $('hint').textContent = `${opts.layer ? `Layer ${RSHOW.i + 1} of ${RSHOW.ids ? RSHOW.ids.length : 1}${RSHOW.i === 0 && RSHOW.note ? ` (${RSHOW.note})` : ''}: ` : ''}Replaying ${id}: ${info.n} drawing ops from ${S.src.length} lines of code${S.mix ? ` + ${Math.round(S.mix.per * S.mix.strokeSteps)} live strokes${S.mix.strokeSteps < S.sched.length ? ', then the code finishes on its own' : ''}` : ''}${audioActive() ? ` to ♪ ${AU.name} (${fmtTime(AU.in)}–${fmtTime(AU.out)})` : ''}.`;
   playAudioFromStart();
   setButtons();
   replayLoop(gen);
@@ -2986,13 +3011,13 @@ async function startReplay(id, opts = {}) {
 // whatever strokes are there; the painter keeps looking at that canvas and the original, and paints what's missing.
 const mixAmount = () => +$('mix').value / 100;
 function startMix(info) {
-  const work = workRes(), L = Math.max(info.w, info.h);
-  S.ww = Math.max(8, Math.round(info.w * work / L)); S.wh = Math.max(8, Math.round(info.h * work / L)); S.k = info.w / S.ww;
+  const FW = S.out.width, FH = S.out.height, work = workRes(), L = Math.max(FW, FH);        // (the frame: the piece's own size unless layering placed it)
+  S.ww = Math.max(8, Math.round(FW * work / L)); S.wh = Math.max(8, Math.round(FH * work / L)); S.k = FW / S.ww;
   const steps = Math.max(1, Math.round(S.sched.length * (1 - +$('mixfin').value / 100)));   // strokes land in these steps; the rest is the code finishing
   S.mix = { busy: false, debt: 0, done: 0, strokeSteps: steps, per: shapesWanted() * mixAmount() / steps, prev: null, cv: document.createElement('canvas'), tmp: null };
   S.mix.cv.width = S.ww; S.mix.cv.height = S.wh; S.mix.cx = S.mix.cv.getContext('2d', { willReadFrequently: true });
   S.queue = []; S.landing = []; S.recent = []; S.lines = []; S.items = []; S.drawn = []; S.bits = 0; S.brush = null; S.endless = newEndless(); S.fmt = 'readable';
-  const x = S.mix.cx; drawCover(x, S.orig, 0, 0, S.ww, S.wh);
+  const x = S.mix.cx; origInto(x, S.ww, S.wh);
   let data = x.getImageData(0, 0, S.ww, S.wh).data;
   if (abstractOn()) data = abstractWarp(data, S.ww, S.wh, 0, 0);
   worker.postMessage({ type: 'start', gen: S.gen, w: S.ww, h: S.wh, data, shapes: 0, styles: stylePick.values(), bgStyles: stylePick.bg(), smart: true, abstract: abstractOn(), lines: linesOn(), outline: outlineMode(), rfill: rfillMode(), stylesize: SSZ, seed: 1 + Math.floor(Math.random() * 1e6), size: sizeK(), sizeRand: sizeRand(), palette: palette(), under: underOn() });
@@ -3000,7 +3025,8 @@ function startMix(info) {
 function sendMixFrame() {
   const M = S.mix, w = S.ww, h = S.wh, x = M.cx;
   x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.imageSmoothingQuality = 'high';
-  drawCover(x, S.orig, 0, 0, w, h);
+  if (S.place) x.drawImage(S.out, 0, 0, w, h);        // (fitted with bars: outside the piece the target is the canvas itself)
+  origInto(x, w, h);
   let target = x.getImageData(0, 0, w, h).data;
   if (abstractOn()) target = abstractWarp(target, w, h, clock() / 1000 * 0.3, musicOn() ? AU.bass : 0);
   x.drawImage(S.out, 0, 0, w, h);
@@ -3010,18 +3036,33 @@ function sendMixFrame() {
   // layering: the live strokes only go where the new piece's code has drawn so far (elsewhere the target is the canvas
   // itself, so there is nothing to fix): they follow its marks and leave the pieces below alone
   if (S.layered && M.bg && M.prev) {
-    const W2 = S.out.width, H2 = S.out.height, bg = M.bg, pv = M.prev;
-    for (let y = 0; y < h; y++) { const sy = Math.min(H2 - 1, Math.floor((y + 0.5) * H2 / h)); for (let xx = 0; xx < w; xx++) {
-      const sx = Math.min(W2 - 1, Math.floor((xx + 0.5) * W2 / w)), j = (sy * W2 + sx) * 4, i = (y * w + xx) * 4;
+    // (from the work canvas to the piece's own pixels, through where the piece sits in the frame)
+    const P = S.place || { dx: 0, dy: 0, dw: S.out.width, dh: S.out.height, iw: S.out.width, ih: S.out.height }, FW = S.out.width, FH = S.out.height, bg = M.bg, pv = M.prev;
+    for (let y = 0; y < h; y++) { const fy = (y + 0.5) * FH / h, ny = Math.floor((fy - P.dy) * P.ih / P.dh); for (let xx = 0; xx < w; xx++) {
+      const fx = (xx + 0.5) * FW / w, nx = Math.floor((fx - P.dx) * P.iw / P.dw), i = (y * w + xx) * 4;
+      if (nx < 0 || ny < 0 || nx >= P.iw || ny >= P.ih) { target[i] = current[i]; target[i + 1] = current[i + 1]; target[i + 2] = current[i + 2]; continue; }
+      const j = (ny * P.iw + nx) * 4;
       if (Math.abs(pv[j] - bg[j]) + Math.abs(pv[j + 1] - bg[j + 1]) + Math.abs(pv[j + 2] - bg[j + 2]) < 30) { target[i] = current[i]; target[i + 1] = current[i + 1]; target[i + 2] = current[i + 2]; }
     } }
   }
   M.busy = true;
   worker.postMessage({ type: 'frame', gen: S.gen, target, current, n: 24, L: 0, abstract: abstractOn(), outline: outlineMode(), rfill: rfillMode(), fresh: S.layered ? 0.55 : null }, [target.buffer, current.buffer]);     // (layering: no big washes over the pieces below)
 }
+// the original picture onto a work canvas, placed where the piece sits in the frame (cropped or fitted when layering)
+function origInto(x, w, h) {
+  const P = S.place; if (!P) { drawCover(x, S.orig, 0, 0, w, h); return; }
+  const k = w / S.out.width; x.save(); x.beginPath(); x.rect(P.dx * k, P.dy * k, P.dw * k, P.dh * k); x.clip(); drawCover(x, S.orig, P.dx * k, P.dy * k, P.dw * k, P.dh * k); x.restore();
+}
+// a few snapshots of a replay with live strokes as it goes (for stills and the contact sheet: re-running the piece's
+// code alone would leave the strokes and the layers below out)
+function mixSnap(frac) {
+  const n = 12; if (!S.mixSnaps || S.mixSnaps.length > Math.floor(frac * n)) return;
+  const k = Math.min(1, 2400 / Math.max(S.out.width, S.out.height)), c = document.createElement('canvas'); c.width = Math.round(S.out.width * k); c.height = Math.round(S.out.height * k);
+  const x = c.getContext('2d'); x.drawImage(S.out, 0, 0, c.width, c.height); S.mixSnaps.push({ f: frac, c });
+}
 // a code step lands as the pixels it changed (so it goes on top of the strokes, and the strokes around it stay)
 function codeInto(cv) {
-  const M = S.mix, w = S.out.width, h = S.out.height;
+  const M = S.mix, w = cv.width, h = cv.height, P = S.place;        // (the piece's own size; placed in the frame below)
   const nd = cv.getContext('2d').getImageData(0, 0, w, h), a = nd.data, p = M.prev;
   if (!M.tmp) { M.tmp = document.createElement('canvas'); M.tmp.width = w; M.tmp.height = h; M.tx = M.tmp.getContext('2d'); M.id = M.tx.createImageData(w, h); }
   const o = M.id.data;
@@ -3036,9 +3077,9 @@ function codeInto(cv) {
   if (S.layered && changed > a.length / 4 * 0.5) for (let i = 3; i < o.length; i += 4) o[i] = o[i] * 0.12;
   M.tx.putImageData(M.id, 0, 0);
   if (RLF.on && RLF.st && RLF.st.out === S.out) {        // a relief: the code paints its colours (and is paint, not material, where it lands)
-    const R = RLF.st; R.ax.setTransform(1, 0, 0, 1, 0, 0); R.ax.drawImage(M.tmp, 0, 0); R.dirty = true;
-    if (R.w === w && R.h === h) for (let i = 3, j = 0; i < o.length; i += 4, j++) if (o[i] > 128) R.M[j] = 0;
-  } else S.outX.drawImage(M.tmp, 0, 0);
+    const R = RLF.st; R.ax.setTransform(1, 0, 0, 1, 0, 0); if (P) R.ax.drawImage(M.tmp, P.dx * R.w / S.out.width, P.dy * R.h / S.out.height, P.dw * R.w / S.out.width, P.dh * R.h / S.out.height); else R.ax.drawImage(M.tmp, 0, 0); R.dirty = true;
+    if (!P && R.w === w && R.h === h) for (let i = 3, j = 0; i < o.length; i += 4, j++) if (o[i] > 128) R.M[j] = 0;
+  } else if (P) S.outX.drawImage(M.tmp, P.dx, P.dy, P.dw, P.dh); else S.outX.drawImage(M.tmp, 0, 0);
   M.prev = a;
 }
 // strokes: shapes × mix of them over the whole replay, spread over its steps (a jump of several steps brings several steps' worth)
@@ -3092,7 +3133,8 @@ async function replaySteps(gen) {
     const cv = await S.api.render(k);
     if (gen !== S.replayGen) return;
     if (S.mix) { codeInto(cv); mixStrokes(); }
-    else { S.outX.clearRect(0, 0, S.out.width, S.out.height); S.outX.drawImage(cv, 0, 0); }
+    else { const P = S.place; S.outX.clearRect(0, 0, S.out.width, S.out.height); if (P) { S.outX.fillStyle = '#000'; S.outX.fillRect(0, 0, S.out.width, S.out.height); S.outX.drawImage(cv, P.dx, P.dy, P.dw, P.dh); } else S.outX.drawImage(cv, 0, 0); }
+    if (S.mix) mixSnap(S.step / S.sched.length);
     S.count = k; S.cur = { line: S.opLines[k - 1], kind: S.opKinds[k - 1], t: clock() };
     if (S.step % 3 === 0 || S.step === S.sched.length - 1) S.sim = simOf(S.out);
     S.step++; snapMaybe(S.step / S.sched.length); if (!S.mix) sndStep();
@@ -3101,7 +3143,7 @@ async function replaySteps(gen) {
   // (the code can finish before the painter has delivered all its strokes: let it catch up)
   for (const t = clock(); gen === S.replayGen && S.mix && S.mix.debt >= 1 && clock() - t < 8000 && !(S.dz > 0);) { if (S.running) mixStrokes(false); await wait(60); }
   if (gen !== S.replayGen) return;
-  if (S.mix) { await wait(S.landing.length && !(S.dz > 0) ? 1500 : 0); if (gen !== S.replayGen) return; flushLandings(); S.sim = simOf(S.out); }
+  if (S.mix) { await wait(S.landing.length && !(S.dz > 0) ? 1500 : 0); if (gen !== S.replayGen) return; flushLandings(); S.sim = simOf(S.out); if (S.mixSnaps) { S.mixSnaps = S.mixSnaps.filter(s => s.f < 1); mixSnap(1); } }
   S.done = true; if ((!audioActive() || AU.ended) && !holdOpen()) { S.running = false; S.pausedAt = clock(); }
   setButtons();
   $('hint').textContent = `Replay done: ${S.total} ops${S.mix ? ` + ${S.mix.painted || 0} live strokes` : ''}, ${S.sim.toFixed(1)}% colour match with the original.`;
@@ -4345,16 +4387,21 @@ function reliefFlush(force) {
   R.dirty = false;
 }
 // relief strokes still arriving (the draw motion): each with how much of it is down so far
+// (at most 48 a frame — each is laid into a scratch relief, which costs. The ones already showing keep their place and
+// newcomers wait behind them: a stroke never drops out for a frame and comes back, which flickered)
 function reliefArriving() {
-  const out = [], t = clock();
-  for (const L of S.landing || []) {
-    if (!RELIEF[L.q.st] || t < L.t0) continue;
+  const out = [], t = clock(), was = RLF.showing || new Set(), now = new Set(), act = [];
+  for (const L of S.landing || []) if (RELIEF[L.q.st] && t >= L.t0) act.push(L);
+  const pick = new Set(act.filter(L => was.has(L)).concat(act.filter(L => !was.has(L))).slice(0, 48));
+  for (const L of act) {
+    if (!pick.has(L)) continue;       // (laid in the order they were painted, so nothing changes places when they land)
     const u = clamp01((t - L.t0) / L.dur), drawn = L.q.t === 'S';      // (paint is always painted out, whatever the motion)
     const fp = fillParts(L.q);
     if (fp) { const { done, cur, f } = fillUpTo(fp, u); for (const p of done) out.push({ q: p }); if (cur) out.push({ q: quadPart(cur, f, 1) }); }
     else out.push({ q: drawn ? quadPart(L.q, S.pen && S.mode === 'auto' ? u : easeInOut(u), L.dir) : L.q });
-    if (out.length >= 32) break;
+    now.add(L);
   }
+  RLF.showing = now;
   return out;
 }
 // the first u of a stroke as a stroke of its own (the quadratic split at u, from whichever end it is drawn)
@@ -7189,7 +7236,13 @@ async function eachStill(n, long, cb) {
     }
   } else {
     const k = long / Math.max(S.out.width, S.out.height);
-    for (let i = 1; i <= n; i++) await cb(await S.api.render(Math.max(1, Math.round(S.total * stillAt(i, n))), k), i);
+    const sn = S.mix && S.mixSnaps && S.mixSnaps.length ? S.mixSnaps : null;
+    for (let i = 1; i <= n; i++) {
+      if (sn) {     // (replay + live strokes: the snapshots taken as it went; the last one is the canvas now)
+        const f = stillAt(i, n), s = sn.reduce((b, v) => Math.abs(v.f - f) < Math.abs(b.f - f) ? v : b, sn[0]);
+        await cb(i === n ? canvasAsShown(long) : (() => { const c = document.createElement('canvas'); c.width = Math.round(S.out.width * k); c.height = Math.round(S.out.height * k); const x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(s.c, 0, 0, c.width, c.height); return c; })(), i);
+      } else await cb(await S.api.render(Math.max(1, Math.round(S.total * stillAt(i, n))), k), i);
+    }
   }
 }
 const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
@@ -7339,7 +7392,7 @@ function applyReelLen() {
   updateSelectionInfo();
 }
 // per run: nothing looping yet, no snapshots, the playlist's bar counter unset
-function newRun() { S.kick = 0; S.push = 0; S.sec = null; S.secE = null; S.sizeMul = 1; SND.lastSlot = null; SND.tokT = null; S.dz = 0; S.looped = false; S.doneAt = null; S.capped = false; S.songOn = false; S.cutN = null; S.snaps = []; S.committed = 0; S.cut = null; S.freeze = null; S.cutSig = null; S.cutAvg = null; S.cutAt = null; }
+function newRun() { S.place = null; S.mixSnaps = null; S.kick = 0; S.push = 0; S.sec = null; S.secE = null; S.sizeMul = 1; SND.lastSlot = null; SND.tokT = null; S.dz = 0; S.looped = false; S.doneAt = null; S.capped = false; S.songOn = false; S.cutN = null; S.snaps = []; S.committed = 0; S.cut = null; S.freeze = null; S.cutSig = null; S.cutAvg = null; S.cutAt = null; }
 
 // ── controls ─────────────────────────────────────────────────
 // tick-box pickers for style and motion: tick any mix (every stroke picks one of the ticked at random), or all.
@@ -7576,6 +7629,7 @@ $('example').onchange = e => {
   if (v.startsWith('__demo:')) return startAuto(demoPicture(v.slice(7)), name);
   if (v) startAuto(v, name);
 };
+for (const id of ['layerfmt', 'layershape', 'layerfit']) { const v = store('cp-' + id); if (v && [...$(id).options].some(o => o.value === v)) $(id).value = v; $(id).onchange = () => store('cp-' + id, $(id).value); }
 $('replaylayer').onclick = () => {
   $('example').value = ''; $('replay').value = '';
   if (!(+$('mix').value)) { $('mix').value = 35; $('mix').dispatchEvent(new Event('input', { bubbles: true })); }
@@ -7590,9 +7644,25 @@ $('replay').onchange = e => {
 // replays one after another: every piece of a set (or all of them) in turn, each held for the playlist's hold time
 // once it is done, round and round until something else is picked
 const RSHOW = { ids: null, i: 0, layer: false };
+// layering keeps one frame for the whole show: its shape (the first piece's, or a fixed one), only the pieces of that
+// shape or all of them, each piece cropped to fill the frame or fitted inside it (black bars)
+// each piece's own canvas size (the local version's build fills this in), for layering only pieces of one shape
+let PIECE_SIZE = {};
+const FRAMES = { '1:1': 1, '4:5': 4 / 5, '5:7': 726 / 1024, '9:16': 9 / 16, '16:9': 16 / 9, '7:5': 1024 / 726 };
+const aspectOf = id => { const s = PIECE_SIZE[id]; return s ? s[0] / s[1] : null; };
 function replayShow(set, layer = false) {
-  const ids = PIECES.map(([id]) => id).filter(id => !set || id[0] === set); if (!ids.length) return;
+  let ids = PIECES.map(([id]) => id).filter(id => !set || id[0] === set); if (!ids.length) return;
   if (layer) for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }     // (a random order)
+  RSHOW.frame = null; let note = '';
+  if (layer) {
+    const fmt = $('layerfmt').value, A = fmt === 'first' ? aspectOf(ids[0]) || 726 / 1024 : FRAMES[fmt] || 1;
+    if ($('layershape').value === 'same') {
+      const same = ids.filter(id => { const a = aspectOf(id); return a && Math.abs(Math.log(a / A)) < 0.05; });
+      if (same.length) ids = same; else note = ' (no piece has that shape: all of them, ' + $('layerfit').value + ')';
+    }
+    RSHOW.frame = { A, fit: $('layerfit').value };
+    RSHOW.note = `${ids.length} pieces${note}`;
+  }
   RSHOW.ids = ids; RSHOW.i = 0; RSHOW.layer = layer; startReplay(ids[0], { layer });
 }
 function replayShowNext(gen) {
@@ -7740,8 +7810,8 @@ for (const id of ['camamt', 'cambars', 'cutbars']) $(id).addEventListener('input
 camShow();
 // stroke sounds (on / volume; remembered)
 $('sndon').onchange = () => { sndEnable($('sndon').checked); store('cp-snd', $('sndon').checked ? '1' : ''); $('hint').textContent = $('sndon').checked ? `Stroke sounds on: every stroke plays a note${AU.el && AU.key ? ` in ${NOTE_NAMES[AU.key.root]}${AU.key.minor ? ' minor' : ' major'}, the song's key` : ''} (its style is the instrument).` : 'Stroke sounds off.'; };
-$('sndvol').oninput = () => { store('cp-sndvol', $('sndvol').value); if (SND.g) SND.g.out.gain.setTargetAtTime(sndGain(), AU.ctx.currentTime, 0.05); };
-{ const v = store('cp-sndvol'); if (v) $('sndvol').value = v; if (store('cp-snd') === '1') $('sndon').checked = true; }
+$('sndvol').oninput = () => { store('cp-sndvol', $('sndvol').value); $('sndvolval').textContent = $('sndvol').value + '%'; if (SND.g) SND.g.out.gain.setTargetAtTime(sndGain(), AU.ctx.currentTime, 0.05); };
+{ const v = store('cp-sndvol'); if (v) $('sndvol').value = v; $('sndvolval').textContent = $('sndvol').value + '%'; if (store('cp-snd') === '1') $('sndon').checked = true; }
 // (browsers only start sound after a click: a remembered "on" waits for the first one)
 if ($('sndon').checked) addEventListener('pointerdown', () => { if ($('sndon').checked && !SND.on) sndEnable(true); }, { once: true });
 $('sections').onchange = () => { drawTimeline(); $('hint').textContent = $('sections').checked ? 'Song sections on: drops paint denser and bolder, breaks finer and calmer, builds push in.' : 'Song sections off.'; };
@@ -7757,6 +7827,14 @@ $('psave').onclick = () => {
   $('hint').textContent = `Saved presets ${Object.keys(PRESETS).sort().join(' ')} to code-painter-presets.json.`;
 };
 $('pload').onclick = () => $('pfile').click();
+// reset: every setting back to its default — the stored choices are cleared and the page starts again (presets A–D and
+// easy / console stay). Press twice: the first press only asks
+$('preset_reset').onclick = () => {
+  const b = $('preset_reset');
+  if (!b.classList.contains('arm')) { b.classList.add('arm'); $('hint').textContent = 'Press reset again to put every setting back to its default (your presets A–D are kept).'; clearTimeout(b._t); b._t = setTimeout(() => b.classList.remove('arm'), 4000); return; }
+  try { const keep = new Set(['cp-presets', 'cp-mode']); for (const k of Object.keys(localStorage)) if (k.startsWith('cp-') && !keep.has(k)) localStorage.removeItem(k); } catch (e) { /* storage off: the page still starts again */ }
+  location.reload();
+};
 $('pfile').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   if (!/\.json$/i.test(f.name)) { const m = await readMeta(f); if (m) applyMeta(m, f.name); else $('hint').textContent = `${f.name} carries no settings: only pictures, videos, SVGs and code pages saved from Code Painter 4.25.1 on do.`; return; }

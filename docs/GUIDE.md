@@ -108,6 +108,21 @@ Every PNG, MP4 (⏺ render or ⏺ live), SVG and ⬇ code page you save carries 
 - **svg**, **png 1K / 4K / 8K**, **stills**, **contact sheet**, **cover**.
 - **window**: open the painting on its own, for a projector or a second screen.
 
+## Presets and reset
+
+The preset row under the painting keeps four sets of settings: press **store**, then a letter; press a letter to bring them back; **save** / **load** them as a file. **reset** (press it twice) puts every setting back to its default; your presets and the easy / console choice are kept.
+
+## Replay and layering (local version)
+
+The local version has 383 hand-coded recreations of JAS.BLACK artworks to **replay**, with live strokes mixed in (**+live**) and the code finishing on top (**finish**).
+
+**layer ⤮** replays the pieces in a random order, each one on top of the last. It keeps one frame for the whole show:
+- **frame**: the first piece's shape, or a fixed one: 5:7 (most pieces), 1:1, 4:5, 9:16, 16:9 or 7:5.
+- **same shape / all shapes**: only the pieces whose own shape matches the frame, or every piece.
+- **crop / fit**: a piece of another shape fills the frame (cropped), or fits inside it whole, with black bars.
+
+Saving a picture (PNG, 4K / 8K), stills or a contact sheet during a replay with live strokes or layers saves the canvas as you see it, strokes and layers included.
+
 ## Local version: Resolume and more
 
 `download/code-painter-local.zip` (also *resolume ↓* in the studio) is the studio run from your own computer, on Mac or Windows. It adds **Syphon / Spout** in and out for Resolume and other VJ software. Unzip it and double-click *start.command* (Mac) or *start.bat* (Windows).
