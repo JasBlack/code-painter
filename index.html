@@ -334,7 +334,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.25.1">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.25.2">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -1256,7 +1256,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.25.1 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.25.2 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1274,7 +1274,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.25.1', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.25.2', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -7837,7 +7837,7 @@ $('preset_reset').onclick = () => {
 };
 $('pfile').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-  if (!/\.json$/i.test(f.name)) { const m = await readMeta(f); if (m) applyMeta(m, f.name); else $('hint').textContent = `${f.name} carries no settings: only pictures, videos, SVGs and code pages saved from Code Painter 4.25.1 on do.`; return; }
+  if (!/\.json$/i.test(f.name)) { const m = await readMeta(f); if (m) applyMeta(m, f.name); else $('hint').textContent = `${f.name} carries no settings: only pictures, videos, SVGs and code pages saved from Code Painter 4.25.2 on do.`; return; }
   try {
     const j = JSON.parse(await f.text()), P = j && j.presets; if (!P || typeof P !== 'object') throw new Error('not a presets file');
     const got = Object.keys(P).filter(k => /^[ABCD]$/.test(k) && P[k] && P[k].v);
@@ -7982,7 +7982,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.25.1');
+    const V = await import('./viewer3d.js?v=4.25.2');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
