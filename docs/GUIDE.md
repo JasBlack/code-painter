@@ -16,6 +16,8 @@ Code Painter repaints any picture, video or live camera stroke by stroke, and wr
 
 When you want more control, switch to **console** (top left).
 
+**More room for the painting** (top right): **ui** sets the size of the controls (*auto* makes them smaller on a smaller window, or pick 70–110%), and the panel button (or the **H** key) hides the panels under the painting.
+
 ---
 
 ## Easy mode and console
