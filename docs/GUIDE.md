@@ -75,6 +75,7 @@ Order and one line also work in playlists.
 - **detail**: *fast*, *sharp*, *ultra*, *max* or *hq*.
 - **shapes**: *auto* picks a stroke count from the stroke size.
 - **size**: the stroke-size knob, or *rnd* for random sizes.
+- **faces** (*off*, *detail*, *max*): face detail. Faces are found in the picture, or in every frame of a video, and painted with more, finer strokes, the eyes and mouth most. It uses Google's MediaPipe face detector, which runs on your computer (nothing is sent anywhere) and loads the first time you switch it on. It finds faces that fill a good part of the frame, and needs the page served (online, or the local version's start.command), not opened as a file.
 - **fill**: how a tool fills a stroke much wider than itself: *one stroke* (the default), *zigzag* or *cross*.
 - **spray** (for the graffiti style):
   - The paint goes down as a cloud of fine droplets, the way a real can (or a Photoshop / Affinity spray brush) lays it: a grainy body, a fine overspray mist round it, a few splatters and drips.
@@ -116,6 +117,10 @@ Every PNG, MP4 (⏺ render or ⏺ live), SVG and ⬇ code page you save carries 
 - **svg**, **png 1K / 4K / 8K**, **stills**, **contact sheet**, **cover**.
 - **window**: open the painting on its own, for a projector or a second screen.
 - **Displays** (above the stage): *studio*, *simple*, *paint*, *+code* and *editor*. *editor* puts the painting beside its code in an editor window (painting.js, window dots, big line numbers, the current line highlighted, "Code Painter by Jas Black" along the bottom). In 16:9 they sit side by side. In the tall frames the painting is as big as it fits, with a thin black trim, and the editor sits under it, lined up with its edges.
+
+## Colour grade
+
+**grade** (in the out panel) opens the colour sliders: *brightness*, *contrast*, *saturation*, *highlights*, *shadows*, *hue*, *colour boost*, *glow* and *haze*. They change the painting as it shows, so recordings get them too, and the saved PNGs, stills and covers. Saved code and SVG keep the plain colours. Double-click a slider to put it back to 0; *reset* clears them all. The **grade** button lights up while any slider is in use.
 
 ## Presets and reset
 
