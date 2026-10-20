@@ -80,7 +80,7 @@ Order and one line also work in playlists.
   - The paint goes down as a cloud of fine droplets, the way a real can (or a Photoshop / Affinity spray brush) lays it: a grainy body, a fine overspray mist round it, a few splatters and drips.
   - **cap**: the nozzle. *auto* picks skinny caps for thin lines, fat caps for fills and soft for big areas. *skinny* is sharp with little overspray; *fat* is wide, with more mist and drips; *calligraphy* is a flat cap whose ribbon thins and thickens with the angle; *soft* is a wide fog.
   - **wall**: *canvas*, *concrete* or *brick*. The paint takes on the wall's texture as if it was sprayed onto it. The wall shows on screen, in stills and in recordings; saved code paints on plain canvas.
-  - **order**: *free*, or *piece*: base colours and big shapes first, then the outlines, then highlights and shines on top, the way a graffiti piece is built up.
+  - **finish**: *clean* (the default: base colours and big shapes first, then the detail, nothing added at the end) or *+ lines*: once the piece is painted, black outlines and white shines are sprayed over it.
 
 ## Music
 

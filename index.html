@@ -336,7 +336,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.26.2">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.26.3">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -476,7 +476,7 @@
     <div class="row">
       <select id="spraycap" class="sel" aria-label="Spray cap" title="The nozzle the spray style paints with. auto: skinny caps for thin lines, fat caps for fills, soft for big areas · skinny — sharp, little overspray · fat — wide, more mist and drips · calligraphy — a flat cap, a ribbon that thins and thickens with the angle · soft — a wide fog" style="flex: 1"><option value="auto" selected>cap: auto</option><option value="skinny">skinny</option><option value="fat">fat</option><option value="calli">calligraphy</option><option value="soft">soft</option></select>
       <select id="spraywall" class="sel" aria-label="Wall" title="What the picture is painted on: canvas (plain) · concrete · brick — the paint takes on the wall's texture, as if it was sprayed onto it" style="flex: 1"><option value="none" selected>canvas</option><option value="concrete">concrete</option><option value="brick">brick</option></select>
-      <select id="sprayorder" class="sel" aria-label="Spray order" title="How a spray piece is built up: free — the painter's usual order · piece — like a graffiti piece: base colours and big shapes first, then the outlines, then highlights and shines on top" style="flex: 1"><option value="free" selected>free</option><option value="piece">piece</option></select>
+      <select id="sprayorder" class="sel" aria-label="Spray order" title="How a spray piece finishes: clean — base colours and big shapes first, then the detail, and nothing added at the end · + lines — the same, then black outlines and white shines sprayed over the finished piece" style="flex: 1"><option value="free" selected>clean</option><option value="lines">+ lines</option></select>
     </div>
     <div class="row">
       <select id="detail" data-seg data-tight aria-label="Detail" title="How fine the painter works: fast · sharp · ultra · max (the finest strokes; slower, best for stills and offline renders) · hq (render quality: a twice as big canvas, the finest strokes, and three times the strokes in every frame of an offline render — slow live, made for ⏺ offline)"><option value="256">fast</option><option value="384" selected>sharp</option><option value="512">ultra</option><option value="768">max</option><option value="1024">hq</option></select>
@@ -1266,7 +1266,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.26.2 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.26.3 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1284,7 +1284,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.26.2', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.26.3', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -7462,7 +7462,7 @@ $('refx').onclick = refClear;
 function lineSpec() { const v = $('line').value; return v === 'pen' ? { kind: 'pen' } : ['circles', 'circlesc', 'tracei', 'tracec'].includes(v) ? { kind: 'circles', colour: v === 'circlesc' || v === 'tracec', hide: v[0] === 't' } : null; }      // (trace: the same one-loop drawing, without the circles)
 $('order').onchange = () => { $('hint').textContent = $('order').value === 'free' ? 'Order: free.' : 'Order: ' + $('order').selectedOptions[0].textContent + '. Repainting.'; rerunSoon(); };
 const outlineMode = () => $('outline').value;
-const pieceOn = () => $('sprayorder').value === 'piece' && stylePick.values().includes('graffiti');
+const pieceOn = () => $('sprayorder').value === 'lines' && stylePick.values().includes('graffiti');
 const rfillMode = () => $('rfill').value;
 $('rfill').onchange = () => { store('cp-rfill', rfillMode()); worker.postMessage({ type: 'rfill', on: rfillMode() }); helpersPost({ type: 'rfill', on: rfillMode() }); $('hint').textContent = { off: 'Shapes by hand off.', outline: 'Shapes by hand: big patches of one colour get their outline drawn, then a scribble fills them in.', rows: 'Shapes by hand: big patches get their outline, then are filled line by line.', scribble: 'Shapes by hand: big patches are scribbled in, back and forth.' }[rfillMode()]; };
 { const v = store('cp-rfill'); if (['off', 'outline', 'rows', 'scribble'].includes(v)) $('rfill').value = v; }
@@ -7745,7 +7745,7 @@ const stylePick = stylePicker();
   const name = id => $(id).selectedOptions[0].textContent;
   $('spraycap').onchange = () => { SPRAY.cap = $('spraycap').value; store('cp-spraycap', SPRAY.cap); S.big = null; $('hint').textContent = `Spray cap: ${name('spraycap').replace('cap: ', '')}. Repainting.`; rerunSoon(); };
   $('spraywall').onchange = () => { SPRAY.wall = $('spraywall').value; store('cp-spraywall', SPRAY.wall); WALL.key = ''; S.big = null; $('hint').textContent = SPRAY.wall === 'none' ? 'Painting on plain canvas.' : `Painting on ${SPRAY.wall}: the paint takes on the wall's texture.`; };
-  $('sprayorder').onchange = () => { store('cp-sprayorder', $('sprayorder').value); $('hint').textContent = $('sprayorder').value === 'piece' ? 'Piece order: base colours and shapes first, then outlines, then highlights (spray style).' : 'Free order.'; rerunSoon(); }; }
+  $('sprayorder').onchange = () => { store('cp-sprayorder', $('sprayorder').value); $('hint').textContent = $('sprayorder').value === 'lines' ? 'Spray + lines: once the piece is painted, black outlines and white shines go over it.' : 'Spray clean: nothing is added over the finished piece.'; rerunSoon(); }; }
 // a style's own size: right-click a style key for a slider (×0.25 … ×4); the key shows it when it isn't ×1
 {
   const pop = $('stysz'), inp = $('styszin'), out = $('styszval'); let cur = null;
@@ -8312,7 +8312,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.26.2');
+    const V = await import('./viewer3d.js?v=4.26.3');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
