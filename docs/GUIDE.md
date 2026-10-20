@@ -63,7 +63,7 @@ The options are *draw, glide, sketch, ink, spiral, fall, pop, shard, pixel* and 
 
 - **order**: *free* (the biggest mistake first), *top → bottom*, *bottom → top*, *left → right*, *right → left*, *diagonal*, *spiral out / in*, *rings out / in*, or *clock sweep*.
 - **one line**: a pen that never lifts. With music, *branch* (on the beat) splits the line on every beat.
-- **circles** (*circles · ink* or *circles · colour*, in the line menu): the picture's lines are joined into one closed path and drawn by a chain of spinning circles (a Fourier series, up to 300 circles), the way the epicycle drawing videos do it. The circles show while it draws and disappear at the end.
+- **circles** (*circles · ink* or *circles · colour*, in the line menu): the picture's lines are joined into one closed path and drawn by a chain of spinning circles (a Fourier series, up to 300 circles), the way the epicycle drawing videos do it. The circles show while it draws and disappear at the end. *trace · ink* and *trace · colour* draw the same loop without showing the circles.
 - **outlines**: the picture's real lines, drawn first or last.
 - **shapes by hand**: big patches of one colour get their outline traced, then are scribbled in (*outline + scribble*, *outline + rows*, *scribble*).
 - **cuts**: when a video cuts to a new scene, the change is either drawn or pre-drawn. With *pre-drawn*, recordings have no pause: ⏺ render pre-draws between frames, and ⏺ live leaves the pre-draw out of the file (the song waits with it). The video cuts straight to the new scene, already painted.
@@ -77,6 +77,7 @@ Order and one line also work in playlists.
 - **size**: the stroke-size knob, or *rnd* for random sizes.
 - **fill**: how a tool fills a stroke much wider than itself: *one stroke* (the default), *zigzag* or *cross*.
 - **spray** (for the graffiti style):
+  - The paint goes down as a cloud of fine droplets, the way a real can (or a Photoshop / Affinity spray brush) lays it: a grainy body, a fine overspray mist round it, a few splatters and drips.
   - **cap**: the nozzle. *auto* picks skinny caps for thin lines, fat caps for fills and soft for big areas. *skinny* is sharp with little overspray; *fat* is wide, with more mist and drips; *calligraphy* is a flat cap whose ribbon thins and thickens with the angle; *soft* is a wide fog.
   - **wall**: *canvas*, *concrete* or *brick*. The paint takes on the wall's texture as if it was sprayed onto it. The wall shows on screen, in stills and in recordings; saved code paints on plain canvas.
   - **order**: *free*, or *piece*: base colours and big shapes first, then the outlines, then highlights and shines on top, the way a graffiti piece is built up.
@@ -114,7 +115,7 @@ Every PNG, MP4 (⏺ render or ⏺ live), SVG and ⬇ code page you save carries 
 - **⬇ code**: a small web page that paints the picture again by itself, stroke by stroke, in the same styles (self-playing, with the song if you like).
 - **svg**, **png 1K / 4K / 8K**, **stills**, **contact sheet**, **cover**.
 - **window**: open the painting on its own, for a projector or a second screen.
-- **Displays** (above the stage): *studio*, *simple*, *paint*, *+code* and *editor*. *editor* puts the painting beside its code in an editor window (painting.js, window dots, big line numbers, the current line highlighted, a green progress bar). In 16:9 they sit side by side; in the tall frames the editor sits under the painting.
+- **Displays** (above the stage): *studio*, *simple*, *paint*, *+code* and *editor*. *editor* puts the painting beside its code in an editor window (painting.js, window dots, big line numbers, the current line highlighted, a green progress bar). In 16:9 they sit side by side. In the tall frames the painting is as big as it fits, with a thin black trim, and the editor sits under it, lined up with its edges.
 
 ## Presets and reset
 

@@ -336,7 +336,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.26.0">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.26.1">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -631,7 +631,7 @@
     </div>
     <div class="row">
       <select id="line" class="sel" aria-label="One line" title="One line: the whole picture drawn without lifting the pen, one stroke after another, each starting where the last ended, in the ticked styles (ink, graffiti, paint…), the colour changing as it goes, painting over itself until it looks like the picture. Pictures only" style="flex: 1">
-        <option value="off">one line: off</option><option value="pen">one line: on</option><option value="circles">circles · ink</option><option value="circlesc">circles · colour</option>
+        <option value="off">one line: off</option><option value="pen">one line: on</option><option value="circles">circles · ink</option><option value="circlesc">circles · colour</option><option value="tracei">trace · ink</option><option value="tracec">trace · colour</option>
       </select>
     </div>
     <div class="row">
@@ -1266,7 +1266,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.26.0 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.26.1 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1284,7 +1284,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.26.0', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.26.1', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -3466,8 +3466,46 @@ function rngFor(a) {
   let h = 2166136261; for (let i = 0; i < 6; i++) { h ^= Math.round((a[i] || 0) * 10); h = Math.imul(h, 16777619); }
   let s = h >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
 }
-// graffiti: a spray-can stroke — soft overspray haze, a dense body, speckles flying off it and, on heavy strokes,
-// drips running down. u (0..1) draws only the first part (for the draw motion); returns where the can is.
+// spray grain: a real can (and Photoshop's / Affinity's spray brushes) lays paint down as a cloud of tiny droplets,
+// dense in the middle and thinning out, so the colour builds up grainy rather than as a smooth band. Two particle
+// masks per size, made once with fixed seeds (so a stroke looks the same every time): body (a gaussian cloud over a
+// soft core) and mist (sparse overspray). A stroke stamps them along its path, tinted, at random turns.
+const SPG = { m: {}, t: {} };
+const spCanvas = n => { const c = typeof document !== 'undefined' ? document.createElement('canvas') : new OffscreenCanvas(n, n); c.width = c.height = n; return c; };
+function sprayMask(kind, n) {
+  const key = kind + n; if (SPG.m[key]) return SPG.m[key];
+  const c = spCanvas(n), g = c.getContext('2d'), h = n / 2;
+  let sd = (n * 7919 + (kind === 'mist' ? 104729 : 0)) >>> 0 || 1; const R = () => { sd ^= sd << 13; sd >>>= 0; sd ^= sd >>> 17; sd ^= sd << 5; sd >>>= 0; return sd / 4294967296; };
+  if (kind === 'body') { const G = g.createRadialGradient(h, h, 0, h, h, h); G.addColorStop(0, 'rgba(255,255,255,.5)'); G.addColorStop(0.4, 'rgba(255,255,255,.26)'); G.addColorStop(0.8, 'rgba(255,255,255,.04)'); G.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = G; g.fillRect(0, 0, n, n); }
+  g.fillStyle = '#fff';
+  const N = Math.round(n * n * (kind === 'body' ? 0.3 : 0.035));
+  for (let i = 0; i < N; i++) {
+    const r = kind === 'body' ? Math.abs(R() + R() + R() + R() - 2) * h * 0.62 : h * (0.2 + 0.8 * Math.sqrt(R())), an = R() * 6.2832;
+    if (r > h - 1.5) continue;
+    const px = h + Math.cos(an) * r, py = h + Math.sin(an) * r, d = 0.45 + R() * R() * (kind === 'body' ? 1.3 : 1.7);   // (droplets of about a pixel; now and then a bigger one)
+    g.globalAlpha = (kind === 'body' ? 0.3 : 0.4) + R() * 0.6;
+    if (d < 0.8) g.fillRect(px - d, py - d, d * 2, d * 2); else { g.beginPath(); g.arc(px, py, d, 0, 6.2832); g.fill(); }
+  }
+  return SPG.m[key] = c;
+}
+function sprayTint(kind, n, colour) {
+  const key = kind + n, t = SPG.t[key] || (SPG.t[key] = spCanvas(n)), g = t.getContext('2d');
+  g.globalCompositeOperation = 'copy'; g.globalAlpha = 1; g.drawImage(sprayMask(kind, n), 0, 0);
+  g.globalCompositeOperation = 'source-in'; g.fillStyle = colour; g.fillRect(0, 0, n, n); g.globalCompositeOperation = 'source-over';
+  return t;
+}
+// the mask size for a stamp D units across on x (a power of two near its size in real pixels: droplets stay ~1 px)
+const spSize = (x, D) => { const m = x.getTransform(), dev = D * (Math.hypot(m.a, m.b) || 1); return Math.min(512, Math.max(16, 2 ** Math.ceil(Math.log2(Math.max(1, dev))))); };
+// splatter: a few droplets thrown off the can, most tiny, a rare big one with its little satellites
+function splats(x, R, n, at, o) {
+  for (let i = 0; i < n; i++) {
+    const [px, py, r] = at();
+    x.globalAlpha = o * (0.55 + R() * 0.4); x.beginPath(); x.arc(px, py, r, 0, 6.2832); x.fill();
+    if (r > 1.6 && R() < 0.6) for (let k = 0, m = 1 + Math.floor(R() * 3); k < m; k++) { const an = R() * 6.2832, dd = r * (1.6 + R() * 2.5); x.beginPath(); x.arc(px + Math.cos(an) * dd, py + Math.sin(an) * dd, r * (0.12 + R() * 0.25), 0, 6.2832); x.fill(); }
+  }
+}
+// graffiti: a spray-can stroke — a grainy body of droplets, a fine overspray mist round it, a few splatters and,
+// on heavy strokes, drips running down. u (0..1) draws only the first part (for the draw motion); returns where the can is.
 function spray(x, q, u = 1, dir = 1) {
   const a = q.args, t = q.t, R = rngFor(a), colour = a[t === 'S' ? 8 : 6], o = a[a.length - 1];
   const g = () => (R() + R() + R() - 1.5) / 1.5;
@@ -3476,44 +3514,53 @@ function spray(x, q, u = 1, dir = 1) {
     let [x0, y0, x1, y1, x2, y2, w] = a; if (dir < 0) [x0, y0, x2, y2] = [x2, y2, x0, y0];
     const pt = s => { const v = 1 - s; return [v * v * x0 + 2 * v * s * x1 + s * s * x2, v * v * y0 + 2 * v * s * y1 + s * s * y2]; };
     const tn = s => { const dx = 2 * (1 - s) * (x1 - x0) + 2 * s * (x2 - x1), dy = 2 * (1 - s) * (y1 - y0) + 2 * s * (y2 - y1), d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; };
-    const qx = x0 + (x1 - x0) * u, qy = y0 + (y1 - y0) * u, [ex, ey] = pt(u), C = CAPS[capOf(w)];
-    for (const [k, al] of C.halo) {
-      x.globalAlpha = o * al; x.lineWidth = w * k; x.beginPath(); x.moveTo(x0, y0); x.quadraticCurveTo(qx, qy, ex, ey); x.stroke();
-    }
+    const [ex, ey] = pt(u), C = CAPS[capOf(w)], len = Math.hypot(x1 - x0, y1 - y0) + Math.hypot(x2 - x1, y2 - y1);
+    // the mist first, then the body: stamps of droplets along the path, each at a random turn
+    const stamps = (kind, D, step, al) => {
+      const n = sprayTint(kind, spSize(x, D), colour), cnt = Math.max(2, Math.min(240, Math.ceil(len * u / step) + 1));
+      x.globalAlpha = o * al; const M0 = x.getTransform();
+      for (let i = 0; i < cnt; i++) {
+        const s = u * (cnt > 1 ? i / (cnt - 1) : 0), [px, py] = pt(s), [tx, ty] = tn(s), j = g() * w * 0.06, dd = D * (0.9 + R() * 0.2), an = R() * 6.2832;
+        x.setTransform(M0); x.translate(px - ty * j, py + tx * j); x.rotate(an); x.drawImage(n, -dd / 2, -dd / 2, dd, dd);
+      }
+      x.setTransform(M0);
+    };
+    const Db = w * C.body, Dm = w * C.mist;
+    stamps('mist', Dm, Math.max(1, Dm * 0.35), C.mistA);
     if (C.flat) {          // a flat cap: a ribbon, wide across its edge and thin along it, with crisp sides
       const n2 = 28, Lp = [], Rp = []; for (let i = 0; i <= n2; i++) { const s = u * i / n2, [px, py] = pt(s), [tx, ty] = tn(s), wd = w * 0.55 * (0.16 + 0.84 * Math.abs(Math.sin(Math.atan2(ty, tx) - C.flat))); Lp.push([px - ty * wd, py + tx * wd]); Rp.push([px + ty * wd, py - tx * wd]); }
-      x.globalAlpha = o * 0.9; x.beginPath(); Lp.forEach((p, i) => x[i ? 'lineTo' : 'moveTo'](p[0], p[1])); for (let i = Rp.length - 1; i >= 0; i--) x.lineTo(Rp[i][0], Rp[i][1]); x.closePath(); x.fill();
+      x.globalAlpha = o * 0.82; x.beginPath(); Lp.forEach((p, i) => x[i ? 'lineTo' : 'moveTo'](p[0], p[1])); for (let i = Rp.length - 1; i >= 0; i--) x.lineTo(Rp[i][0], Rp[i][1]); x.closePath(); x.fill();
     }
-    const len = Math.hypot(x1 - x0, y1 - y0) + Math.hypot(x2 - x1, y2 - y1), n = Math.min(420, Math.round((len * u * 0.6 + w * 4 * u) * C.dots));
-    const dot = Math.max(0.6, w * C.dot);
-    for (let i = 0; i < n; i++) {
-      const s = R() * u, [px, py] = pt(s), [tx, ty] = tn(s), off = g() * w * C.spread, r = dot * (0.4 + R() * 1.4);
-      x.globalAlpha = o * (0.2 + R() * 0.65); x.beginPath(); x.arc(px - ty * off, py + tx * off, r, 0, 7); x.fill();
-    }
+    stamps('body', Db, Math.max(0.6, Db * 0.14), C.a);
+    // splatter, thrown off to the sides
+    const nsp = Math.min(14, Math.round(C.splat * (len * u / Math.max(4, w) * 0.6 + 1) * (0.5 + R())));
+    splats(x, R, nsp, () => { const s = R() * u, [px, py] = pt(s), [tx, ty] = tn(s), off = g() * Dm * 0.55; return [px - ty * off, py + tx * off, Math.max(0.5, w * 0.035 * (0.4 + R() ** 3 * 3.5))]; }, o);
     // drips: where much paint lands in one place (a wide, short stroke; a fat cap) it runs (a filling pass drips less: the can keeps moving)
     const pool = Math.min(1.6, w / Math.max(8, len) * 3);
     if (u >= 1 && w > 4 && R() < (q.sub ? 0.12 : 1) * Math.min(0.9, C.drip * (0.6 + pool))) {
       for (let d = 0, nd = R() < 0.4 ? 2 : 1; d < nd; d++) {
-        const [dx, dy] = pt(0.15 + R() * 0.7), L = w * (0.8 + R() * 3.2), dw = w * (0.1 + R() * 0.12);
-        x.globalAlpha = o * 0.85; x.beginPath();
-        x.moveTo(dx - dw, dy); x.quadraticCurveTo(dx - dw * 0.5, dy + L * 0.6, dx - dw * 0.35, dy + L);
-        x.lineTo(dx + dw * 0.35, dy + L); x.quadraticCurveTo(dx + dw * 0.5, dy + L * 0.6, dx + dw, dy); x.closePath(); x.fill();
-        x.beginPath(); x.arc(dx, dy + L, dw * 0.75, 0, 7); x.fill();
+        const [dx, dy] = pt(0.15 + R() * 0.7), L = w * (0.8 + R() * 3.2), dw = w * (0.07 + R() * 0.08);
+        x.globalAlpha = o * 0.88; x.beginPath();
+        x.moveTo(dx - dw, dy); x.quadraticCurveTo(dx - dw * 0.45, dy + L * 0.6, dx - dw * 0.3, dy + L);
+        x.lineTo(dx + dw * 0.3, dy + L); x.quadraticCurveTo(dx + dw * 0.45, dy + L * 0.6, dx + dw, dy); x.closePath(); x.fill();
+        x.beginPath(); x.arc(dx, dy + L, dw * 0.6, 0, 7); x.fill();
       }
     }
     x.restore(); return [ex, ey];
   }
-  // a blob / ellipse: an airbrushed burst with a speckled halo
-  const [cx, cy, rx, ry, rot] = a, m = Math.max(rx, ry);
+  // a blob / ellipse: an airbrushed burst — a soft core, droplets over it, mist and splatter round it
+  const [cx, cy, rx, ry, rot] = a, m = Math.max(rx, ry), C = CAPS[capOf(m)];
+  const nb = sprayTint('body', spSize(x, m * 2.5), colour);
   x.translate(cx, cy); x.rotate(rot); x.scale(rx / m, ry / m);
-  const G = x.createRadialGradient(0, 0, 0, 0, 0, m * 1.25);
-  G.addColorStop(0, colour); G.addColorStop(0.62, colour); G.addColorStop(1, colour + '00');
-  x.globalAlpha = o * 0.9 * u; x.fillStyle = G; x.beginPath(); x.arc(0, 0, m * 1.25 * Math.max(0.2, u), 0, 7); x.fill();
+  const G = x.createRadialGradient(0, 0, 0, 0, 0, m * 1.05);
+  G.addColorStop(0, colour); G.addColorStop(0.55, colour); G.addColorStop(1, colour + '00');
+  x.globalAlpha = o * 0.6 * u; x.fillStyle = G; x.beginPath(); x.arc(0, 0, m * 1.05 * Math.max(0.2, u), 0, 7); x.fill();
+  const bs = m * 2.5 * Math.max(0.2, u);
+  for (let k = 0; k < 3; k++) { const an = R() * 6.2832; x.rotate(an); x.globalAlpha = o * 0.55 * u; x.drawImage(nb, -bs / 2, -bs / 2, bs, bs); x.rotate(-an); }
+  const nm = sprayTint('mist', spSize(x, m * 3.4), colour), ms = m * 3.4 * Math.max(0.2, u);
+  x.globalAlpha = o * C.mistA * u; x.drawImage(nm, -ms / 2, -ms / 2, ms, ms);
   x.fillStyle = colour;
-  for (let i = 0, n = Math.min(160, Math.round(m * 1.2)); i < n * u; i++) {
-    const an = R() * 6.283, rr = m * (0.95 + Math.abs(g()) * 0.7);
-    x.globalAlpha = o * (0.2 + R() * 0.6); x.beginPath(); x.arc(Math.cos(an) * rr, Math.sin(an) * rr, Math.max(0.5, m * 0.03) * (0.4 + R()), 0, 7); x.fill();
-  }
+  splats(x, R, Math.round(C.splat * 6 * u), () => { const an = R() * 6.283, rr = m * (0.95 + Math.abs(g()) * 0.8); return [Math.cos(an) * rr, Math.sin(an) * rr, Math.max(0.5, m * 0.025 * (0.4 + R() ** 3 * 3))]; }, o);
   x.restore(); return [cx, cy];
 }
 // ═════════════════════════════════════════════════════════════
@@ -3694,11 +3741,11 @@ const LIGHT = { x: -0.62, y: -0.78 };
 // spray paint: the cap on the can (auto picks one by the stroke's width: skinny for lines, fat for most, soft for the
 // biggest washes) and the surface it goes on
 const SPRAY = { cap: 'auto', wall: 'none' };
-const CAPS = {
-  skinny: { halo: [[1.3, 0.05], [1.08, 0.3], [0.96, 0.92]], spread: 0.75, dots: 0.35, dot: 0.04, drip: 0.22 },         // sharp lines, little overspray
-  fat:    { halo: [[2.1, 0.06], [1.55, 0.1], [1.2, 0.28], [0.92, 0.8]], spread: 1.25, dots: 1, dot: 0.055, drip: 0.62 },  // broad, soft edged, overspray
-  soft:   { halo: [[3.0, 0.035], [2.2, 0.06], [1.6, 0.12], [1.15, 0.3], [0.8, 0.45]], spread: 1.9, dots: 0.6, dot: 0.05, drip: 0.3 },   // a wide fade
-  calli:  { halo: [[1.25, 0.1]], spread: 0.45, dots: 0.4, dot: 0.035, drip: 0.45, flat: 0.6 }                          // a flat cap: wide or thin by direction
+const CAPS = {      // body / mist: the droplet cloud's and the overspray's width (× the stroke's) · a / mistA: how much paint each puts down
+  skinny: { body: 1.3, mist: 2.3, a: 0.5, mistA: 0.22, splat: 0.25, drip: 0.22 },          // sharp lines, little overspray
+  fat:    { body: 1.75, mist: 3.1, a: 0.44, mistA: 0.3, splat: 0.7, drip: 0.62 },          // broad, soft edged, overspray
+  soft:   { body: 2.5, mist: 3.8, a: 0.3, mistA: 0.26, splat: 0.3, drip: 0.3 },           // a wide fade
+  calli:  { body: 1.1, mist: 1.9, a: 0.36, mistA: 0.18, splat: 0.3, drip: 0.45, flat: 0.6 }  // a flat cap: wide or thin by direction
 };
 const capOf = w => SPRAY.cap !== 'auto' && CAPS[SPRAY.cap] ? SPRAY.cap : w < 9 ? 'skinny' : w > 38 ? 'soft' : 'fat';
 const lightKey = () => LIGHT.x.toFixed(2) + ',' + LIGHT.y.toFixed(2);
@@ -6187,7 +6234,7 @@ function duo(now) {
 // ═════════════════════════════════════════════════════════════
 function frStart(data, w, h) {
   const colour = S.line.colour;
-  S.fr = { ready: false, colour, w, h, data, i: 0, t0: null, gen: S.gen };
+  S.fr = { ready: false, colour, hide: !!S.line.hide, w, h, data, i: 0, t0: null, gen: S.gen };
   S.bgHex = S.loopBg = colour ? '#0f0f12' : '#efe9dc'; paintBg(S.outX); S.bgSet = true;
   worker.postMessage({ type: 'chains', gen: S.gen, w, h, data: data.slice(), dense: true });
   $('hint').textContent = 'Circles: finding the lines and putting them in order…';
@@ -6235,7 +6282,7 @@ function frChains(chains) {
   const c0 = cs.shift(); cs.sort((p, q) => q[3] - p[3]);
   Object.assign(F, { ready: true, N, x, y, jump, c0, cs: cs.slice(0, 300), nAll: N, t0: clock(), i: 0, wpx: Math.max(0.6, Math.max(F.w, F.h) / 900), lens: len });
   S.total = Math.ceil(N / 8); S.workerDone = false;
-  $('hint').textContent = `Circles: ${seq.length} lines in one loop, ${N.toLocaleString()} points — drawn by ${N.toLocaleString()} spinning circles (the biggest 300 shown).`;
+  $('hint').textContent = `Circles: ${seq.length} lines in one loop, ${N.toLocaleString()} points — drawn by ${N.toLocaleString()} spinning circles ${S.fr.hide ? ' (hidden: only the line shows)' : '(the biggest 300 shown)'}.`;
 }
 // how far along the loop the tip is: with a song, where the song is; otherwise the speed sets the time
 function frTarget() {
@@ -6262,7 +6309,7 @@ function frStep() {
 }
 // the spinning circles over the painting (X already in the painting's coordinates)
 function frCircles() {
-  const F = S.fr; if (!F || !F.ready || F.done || !F.tip) return;
+  const F = S.fr; if (!F || !F.ready || F.done || !F.tip || F.hide) return;
   const k = S.k, t = 2 * Math.PI * F.at / F.N, m = X.getTransform(), px = 1 / Math.hypot(m.a, m.b);
   let cx = F.c0[1], cy = F.c0[2];
   X.save(); X.lineWidth = 1.1 * px; const ink = !F.colour;
@@ -6282,43 +6329,45 @@ function frCircles() {
 //  the tall and square frames put the editor under the painting.
 // ═════════════════════════════════════════════════════════════
 function editorGeom() {
-  const ar = S.out ? S.out.width / S.out.height : S.orig ? srcW(S.orig) / srcH(S.orig) : 1, m = 40, g = 36;
+  // a thin black trim round the painting; in the tall frames the editor under it shares its left and right edges
+  const ar = S.out ? S.out.width / S.out.height : S.orig ? srcW(S.orig) / srcH(S.orig) : 1, m = Math.round(Math.min(SW, SH) * 0.025), g = m;
   if (SW > SH * 1.2) {
-    const maxW = SW * 0.56; let ph = SH - 2 * m, pw = ph * ar; if (pw > maxW) { pw = maxW; ph = pw / ar; }
+    const maxW = SW * 0.6; let ph = SH - 2 * m, pw = ph * ar; if (pw > maxW) { pw = maxW; ph = pw / ar; }
     const paint = { x: m, y: Math.round((SH - ph) / 2), w: Math.round(pw), h: Math.round(ph) }, cx = paint.x + paint.w + g;
-    return { paint, code: { x: cx, y: m, w: SW - m - cx, h: SH - 2 * m } };
+    return { paint, code: { x: cx, y: paint.y, w: SW - m - cx, h: paint.h } };
   }
-  const B = LY.feed || SH <= SW ? { top: m, bottom: SH - m } : IG, avail = B.bottom - B.top, maxH = avail * 0.6;
-  let pw = SW - 2 * m, ph = pw / ar; if (ph > maxH) { ph = maxH; pw = ph * ar; }
-  const paint = { x: Math.round((SW - pw) / 2), y: B.top, w: Math.round(pw), h: Math.round(ph) }, cy = paint.y + paint.h + g;
-  return { paint, code: { x: m, y: cy, w: SW - 2 * m, h: B.bottom - cy } };
+  const avail = SH - 2 * m - g, minCode = Math.round(avail * (SH > SW * 1.3 ? 0.2 : 0.26));
+  let pw = SW - 2 * m, ph = pw / ar; if (ph > avail - minCode) { ph = avail - minCode; pw = ph * ar; }
+  pw = Math.round(pw); ph = Math.round(ph);
+  const x = Math.round((SW - pw) / 2), codeH = Math.min(avail - ph, Math.max(minCode, Math.round(avail * 0.45))), y = Math.round((SH - (ph + g + codeH)) / 2);
+  return { paint: { x, y, w: pw, h: ph }, code: { x, y: y + ph + g, w: pw, h: codeH } };
 }
 function editorCode(C, now) {
-  const fs = SW > SH ? 26 : 30, LH = Math.round(fs * 1.5), barH = 58, R = 18;
+  const fs = Math.max(16, Math.min(SW > SH ? 26 : 30, Math.round(C.w / 34))), LH = Math.round(fs * 1.45), barH = Math.round(fs * 2), R = Math.round(fs * 0.5), pad = Math.round(fs * 0.9);
   rr(C.x, C.y, C.w, C.h, R, COL.panel2, 'rgba(255,255,255,.07)', 1);
-  [COL.accent, COL.accent2, COL.dim].forEach((c, i) => { X.fillStyle = c; X.beginPath(); X.arc(C.x + 30 + i * 22, C.y + barH / 2, 7, 0, 7); X.fill(); });
+  [COL.accent, COL.accent2, COL.dim].forEach((c, i) => { X.fillStyle = c; X.beginPath(); X.arc(C.x + pad + 4 + i * fs * 0.8, C.y + barH / 2, fs * 0.25, 0, 7); X.fill(); });
   const file = S.mode === 'replay' ? `${S.name}.js` : 'painting.js';
-  X.font = `600 ${Math.round(fs * 0.8)}px ${MONO}`; X.fillStyle = COL.dim; X.fillText(file, C.x + 30 + 3 * 22 + 14, C.y + barH / 2 + fs * 0.28);
+  X.font = `600 ${Math.round(fs * 0.8)}px ${MONO}`; X.fillStyle = COL.dim; X.fillText(file, C.x + pad + 4 + fs * 2.9, C.y + barH / 2 + fs * 0.28);
   X.fillStyle = 'rgba(255,255,255,.07)'; X.fillRect(C.x + 1, C.y + barH, C.w - 2, 1);
-  const top = C.y + barH + 14, bottom = C.y + C.h - 40, rows = Math.max(1, Math.floor((bottom - top) / LH));
+  const top = C.y + barH + Math.round(fs * 0.5), bottom = C.y + C.h - Math.round(fs * 1.4), rows = Math.max(1, Math.floor((bottom - top) / LH));
   X.font = `${fs}px ${MONO}`;
   const { lines, hiRow } = codeLines(rows, S.mode === 'replay' && S.mix ? 'live' : undefined), cw = X.measureText('M').width;
-  const gw = gutterW(lines, cw), gx = C.x + 24, tx = gx + gw + 22, base = Math.round(LH * 0.66), y0 = bottom - lines.length * LH;
+  const gw = gutterW(lines, cw), gx = C.x + pad, tx = gx + gw + Math.round(fs * 0.8), base = Math.round(LH * 0.66), y0 = bottom - lines.length * LH;
   X.save(); X.beginPath(); X.rect(C.x, top - 4, C.w, bottom - top + 8); X.clip();
   lines.forEach(([n, text], ri) => {
     const y = y0 + ri * LH;
     if (ri === hiRow) { X.fillStyle = COL.hi; X.fillRect(C.x + 1, y, C.w - 2, LH); }
     X.fillStyle = ri === hiRow ? COL.accent : COL.com; X.textAlign = 'right'; X.fillText(String(n), gx + gw, y + base); X.textAlign = 'left';
-    const ex = drawTokens(text.replace(/\t/g, '  '), tx, y + base, C.x + C.w - 24 - tx - cw * 1.6);
-    if (ri === hiRow && S.mode === 'auto' && !S.done && Math.floor(now / 450) % 2 === 0) { const kw = Math.round(cw * 0.6); X.fillStyle = COL.accent; X.fillRect(Math.min(ex + cw * 0.3, C.x + C.w - 24 - kw), y + LH * 0.12, kw, LH * 0.76); }
+    const ex = drawTokens(text.replace(/\t/g, '  '), tx, y + base, C.x + C.w - pad - tx - cw * 1.6);
+    if (ri === hiRow && S.mode === 'auto' && !S.done && Math.floor(now / 450) % 2 === 0) { const kw = Math.round(cw * 0.6); X.fillStyle = COL.accent; X.fillRect(Math.min(ex + cw * 0.3, C.x + C.w - pad - kw), y + LH * 0.12, kw, LH * 0.76); }
   });
   // older lines fade out at the top as the program grows
   const g = X.createLinearGradient(0, top - 4, 0, top + LH * 2); g.addColorStop(0, COL.panel2); g.addColorStop(1, rgba(COL.panel2, 0)); X.fillStyle = g; X.fillRect(C.x + 1, top - 4, C.w - 2, LH * 2);
   X.restore();
   // the progress bar
-  const p = progress(), py = C.y + C.h - 22;
-  rr(C.x + 24, py, C.w - 48, 5, 2.5, 'rgba(255,255,255,.08)');
-  if (p) { const gr = X.createLinearGradient(C.x + 24, 0, C.x + C.w - 24, 0); gr.addColorStop(0, COL.accent); gr.addColorStop(1, COL.accent2); glow(COL.accent, 10, () => rr(C.x + 24, py, (C.w - 48) * p, 5, 2.5, gr)); }
+  const p = progress(), py = C.y + C.h - Math.round(fs * 0.8);
+  rr(C.x + pad, py, C.w - 2 * pad, 5, 2.5, 'rgba(255,255,255,.08)');
+  if (p) { const gr = X.createLinearGradient(C.x + pad, 0, C.x + C.w - pad, 0); gr.addColorStop(0, COL.accent); gr.addColorStop(1, COL.accent2); glow(COL.accent, 10, () => rr(C.x + pad, py, (C.w - 2 * pad) * p, 5, 2.5, gr)); }
 }
 function editor(now) {
   const G = editorGeom(), r = fxAmt();
@@ -6328,11 +6377,10 @@ function editor(now) {
     editorCode(G.code, now); return;
   }
   const b = S.out ? fit(S.out, G.paint) : null, framed = $('frame').value !== 'rect';
-  if (b && !framed) { X.save(); X.globalAlpha = 0.5; X.drawImage(haloOf(S.out, now), b.x - b.w * 10 / 44, b.y - b.h * 10 / 44, b.w * 64 / 44, b.h * 64 / 44); X.restore(); }
   editorCode(G.code, now);
   if (b) {
     if (framed) paintPanel(b, now, r);
-    else { X.save(); X.beginPath(); X.roundRect(b.x, b.y, b.w, b.h, 18); X.clip(); paintPanel(b, now, r); X.restore(); rr(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1, 18, null, 'rgba(255,255,255,.08)', 1); }
+    else { X.save(); X.beginPath(); X.roundRect(b.x, b.y, b.w, b.h, 12); X.clip(); paintPanel(b, now, r); X.restore(); rr(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1, 12, null, 'rgba(255,255,255,.08)', 1); }
   }
 }
 // ▢ IG guides: the Reels interface areas drawn over the stage as a page overlay (never part of the recording)
@@ -7398,7 +7446,7 @@ $('refx').onclick = refClear;
 //  Path: the painting order (sweeping across the picture instead of biggest-mistake-first) and one line
 //  (the whole picture as one unbroken line). Both are made by the painter's worker; see painter-worker.
 // ═════════════════════════════════════════════════════════════
-function lineSpec() { const v = $('line').value; return v === 'pen' ? { kind: 'pen' } : v === 'circles' || v === 'circlesc' ? { kind: 'circles', colour: v === 'circlesc' } : null; }
+function lineSpec() { const v = $('line').value; return v === 'pen' ? { kind: 'pen' } : ['circles', 'circlesc', 'tracei', 'tracec'].includes(v) ? { kind: 'circles', colour: v === 'circlesc' || v === 'tracec', hide: v[0] === 't' } : null; }      // (trace: the same one-loop drawing, without the circles)
 $('order').onchange = () => { $('hint').textContent = $('order').value === 'free' ? 'Order: free.' : 'Order: ' + $('order').selectedOptions[0].textContent + '. Repainting.'; rerunSoon(); };
 const outlineMode = () => $('outline').value;
 const pieceOn = () => $('sprayorder').value === 'piece' && stylePick.values().includes('graffiti');
@@ -8251,7 +8299,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.26.0');
+    const V = await import('./viewer3d.js?v=4.26.1');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
