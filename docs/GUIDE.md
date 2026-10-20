@@ -115,7 +115,7 @@ Every PNG, MP4 (⏺ render or ⏺ live), SVG and ⬇ code page you save carries 
 - **⬇ code**: a small web page that paints the picture again by itself, stroke by stroke, in the same styles (self-playing, with the song if you like).
 - **svg**, **png 1K / 4K / 8K**, **stills**, **contact sheet**, **cover**.
 - **window**: open the painting on its own, for a projector or a second screen.
-- **Displays** (above the stage): *studio*, *simple*, *paint*, *+code* and *editor*. *editor* puts the painting beside its code in an editor window (painting.js, window dots, big line numbers, the current line highlighted, a green progress bar). In 16:9 they sit side by side. In the tall frames the painting is as big as it fits, with a thin black trim, and the editor sits under it, lined up with its edges.
+- **Displays** (above the stage): *studio*, *simple*, *paint*, *+code* and *editor*. *editor* puts the painting beside its code in an editor window (painting.js, window dots, big line numbers, the current line highlighted, "Code Painter by Jas Black" along the bottom). In 16:9 they sit side by side. In the tall frames the painting is as big as it fits, with a thin black trim, and the editor sits under it, lined up with its edges.
 
 ## Presets and reset
 

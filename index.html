@@ -336,7 +336,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.26.3">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.26.4">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -356,7 +356,7 @@
     <button data-display="simple" title="For reels: the painting big, the original and the code underneath, no text">simple</button>
     <button data-display="painting" title="Only the painting, as big as possible">paint</button>
     <button data-display="duo" title="The painting on top, its code underneath (no original)">+code</button>
-    <button data-display="editor" title="The painting beside its code in an editor window (painting.js, big line numbers, a progress bar): in 16:9 side by side, in the tall frames the editor under the painting">editor</button>
+    <button data-display="editor" title="The painting beside its code in an editor window (painting.js, big line numbers, the credit line): in 16:9 side by side, in the tall frames the editor under the painting">editor</button>
   </div>
   <select id="layout" class="sel" aria-label="Frame" title="The frame: 16:9 (1920×1080) · 9:16 reels / shorts / tiktok (1080×1920) · 4:5 feed post (1080×1350) · 1:1 square (1080×1080)"><option value="landscape">16:9</option><option value="vertical">9:16</option><option value="portrait">4:5</option><option value="square">1:1</option></select>
   <select id="uiscale" class="sel" aria-label="Size of the controls" title="The size of the controls (buttons, text, panels): smaller leaves more room for the painting. auto: smaller on a smaller window" style="width: auto"><option value="auto" selected>ui auto</option><option value="0.7">ui 70%</option><option value="0.8">ui 80%</option><option value="0.9">ui 90%</option><option value="1">ui 100%</option><option value="1.1">ui 110%</option></select>
@@ -1266,7 +1266,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.26.3 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.26.4 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1284,7 +1284,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.26.3', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.26.4', FOOTER = `Code Painter by Jas Black`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -6338,7 +6338,7 @@ function frCircles() {
 }
 // ═════════════════════════════════════════════════════════════
 //  Editor display: the painting beside its program in an editor window — painting.js with its three dots, big line
-//  numbers, the newest line highlighted with a blinking cursor and a progress bar along the bottom. 16:9 side by side;
+//  numbers, the newest line highlighted with a blinking cursor and the credit line along the bottom. 16:9 side by side;
 //  the tall and square frames put the editor under the painting.
 // ═════════════════════════════════════════════════════════════
 function editorGeom() {
@@ -6377,10 +6377,9 @@ function editorCode(C, now) {
   // older lines fade out at the top as the program grows
   const g = X.createLinearGradient(0, top - 4, 0, top + LH * 2); g.addColorStop(0, COL.panel2); g.addColorStop(1, rgba(COL.panel2, 0)); X.fillStyle = g; X.fillRect(C.x + 1, top - 4, C.w - 2, LH * 2);
   X.restore();
-  // the progress bar
-  const p = progress(), py = C.y + C.h - Math.round(fs * 0.8);
-  rr(C.x + pad, py, C.w - 2 * pad, 5, 2.5, 'rgba(255,255,255,.08)');
-  if (p) { const gr = X.createLinearGradient(C.x + pad, 0, C.x + C.w - pad, 0); gr.addColorStop(0, COL.accent); gr.addColorStop(1, COL.accent2); glow(COL.accent, 10, () => rr(C.x + pad, py, (C.w - 2 * pad) * p, 5, 2.5, gr)); }
+  // the credit line along the bottom, as in the other displays
+  X.fillStyle = 'rgba(255,255,255,.07)'; X.fillRect(C.x + pad, C.y + C.h - Math.round(fs * 1.4), C.w - 2 * pad, 1);
+  X.fillStyle = COL.dim; X.font = `${Math.max(10, Math.round(fs * 0.62))}px ${MONO}`; X.textAlign = 'center'; X.fillText(FOOTER, C.x + C.w / 2, C.y + C.h - Math.round(fs * 0.5)); X.textAlign = 'left';
 }
 function editor(now) {
   const G = editorGeom(), r = fxAmt();
@@ -8312,7 +8311,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.26.3');
+    const V = await import('./viewer3d.js?v=4.26.4');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
