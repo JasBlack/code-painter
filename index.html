@@ -336,7 +336,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.26.1">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.26.2">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -1266,7 +1266,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.26.1 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.26.2 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1284,7 +1284,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.26.1', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.26.2', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -3504,6 +3504,26 @@ function splats(x, R, n, at, o) {
     if (r > 1.6 && R() < 0.6) for (let k = 0, m = 1 + Math.floor(R() * 3); k < m; k++) { const an = R() * 6.2832, dd = r * (1.6 + R() * 2.5); x.beginPath(); x.arc(px + Math.cos(an) * dd, py + Math.sin(an) * dd, r * (0.12 + R() * 0.25), 0, 6.2832); x.fill(); }
   }
 }
+// a drip: wet paint running down out of the sprayed film. It grows out of the paint (no hard top), keeps about
+// the same thin width as it runs, wanders a little, ends in a round bead and catches a thin wet shine on one side.
+function drip(x, R, colour, dx, dy, w, o) {
+  const m = x.getTransform(), px = 1 / (Math.hypot(m.a, m.b) || 1);
+  const hw = Math.max(0.7 * px, w * (0.03 + R() * 0.035)), L = w * (0.5 + R() * R() * 3), y0 = dy + w * 0.1, y1 = y0 + L;
+  const wob = (R() - 0.5) * hw * 1.2, ph = R() * 6.28, xs = t => dx + wob * t * t + Math.sin(ph + t * 5) * hw * 0.18;
+  const hwAt = t => hw * (t < 0.15 ? 0.6 + t / 0.15 * 0.55 : 1.15 - t * 0.35);      // (a little fuller where it leaves the paint, thinner as it runs)
+  const n = 14, Lp = [], Rp = [];
+  for (let i = 0; i <= n; i++) { const t = i / n, y = y0 + L * t, xx = xs(t), h = hwAt(t); Lp.push([xx - h, y]); Rp.push([xx + h, y]); }
+  const G = x.createLinearGradient(0, y0 - w * 0.15, 0, y0 + Math.min(L * 0.5, w * 0.45));
+  G.addColorStop(0, colour + '00'); G.addColorStop(1, colour);
+  x.globalAlpha = o * 0.92; x.fillStyle = G; x.beginPath();
+  Lp.forEach((p, i) => x[i ? 'lineTo' : 'moveTo'](p[0], p[1])); for (let i = Rp.length - 1; i >= 0; i--) x.lineTo(Rp[i][0], Rp[i][1]); x.closePath(); x.fill();
+  const bx = xs(1), br = hw * (1.25 + R() * 0.35);           // the bead at the end, where the paint gathers
+  x.fillStyle = colour; x.beginPath(); x.ellipse(bx, y1 + br * 0.15, br, br * 1.15, 0, 0, 6.2832); x.fill();
+  x.globalAlpha = o * 0.28; x.strokeStyle = shade(colour, 0.45); x.lineWidth = Math.max(0.5 * px, hw * 0.35); x.lineCap = 'round';   // the wet shine
+  x.beginPath(); for (let i = 3; i <= n; i++) { const t = i / n; x[i > 3 ? 'lineTo' : 'moveTo'](xs(t) - hwAt(t) * 0.4, y0 + L * t); } x.stroke();
+  x.beginPath(); x.arc(bx - br * 0.35, y1 - br * 0.2, br * 0.28, 0, 6.2832); x.fillStyle = shade(colour, 0.6); x.fill();
+  x.fillStyle = x.strokeStyle = colour;
+}
 // graffiti: a spray-can stroke — a grainy body of droplets, a fine overspray mist round it, a few splatters and,
 // on heavy strokes, drips running down. u (0..1) draws only the first part (for the draw motion); returns where the can is.
 function spray(x, q, u = 1, dir = 1) {
@@ -3537,15 +3557,8 @@ function spray(x, q, u = 1, dir = 1) {
     splats(x, R, nsp, () => { const s = R() * u, [px, py] = pt(s), [tx, ty] = tn(s), off = g() * Dm * 0.55; return [px - ty * off, py + tx * off, Math.max(0.5, w * 0.035 * (0.4 + R() ** 3 * 3.5))]; }, o);
     // drips: where much paint lands in one place (a wide, short stroke; a fat cap) it runs (a filling pass drips less: the can keeps moving)
     const pool = Math.min(1.6, w / Math.max(8, len) * 3);
-    if (u >= 1 && w > 4 && R() < (q.sub ? 0.12 : 1) * Math.min(0.9, C.drip * (0.6 + pool))) {
-      for (let d = 0, nd = R() < 0.4 ? 2 : 1; d < nd; d++) {
-        const [dx, dy] = pt(0.15 + R() * 0.7), L = w * (0.8 + R() * 3.2), dw = w * (0.07 + R() * 0.08);
-        x.globalAlpha = o * 0.88; x.beginPath();
-        x.moveTo(dx - dw, dy); x.quadraticCurveTo(dx - dw * 0.45, dy + L * 0.6, dx - dw * 0.3, dy + L);
-        x.lineTo(dx + dw * 0.3, dy + L); x.quadraticCurveTo(dx + dw * 0.45, dy + L * 0.6, dx + dw, dy); x.closePath(); x.fill();
-        x.beginPath(); x.arc(dx, dy + L, dw * 0.6, 0, 7); x.fill();
-      }
-    }
+    if (u >= 1 && w > 4 && o > 0.45 && R() < (q.sub ? 0.12 : 1) * Math.min(0.9, C.drip * (0.6 + pool)))
+      for (let d = 0, nd = R() < 0.35 ? 2 : 1; d < nd; d++) { const [dx, dy] = pt(0.15 + R() * 0.7); drip(x, R, colour, dx, dy, w, o * Math.min(1, C.a * 2.2)); }
     x.restore(); return [ex, ey];
   }
   // a blob / ellipse: an airbrushed burst — a soft core, droplets over it, mist and splatter round it
@@ -3744,7 +3757,7 @@ const SPRAY = { cap: 'auto', wall: 'none' };
 const CAPS = {      // body / mist: the droplet cloud's and the overspray's width (× the stroke's) · a / mistA: how much paint each puts down
   skinny: { body: 1.3, mist: 2.3, a: 0.5, mistA: 0.22, splat: 0.25, drip: 0.22 },          // sharp lines, little overspray
   fat:    { body: 1.75, mist: 3.1, a: 0.44, mistA: 0.3, splat: 0.7, drip: 0.62 },          // broad, soft edged, overspray
-  soft:   { body: 2.5, mist: 3.8, a: 0.3, mistA: 0.26, splat: 0.3, drip: 0.3 },           // a wide fade
+  soft:   { body: 2.5, mist: 3.8, a: 0.3, mistA: 0.26, splat: 0.3, drip: 0.06 },           // a wide fade
   calli:  { body: 1.1, mist: 1.9, a: 0.36, mistA: 0.18, splat: 0.3, drip: 0.45, flat: 0.6 }  // a flat cap: wide or thin by direction
 };
 const capOf = w => SPRAY.cap !== 'auto' && CAPS[SPRAY.cap] ? SPRAY.cap : w < 9 ? 'skinny' : w > 38 ? 'soft' : 'fat';
@@ -8299,7 +8312,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.26.1');
+    const V = await import('./viewer3d.js?v=4.26.2');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
