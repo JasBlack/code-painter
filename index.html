@@ -27,7 +27,7 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   body { background: var(--case); color: var(--text); font: 11px/1.4 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace; overflow: hidden; }
-  #app { height: 100vh; padding: 14px; display: grid; grid-template-columns: 292px minmax(0, 1fr) 292px; grid-template-rows: 44px minmax(0, 1fr) auto; gap: 12px; }
+  #app { height: calc(100vh / var(--uiz, 1)); padding: 14px; display: grid; grid-template-columns: 292px minmax(0, 1fr) 292px; grid-template-rows: 44px minmax(0, 1fr) auto; gap: 12px; }
   .col { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--keyline) transparent; }
   .col::-webkit-scrollbar { width: 4px; } .col::-webkit-scrollbar-thumb { background: var(--keyline); border-radius: 2px; }
   .centre { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; }
@@ -116,6 +116,7 @@
   /* easy mode: the guided panel instead of the console */
   #easy { display: none; }
   body.easy #easy { display: flex; gap: 10px; }
+  body.nodeck #app { grid-template-rows: 44px minmax(0, 1fr) 0; } body.nodeck footer.deck { display: none; } #deckbtn.on { color: var(--accent); }
   body.easy #app { grid-template-columns: 340px minmax(0, 1fr); grid-template-rows: 44px minmax(0, 1fr); }
   body.easy aside.col:not(#easy), body.easy footer.deck, body.easy .playlist, body.easy .presets, body.easy #view, body.easy #recmode, body.easy .transport .seg, body.easy #savevid, body.easy #layout, body.phone #easy { display: none !important; }
   .estep { gap: 9px; }
@@ -203,6 +204,7 @@
   .key.short { height: 30px; border-radius: 7px; padding: 0 10px 5px; box-shadow: 0 1.5px 0 var(--keyshadow); }
   .key.short .led { top: 4px; width: 4px; height: 4px; margin-left: -2px; }
   .mini.arm { color: var(--text); }
+  select.sel.snug { padding: 0 17px 0 6px; background-position: right 6px center; }
   .kgrid > .key { width: 100%; min-width: 0; box-sizing: border-box; }
   /* the style panel's background layer: its keys light violet */
   .panel.bgset .key:has(input:checked) .led { background: var(--accent2); box-shadow: 0 0 4px color-mix(in srgb, var(--accent2) 90%, transparent); }
@@ -255,7 +257,7 @@
   #tl { width: 100%; height: 44px; display: block; border-radius: 8px; background: #0b0b0c; cursor: crosshair; touch-action: none; }
   #timeline { display: flex; flex-direction: column; gap: 8px; }
   #timeline[hidden] { display: none; }
-  .ph { display: none; height: 44px; border-radius: 8px; border: 1px dashed var(--keyline); align-items: center; justify-content: center; color: var(--muted); font-size: 9.5px; letter-spacing: .06em; }
+  .ph { display: none; height: 26px; border-radius: 8px; border: 1px dashed var(--keyline); align-items: center; justify-content: center; color: var(--muted); font-size: 9.5px; letter-spacing: .06em; }
   .music:has(#timeline[hidden]) .ph { display: flex; }
   .tlnum { color: var(--accent); } .tlnum2 { color: var(--accent2); }
   .music .kn:has(#react) { display: none; } .music:has(#beatfx:checked) .kn:has(#react) { display: flex; }
@@ -334,7 +336,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.25.2">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.25.3">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -356,6 +358,8 @@
     <button data-display="duo" title="The painting on top, its code underneath (no original)">+code</button>
   </div>
   <select id="layout" class="sel" aria-label="Frame" title="The frame: 16:9 (1920×1080) · 9:16 reels / shorts / tiktok (1080×1920) · 4:5 feed post (1080×1350) · 1:1 square (1080×1080)"><option value="landscape">16:9</option><option value="vertical">9:16</option><option value="portrait">4:5</option><option value="square">1:1</option></select>
+  <select id="uiscale" class="sel" aria-label="Size of the controls" title="The size of the controls (buttons, text, panels): smaller leaves more room for the painting. auto: smaller on a smaller window" style="width: auto"><option value="auto" selected>ui auto</option><option value="0.7">ui 70%</option><option value="0.8">ui 80%</option><option value="0.9">ui 90%</option><option value="1">ui 100%</option><option value="1.1">ui 110%</option></select>
+  <button id="deckbtn" class="key ico" title="Hide / show the panels under the painting (more room for it) · key: H" aria-label="Hide or show the bottom panels"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="1" width="12" height="12" rx="1.5"/><path d="M1 9.5h12"/></svg></button>
   <button id="fullscreen" class="key ico" title="Full screen (Esc to leave)" aria-label="Full screen"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 5V1h4M9 1h4v4M13 9v4H9M5 13H1V9"/></svg></button>
   <button id="uitheme" class="key ico" title="Light / dark" aria-label="Light or dark"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="5.5"/><path d="M7 1.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"/></svg></button>
   </div>
@@ -456,7 +460,7 @@
     <div class="pal" id="refrow" title="Reference picture: drop one here (or press ref). Its colours become the palette and its mood (light, contrast, colour cast) is pushed onto the picture being painted">
       <label class="key w short" title="Open a reference picture (or drop one on this row)"><span>ref</span><input id="reffile" type="file" accept="image/*" hidden></label>
       <canvas id="refthumb" width="40" height="24" style="width: 40px; height: 24px; border-radius: 4px; border: 1px solid var(--keyline); background: var(--well); flex: none" aria-label="Reference picture"></canvas>
-      <select id="refuse" class="sel" aria-label="What the reference does" title="palette: its six main colours become the palette (lock on) · mood: the picture takes its light, contrast and colour cast · both" style="flex: 1; min-width: 0"><option value="both">palette + mood</option><option value="palette">palette</option><option value="mood">mood</option></select>
+      <select id="refuse" class="sel" aria-label="What the reference does" title="palette: its six main colours become the palette (lock on) · mood: the picture takes its light, contrast and colour cast · both" style="flex: 1; min-width: 0"><option value="both">pal+mood</option><option value="palette">palette</option><option value="mood">mood</option></select>
       <input id="refmix" type="range" min="0" max="100" value="70" aria-label="Mood strength" title="How strongly the reference's mood is pushed onto the picture" style="width: 54px; flex: none">
       <button type="button" id="refx" class="mini" title="Forget the reference">✕</button>
     </div>
@@ -626,7 +630,7 @@
     </div>
     <div class="row">
       <select id="outline" class="sel" aria-label="Outlines" title="Outlines: the picture's real lines are found (edge detection, like Canny / line art) and drawn as strokes in the ticked styles. lines first: the lines go down first and the colour fills the spaces between them · lines last: the colour first, the lines as a final pass. With a video or zoom every frame gets its missing lines" style="flex: 1">
-        <option value="off">outlines: off</option><option value="first">lines first, then fill</option><option value="last">fill, then lines</option>
+        <option value="off">outlines: off</option><option value="first">lines first</option><option value="last">lines last</option>
       </select>
       <select id="cuts" class="sel" aria-label="Cuts" title="Cuts (videos and playlists): when the picture cuts to a new scene, the painter paints the new scene before showing it, instead of drawing the change (live, the video waits a moment while it does; in an offline render it costs no time at all)" style="flex: 1">
         <option value="draw">cuts: drawn</option><option value="pre">cuts: pre-drawn</option>
@@ -681,8 +685,8 @@
     <input id="speed" class="fad" type="range" min="1" max="100" value="54" aria-label="Painting speed">
     <div class="row" style="flex-wrap: nowrap"><select id="replay" class="sel" aria-label="Replay a piece" style="flex: 1; min-width: 0"><option value="">replay…</option></select><button type="button" id="replaylayer" class="mini" style="flex: none" title="Layer: the premade pieces in a random order, each one replayed over the last instead of on a fresh canvas (its background left out, so only its marks land), with live strokes mixed in (+live; turned up to 35% if it is off). Press again for a new order; pick anything else to stop">layer ⤮</button></div>
     <div class="row" id="layerrow" style="flex-wrap: nowrap; gap: 6px" title="Layering: the frame every piece is placed in, which pieces go in it, and how each one fits">
-      <select id="layerfmt" class="sel" aria-label="Layer frame" title="The frame for the whole layered show: the first piece's shape, or a fixed one" style="flex: 1; min-width: 0"><option value="first" selected>frame: first</option><option value="5:7">5:7</option><option value="1:1">1:1</option><option value="4:5">4:5</option><option value="9:16">9:16</option><option value="16:9">16:9</option><option value="7:5">7:5</option></select>
-      <select id="layershape" class="sel" aria-label="Which pieces" title="only that shape: just the pieces whose own shape matches the frame (most are 5:7) · all: every piece, cropped or fitted to the frame" style="flex: 1; min-width: 0"><option value="same" selected>same shape</option><option value="all">all shapes</option></select>
+      <select id="layerfmt" class="sel" aria-label="Layer frame" title="The frame for the whole layered show: the first piece's shape, or a fixed one" style="flex: 1; min-width: 0"><option value="first" selected>first</option><option value="5:7">5:7</option><option value="1:1">1:1</option><option value="4:5">4:5</option><option value="9:16">9:16</option><option value="16:9">16:9</option><option value="7:5">7:5</option></select>
+      <select id="layershape" class="sel" aria-label="Which pieces" title="only that shape: just the pieces whose own shape matches the frame (most are 5:7) · all: every piece, cropped or fitted to the frame" style="flex: 1; min-width: 0"><option value="same" selected>same</option><option value="all">all</option></select>
       <select id="layerfit" class="sel" aria-label="Fit" title="A piece of another shape: crop it to fill the frame, or fit it whole inside (black bars)" style="flex: none; width: 58px"><option value="crop" selected>crop</option><option value="fit">fit</option></select>
     </div>
     <div class="row" style="flex-wrap: wrap; gap: 14px"><div class="kn" title="Replay a piece: live strokes joining the hand-coded piece (shapes × this)"><input id="mix" type="range" min="0" max="100" value="0" aria-label="Live strokes mixed into the replay"><span class="lbl">+live</span><output id="mixval" for="mix">off</output></div>
@@ -1256,7 +1260,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.25.2 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.25.3 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1274,7 +1278,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.25.2', FOOTER = `Code Painter by Jas Black - 2026`;
+const APP_VERSION = '4.25.3', FOOTER = `Code Painter by Jas Black - 2026`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -7500,7 +7504,10 @@ $('file').onchange = e => { openFiles([...e.target.files]); e.target.value = '';
 {
   const q = new URLSearchParams(location.search), sizeQ = matchMedia('(max-width: 760px), (max-height: 500px) and (pointer: coarse)');
   const P = { on: false, view: 'duo', frame: 'portrait', keep: null };
-  const phoneSize = () => q.has('phone') || (!q.has('desktop') && sizeQ.matches);
+  // (also a phone when the page is laid out wider than the phone itself — "desktop site" in the browser, or an app's
+  // own browser: the screen's real size and a touch screen still tell)
+  const coarse = matchMedia('(pointer: coarse)'), smallScreen = () => coarse.matches && Math.min(screen.width, screen.height) <= 600 && Math.max(screen.width, screen.height) <= 1000;
+  const phoneSize = () => q.has('phone') || (!q.has('desktop') && (sizeQ.matches || smallScreen()));
   const wanted = phoneSize;      // (a phone always gets this: the full studio is for computers)
   // iPhones zoom in on a menu with small text when it's tapped; this stops that (pinching to zoom still works there)
   if (/iP(hone|od|ad)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1)) {
@@ -7768,6 +7775,40 @@ $('layout').onchange = e => setLayout(e.target.value);
 for (const b of document.querySelectorAll('#view [data-display]')) b.onclick = () => setDisplay(b.dataset.display);
 // ⛶: the stage fills the screen; where the browser refuses, the toolbars are hidden instead (Esc brings them back)
 const solo = on => { document.body.classList.toggle('solo', on); fitStage(); };
+// the size of the controls: the whole studio scaled (CSS zoom), so the painting gets the room the panels give up;
+// auto shrinks them on a smaller window. The panels under the painting can be hidden too (H). A phone keeps its own layout
+function uiScale() {
+  const v = $('uiscale').value, phone = document.body.classList.contains('phone');
+  const z = phone ? 1 : v === 'auto' ? Math.max(0.72, Math.min(1, innerHeight / 980, innerWidth / 1600)) : +v || 1;
+  document.documentElement.style.zoom = z === 1 ? '' : String(z); document.documentElement.style.setProperty('--uiz', String(z));
+  fitStage();
+}
+{ const v = store('cp-uiscale'); if (v && [...$('uiscale').options].some(o => o.value === v)) $('uiscale').value = v; }
+$('uiscale').onchange = () => { store('cp-uiscale', $('uiscale').value); uiScale(); };
+addEventListener('resize', () => { if ($('uiscale').value === 'auto') uiScale(); });
+new MutationObserver(uiScale).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+const setDeck = hide => { document.body.classList.toggle('nodeck', hide); $('deckbtn').classList.toggle('on', hide); store('cp-deck', hide ? '1' : ''); fitStage(); };
+$('deckbtn').onclick = () => setDeck(!document.body.classList.contains('nodeck'));
+addEventListener('keydown', e => { if ((e.key === 'h' || e.key === 'H') && !e.metaKey && !e.ctrlKey && !e.altKey && !(e.target.closest && e.target.closest('input, select, textarea'))) setDeck(!document.body.classList.contains('nodeck')); });
+if (store('cp-deck') === '1') setDeck(true);
+uiScale();
+// every menu's chosen text fits its box: a little less padding, then a smaller font (not under 7.5 px), when it doesn't
+function fitSelects() {
+  const c = fitSelects.c || (fitSelects.c = document.createElement('canvas').getContext('2d'));
+  for (const el of document.querySelectorAll('select.sel')) {
+    if (!el.offsetWidth) continue;
+    const o = el.selectedOptions[0], t = o ? o.textContent : ''; el.classList.remove('snug'); el.style.fontSize = '';
+    const cs = getComputedStyle(el), base = parseFloat(cs.fontSize), avail = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    c.font = `${cs.fontWeight} ${base}px ${cs.fontFamily}`; const w = c.measureText(t).width + t.length * (parseFloat(cs.letterSpacing) || 0);
+    if (w <= avail) continue;
+    el.classList.add('snug'); const cs2 = getComputedStyle(el), avail2 = el.clientWidth - parseFloat(cs2.paddingLeft) - parseFloat(cs2.paddingRight);
+    if (w > avail2) el.style.fontSize = Math.max(7.5, Math.floor(base * avail2 / w * 10) / 10) + 'px';
+  }
+}
+document.addEventListener('change', e => { if (e.target.matches && e.target.matches('select.sel')) requestAnimationFrame(fitSelects); }, true);
+addEventListener('resize', () => requestAnimationFrame(fitSelects));
+setInterval(fitSelects, 2000);         // (some menus change their own text: auto (1000), the songs…)
+setTimeout(fitSelects, 300);
 $('fullscreen').onclick = () => {
   const m = stage.closest('main');
   if (document.fullscreenElement) return document.exitFullscreen();
@@ -7837,7 +7878,7 @@ $('preset_reset').onclick = () => {
 };
 $('pfile').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-  if (!/\.json$/i.test(f.name)) { const m = await readMeta(f); if (m) applyMeta(m, f.name); else $('hint').textContent = `${f.name} carries no settings: only pictures, videos, SVGs and code pages saved from Code Painter 4.25.2 on do.`; return; }
+  if (!/\.json$/i.test(f.name)) { const m = await readMeta(f); if (m) applyMeta(m, f.name); else $('hint').textContent = `${f.name} carries no settings: only pictures, videos, SVGs and code pages saved from Code Painter 4.25.3 on do.`; return; }
   try {
     const j = JSON.parse(await f.text()), P = j && j.presets; if (!P || typeof P !== 'object') throw new Error('not a presets file');
     const got = Object.keys(P).filter(k => /^[ABCD]$/.test(k) && P[k] && P[k].v);
@@ -7982,7 +8023,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.25.2');
+    const V = await import('./viewer3d.js?v=4.25.3');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
