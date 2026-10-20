@@ -1,6 +1,6 @@
 # Code Painter by JAS.BLACK
 
-Version 4.26.3
+Version 4.26.4
 
 Drop in any picture and watch it painted in code, stroke by stroke, with the program writing itself underneath.
 Add a song and the painting follows its hits and sections; add stroke sounds and every stroke plays a note.
@@ -59,4 +59,4 @@ The *hylics* style is inspired by the claymation graphics of Mason Lindroth's ga
 The relief materials (clay, ceramic, stone, foam, beads, puffy, terrazzo, metal, chrome, pewter, copper, gold, bronze) are inspired by the relief brushes of Vooolume by krftoools; they are written from scratch for this painter (a height map lit in WebGL 2).
 The oil, acrylic and palette-knife paints are a bristle brush laid into the same height map: each bristle carries its own colour and ridge and runs dry towards the end of the stroke. Oil drags the wet paint already there along with it and a knife scrapes over the high spots, after the paint simulation of David Li's *paint* (MIT licence, https://github.com/dli/paint); p5.brush and MyPaint (libmypaint, ISC) showed how a stamped line is laid down progressively.
 
-© 2026 JAS.BLACK. All rights reserved.
+© JAS.BLACK. All rights reserved.
