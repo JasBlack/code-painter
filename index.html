@@ -5890,6 +5890,7 @@ function vizDraw(b, now, r) {
 //    brush  the same score drawn loose, in the ticked styles and brush: no clean circles or bars
 //  No song: a quiet score keeps time on its own. Live sound: the notes appear as they're heard.
 // ═════════════════════════════════════════════════════════════
+const SCP = { path: 'line', x: 0.5, w: 1, wave: 0, bead: 0.5, spread: 1, size: 1, speed: 1, glow: 1, dir: 'left', tilt: 0 };          // the shape sliders
 const SC = { notes: null, key: '', live: [], fog: null, fog2: null, ink: null, spr: new Map(), sprKey: '', lastT: null, v: 0.2, span: 2.6 };
 const scRng = seed => { let s = (Math.imul(seed + 1, 2654435761) >>> 0) || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; };
 const SC_LANES = { low: [0.5, 0.45, 0.55, 0.5], mid: [0.37, 0.63, 0.31, 0.69], high: [0.21, 0.79, 0.14, 0.86, 0.27, 0.73] };
@@ -5947,17 +5948,20 @@ function scDabs(ctx, st, R, cx, cy, r, c, a) {
 }
 // one note's figure, at (x, y) in px, age (s since it fired; < 0 still to come), drawn clean (geometry) or brushed (styles)
 function scFigure(x, ctx, n, px, py, age, M, col, ink, brush, st) {
+  const P2 = typeof x === 'function' ? x : (a, b) => [a, b];          // (x: the score's path, when it isn't a straight line)
   const g = Math.min(1, age / 0.28), fl = age < 0.45 ? Math.pow(1 - age / 0.45, 2) : 0, R = scRng(n.seed);
   const line = (x0, y0, x1, y1, w, c, a = 1, bend = 0) => {
+    [x0, y0] = P2(x0, y0); [x1, y1] = P2(x1, y1);
     if (brush) { scGest(ctx, st, R, x0, y0, x1, y1, w * 2.6, c, a, 0.12 + Math.abs(bend) / Math.max(40, Math.hypot(x1 - x0, y1 - y0)) * 0.5); return; }
     ctx.globalAlpha = a; ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x0, y0); if (bend) ctx.quadraticCurveTo((x0 + x1) / 2 + bend, (y0 + y1) / 2, x1, y1); else ctx.lineTo(x1, y1); ctx.stroke();
   };
-  const dot = (x0, y0, r, c, a = 1) => { if (brush) { const rr = Math.max(1.6, r * 1.8); drawQ(ctx, { t: 'E', st, args: [x0, y0, rr, rr * (0.55 + R() * 0.5), R() * 3, 0, c, c, a] }); return; } ctx.globalAlpha = a; ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x0, y0, Math.max(0.8, r), 0, 7); ctx.fill(); };
+  const dot = (x0, y0, r, c, a = 1) => { [x0, y0] = P2(x0, y0); if (brush) { const rr = Math.max(1.6, r * 1.8); drawQ(ctx, { t: 'E', st, args: [x0, y0, rr, rr * (0.55 + R() * 0.5), R() * 3, 0, c, c, a] }); return; } ctx.globalAlpha = a; ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x0, y0, Math.max(0.8, r), 0, 7); ctx.fill(); };
   const ring = (x0, y0, r, c, w, a = 1) => {
+    [x0, y0] = P2(x0, y0);
     if (brush) { scLoop(ctx, st, R, x0, y0, r, c, w * 2.4, a); return; }
     ctx.globalAlpha = a; ctx.strokeStyle = c; ctx.lineWidth = w; ctx.beginPath(); ctx.arc(x0, y0, r, 0, 7); ctx.stroke();
   };
-  const disc = (x0, y0, r, c, a) => { if (brush) { scDabs(ctx, st, R, x0, y0, r, c, Math.min(1, a * 1.5)); return; } ctx.globalAlpha = a; ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x0, y0, r, 0, 7); ctx.fill(); };
+  const disc = (x0, y0, r, c, a) => { [x0, y0] = P2(x0, y0); if (brush) { scDabs(ctx, st, R, x0, y0, r, c, Math.min(1, a * 1.5)); return; } ctx.globalAlpha = a; ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x0, y0, r, 0, 7); ctx.fill(); };
   const lw = Math.max(1.2, M * 0.0038);
   if (n.kind === 'ring' || n.kind === 'node') {
     const r = (n.kind === 'ring' ? n.r : 0.012) * M * (1 + 0.8 * fl);
@@ -5998,22 +6002,22 @@ function scGrain(w, h) {
   for (let i = 0; i < d.data.length; i += 4) { const v = 128 + (R() - 0.5) * 90; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
   x.putImageData(d, 0, 0); return SC.grain = c;
 }
-function scOrganic(c, vis, T, W, H, M, cx, v, colOf, ink, spineW) {
+function scOrganic(c, vis, T, W, H, M, cx, v, colOf, ink, spineW, Y, spX, MPP) {
   const gw = Math.max(32, Math.round(W / 2)), gh = Math.max(32, Math.round(H / 2)), k = gw / W;
   SC.goo = vzCanvas(SC.goo, gw, gh); const g = SC.goo.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, gw, gh); g.setTransform(k, 0, 0, k, 0, 0);
-  const blob = (x, y, r, col, a = 1) => { if (r < 0.6) return; g.globalAlpha = a; g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+  const blob = (x, y, r, col, a = 1) => { if (r < 0.6) return; [x, y] = MPP(x, y); g.globalAlpha = a; g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
   const t = T * 1.7;
   // the axis and the lanes: chains of drops whose size breathes along them
   for (let x = 0; x < cx; x += M * 0.011) blob(x, SC.cy + Math.sin(x * 0.02 + t) * M * 0.004, M * (0.006 + 0.004 * Math.sin(x * 0.05 - t * 2)), ink, 0.95);
   const lanes = new Map();
   for (const n of vis) if (n.t <= T) { const kk = Math.round(n.y * 200); const x0 = cx + (n.t - T) * v; if (!lanes.has(kk) || lanes.get(kk).x0 > x0) lanes.set(kk, { y: n.y, x0, n }); }
-  for (const L of lanes.values()) { if (Math.abs(L.y - 0.5) < 0.004) continue; const col = L.n.ink ? ink : colOf(L.n), y = L.y * H; for (let x = Math.max(0, L.x0); x < cx; x += M * 0.012) blob(x, y + Math.sin(x * 0.03 + t + L.n.seed) * M * 0.006, M * (0.004 + 0.004 * (1 + Math.sin(x * 0.04 + t * 1.5 + L.n.seed))), col, 0.9); }
+  for (const L of lanes.values()) { if (Math.abs(L.y - 0.5) < 0.004) continue; const col = L.n.ink ? ink : colOf(L.n), y = Y(L.y); for (let x = Math.max(0, L.x0); x < cx; x += M * 0.012) blob(x, y + Math.sin(x * 0.03 + t + L.n.seed) * M * 0.006, M * (0.004 + 0.004 * (1 + Math.sin(x * 0.04 + t * 1.5 + L.n.seed))), col, 0.9); }
   // the notes
   for (const n of vis) {
     const dtn = n.t - T, x = cx + dtn * v, col = colOf(n), R = scRng(n.seed);
     if (x < -M * 0.25 || x > W + 10) continue;
-    if (dtn > 0) { const y = (n.y + dtn * n.slope) * H; blob(x, y, M * (0.004 + 0.004 * n.s), R() < 0.5 ? ink : col, 0.9); blob(x + M * 0.008, y + M * 0.005, M * 0.003, col, 0.9); continue; }
-    const age = -dtn, y = n.y * H, fl = age < 0.5 ? Math.pow(1 - age / 0.5, 2) : 0, gr = Math.min(1, age / 0.3), wob = s0 => 1 + 0.12 * Math.sin(t * 2.3 + s0);
+    if (dtn > 0) { const y = Y(n.y + dtn * n.slope); blob(x, y, M * (0.004 + 0.004 * n.s), R() < 0.5 ? ink : col, 0.9); blob(x + M * 0.008, y + M * 0.005, M * 0.003, col, 0.9); continue; }
+    const age = -dtn, y = Y(n.y), fl = age < 0.5 ? Math.pow(1 - age / 0.5, 2) : 0, gr = Math.min(1, age / 0.3), wob = s0 => 1 + 0.12 * Math.sin(t * 2.3 + s0);
     if (n.kind === 'ring' || n.kind === 'node') {
       const r = (n.kind === 'ring' ? n.r * 0.8 : 0.014) * M * (1 + 0.9 * fl);
       blob(x, y, r * wob(n.seed), col, 0.95);
@@ -6034,7 +6038,7 @@ function scOrganic(c, vis, T, W, H, M, cx, v, colOf, ink, spineW) {
     } else for (let i = 0; i < 3; i++) blob(x + i * M * 0.011, y + i * M * 0.007, M * (0.006 + 0.004 * fl), i ? col : ink, 0.95);
   }
   // the spine: a column of molten drops, swelling with the sound
-  for (let yy = 0; yy <= H; yy += M * 0.012) { const d = Math.abs(yy / H - 0.5) * 2, w = W * spineW(d); blob(cx + Math.sin(yy * 0.03 + t * 2) * w * 0.15, yy, Math.max(M * 0.0065, w * 0.9), ink, 0.95); }
+  for (let yy = 0; yy <= H; yy += M * 0.012) { const d = Math.abs(yy / H - 0.5) * 2, w = W * spineW(d); blob(spX(yy) + Math.sin(yy * 0.03 + t * 2) * w * 0.15, yy, Math.max(M * 0.0065, w * 0.9), ink, 0.95); }
   // onto the crisp layer through the goo; then a grain and a little gloss
   c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.filter = scGoo(); c.drawImage(SC.goo, 0, 0, c.canvas.width, c.canvas.height); c.filter = 'none';
   c.globalCompositeOperation = 'source-atop'; c.globalAlpha = 0.22; c.drawImage(scGrain(256, 256), 0, 0, c.canvas.width, c.canvas.height);
@@ -6043,8 +6047,17 @@ function scOrganic(c, vis, T, W, H, M, cx, v, colOf, ink, spineW) {
 }
 function scoreDraw(b, now, brush) {
   const organic = brush === 'organic'; if (organic) brush = false;
-  const P = vizPalette(), W = b.w, H = b.h, M = Math.min(W, H), X0 = b.x, Y0 = b.y, m = X.getTransform(), dw = Math.max(16, Math.round(m.a * W)), dh = Math.max(16, Math.round(m.d * H)), sc = dw / W;
-  const songT = AU.el && !AU.live && AU.rms, T = songT ? aTime() : now / 1000, v = SC.v * W, cx = W * 0.5; SC.cy = H * 0.5;
+  // the score is drawn flowing right to left in its own box, then turned to the chosen direction (and tilt) onto the stage
+  const bent = SCP.path !== 'line', turn = bent ? 0 : { left: 0, right: Math.PI, up: Math.PI / 2, down: -Math.PI / 2 }[SCP.dir] || 0, side = !bent && (SCP.dir === 'up' || SCP.dir === 'down');
+  const P = vizPalette(), W = side ? b.h : b.w, H = side ? b.w : b.h, M0 = Math.min(W, H), M = M0 * SCP.size, X0 = b.x, Y0 = b.y, m = X.getTransform(), dw = Math.max(16, Math.round(m.a * W)), dh = Math.max(16, Math.round(m.d * H)), sc = dw / W;
+  const songT = AU.el && !AU.live && AU.rms, T = songT ? aTime() : now / 1000, v = SC.v * W * SCP.speed, cx = W * SCP.x; SC.cy = H * 0.5;
+  const Y = yy => (0.5 + (yy - 0.5) * SCP.spread) * H, spX = yy => cx + SCP.wave * W * 0.09 * Math.sin(yy / H * 9.4 + T * 2.2);
+  // the path "now" lies on: a line (as is), or bent round — a ring in the middle or a loop round the whole frame. The
+  // lanes go round it, time runs across it: the past sinks inwards, what's still to come arrives from outside
+  const Mn = Math.min(W, H), rx = SCP.path === 'ring' ? Mn * 0.3 : W * 0.4, ry = SCP.path === 'ring' ? Mn * 0.3 : H * 0.4;
+  const MP = bent ? (x, y) => { const u = (x - cx) / W, th = (y / H) * 6.2832 - Math.PI / 2, k = Math.max(0.02, 1 + u * 1.7); return [W / 2 + Math.cos(th) * rx * k, H / 2 + Math.sin(th) * ry * k]; } : null;
+  const MPP = (x, y) => MP ? MP(x, y) : [x, y];
+  const run = (ctx, x0, x1, y, w, col, a) => { ctx.globalAlpha = a; ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); for (let i = 0; i <= 16; i++) { const [px, py] = MPP(x0 + (x1 - x0) * i / 16, y); ctx[i ? 'lineTo' : 'moveTo'](px, py); } ctx.stroke(); };
   const dT = SC.lastT == null ? 0 : Math.max(0, Math.min(0.25, T - SC.lastT)); SC.lastT = T;
   const lv = Math.min(1, 0.65 * AU.bass + 0.45 * AU.mid + 0.5 * AU.beat); VZ.lv = (VZ.lv || 0) + (lv - (VZ.lv || 0)) * 0.3; VZ.hi = (VZ.hi + 1) % VZ.hist.length; VZ.hist[VZ.hi] = VZ.lv;
   const secs = AU.sections, si = secs ? Math.max(0, secs.findIndex(x => T >= x.t0 && T < x.t1)) : Math.floor(T / 9), colOf = n => P.acc[(n.ci + si) % P.acc.length], ink = P.ink;
@@ -6052,16 +6065,16 @@ function scoreDraw(b, now, brush) {
   // ── the crisp layer, in its own canvas (it also feeds the glow)
   SC.ink = vzCanvas(SC.ink, dw, dh); const c = SC.ink.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, dw, dh); c.setTransform(sc, 0, 0, sc, 0, 0); c.lineCap = 'round';
   // the axis through the middle (left of the spine), dotted on to the right
-  const axW = Math.max(1.5, M * 0.006);
-  if (organic) { scOrganic(c, vis, T, W, H, M, cx, v, colOf, ink, d => Math.pow(Math.max(0, 1 - d), 0.55) * (0.006 + 0.06 * scLevel(T - d * 1.1))); } else {
-  if (brush) scGest(c, stOf({ seed: 7 }), scRng(7), 0, SC.cy, cx, SC.cy, axW * 2.2, ink, 0.9, 0.03); else { c.globalAlpha = 0.9; c.fillStyle = ink; c.fillRect(0, SC.cy - axW / 2, cx, axW); }
+  const axW = Math.max(1.5, M0 * 0.006);
+  if (organic) { scOrganic(c, vis, T, W, H, M, cx, v, colOf, ink, d => SCP.w * Math.pow(Math.max(0, 1 - d), 0.55) * (0.006 + 0.06 * scLevel(T - d * 1.1)) * Math.max(0.15, 1 + SCP.bead * 0.9 * Math.sin(d * 26 - T * 5)), Y, spX, MPP); } else {
+  if (brush) { const [a0, a1] = MPP(0, SC.cy), [b0, b1] = MPP(cx, SC.cy); scGest(c, stOf({ seed: 7 }), scRng(7), a0, a1, b0, b1, axW * 2.2, ink, 0.9, 0.03); } else run(c, 0, cx, SC.cy, axW, ink, 0.9);
   // rails: each lane from its oldest note to the spine, a node at every note
   const lanes = new Map();
   for (const n of vis) if (n.t <= T) { const k = Math.round(n.y * 200); if (!lanes.has(k)) lanes.set(k, { y: n.y, x0: cx + (n.t - T) * v, n }); else lanes.get(k).x0 = Math.min(lanes.get(k).x0, cx + (n.t - T) * v); }
   for (const L of lanes.values()) {
-    if (Math.abs(L.y - 0.5) < 0.004) continue; const y = L.y * H, w = Math.max(1, M * (L.n.band === 'low' ? 0.006 : 0.0028)), cc = L.n.ink ? ink : colOf(L.n);
-    if (brush) scGest(c, stOf(L.n), scRng(L.n.seed), Math.max(0, L.x0), y, cx, y, w * 3, cc, 0.85, 0.05);
-    else { c.globalAlpha = 0.75; c.fillStyle = cc; c.fillRect(Math.max(0, L.x0), y - w / 2, cx - Math.max(0, L.x0), w); }
+    if (Math.abs(L.y - 0.5) < 0.004) continue; const y = Y(L.y), w = Math.max(1, M * (L.n.band === 'low' ? 0.006 : 0.0028)), cc = L.n.ink ? ink : colOf(L.n);
+    if (brush) { const [a0, a1] = MPP(Math.max(0, L.x0), y), [b0, b1] = MPP(cx, y); scGest(c, stOf(L.n), scRng(L.n.seed), a0, a1, b0, b1, w * 3, cc, 0.85, 0.05); }
+    else run(c, Math.max(0, L.x0), cx, y, w, cc, 0.75);
   }
   // the notes: those still to come as small dots drifting in; those past as their figures
   c.globalAlpha = 1;
@@ -6069,45 +6082,48 @@ function scoreDraw(b, now, brush) {
     const dtn = n.t - T, x = cx + dtn * v, col = colOf(n);
     if (x < -M * 0.25 || x > W + 10) continue;
     if (dtn > 0) {          // still to come: two or three dots, coming in at a slant to their lane
-      const y = (n.y + dtn * n.slope) * H, a = Math.min(1, 0.35 + 0.65 * (1 - dtn / SC.span)), r = M * (0.0028 + 0.003 * n.s);
-      for (let i = 0; i < (n.s > 0.6 ? 3 : 2); i++) { c.globalAlpha = a; c.fillStyle = i ? col : ink; c.beginPath(); c.arc(x + i * M * 0.007, y + i * M * 0.0045, r, 0, 7); c.fill(); }
+      const y = Y(n.y + dtn * n.slope), a = Math.min(1, 0.35 + 0.65 * (1 - dtn / SC.span * SCP.speed)), r = M * (0.0028 + 0.003 * n.s);
+      const [fx, fy] = MPP(x, y); for (let i = 0; i < (n.s > 0.6 ? 3 : 2); i++) { c.globalAlpha = a; c.fillStyle = i ? col : ink; c.beginPath(); c.arc(fx + i * M * 0.007, fy + i * M * 0.0045, r, 0, 7); c.fill(); }
       continue;
     }
-    const age = -dtn, y = n.y * H, fade = Math.min(1, Math.max(0, (x + M * 0.2) / (M * 0.25)));
+    const age = -dtn, y = Y(n.y), fade = Math.min(1, Math.max(0, (x + M * 0.2) / (M * 0.25)));
     c.globalAlpha = 1;
     if (brush && age > 0.5) {       // brushed and settled: drawn once into a sprite, then just moved
       let S2 = SC.spr.get(n.id);
       if (!S2) { const ext = Math.ceil(M * 0.32), cv = document.createElement('canvas'); cv.width = cv.height = Math.ceil(ext * 2 * sc); const sx = cv.getContext('2d'); sx.setTransform(sc, 0, 0, sc, 0, 0); sx.lineCap = 'round'; scFigure(null, sx, n, ext, ext, 9, M, col, ink, true, stOf(n)); S2 = { cv, ext }; SC.spr.set(n.id, S2); }
-      c.save(); c.globalAlpha = fade; c.drawImage(S2.cv, x - S2.ext, y - S2.ext, S2.ext * 2, S2.ext * 2); c.restore();
-    } else { c.save(); c.globalAlpha = fade; scFigure(null, c, n, x, y, age, M, col, ink, brush, stOf(n)); c.restore(); }
+      const [qx, qy] = MPP(x, y); c.save(); c.globalAlpha = fade; c.drawImage(S2.cv, qx - S2.ext, qy - S2.ext, S2.ext * 2, S2.ext * 2); c.restore();
+    } else { c.save(); c.globalAlpha = fade; scFigure(MP, c, n, x, y, age, M, col, ink, brush, stOf(n)); c.restore(); }
   }
   if (SC.spr.size > 160) { const keep = new Set(vis.map(n => n.id)); for (const k of SC.spr.keys()) if (!keep.has(k)) SC.spr.delete(k); }
   }
   // the spine: thick where the sound is loud, the swells running out from the middle; beads at the hits
-  const spineW = d => Math.pow(Math.max(0, 1 - d), 0.55) * (0.004 + 0.048 * (scLevel(T - d * 1.1 - 0.04) + scLevel(T - d * 1.1) * 2 + scLevel(T - d * 1.1 + 0.04)) / 4 * (songT ? 1 : 0.8));
-  const spine = (ctx, wk, a) => { ctx.globalAlpha = a; ctx.fillStyle = ink; ctx.beginPath(); ctx.moveTo(cx, 0); for (let yy = 0; yy <= H; yy += H / 120) ctx.lineTo(cx + W * wk * spineW(Math.abs(yy / H - 0.5) * 2), yy); for (let yy = H; yy >= 0; yy -= H / 120) ctx.lineTo(cx - W * wk * spineW(Math.abs(yy / H - 0.5) * 2), yy); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1; };
-  if (organic) { /* (its spine is in the goo) */ } else if (brush) { const st = stOf({ seed: 11 }); for (let i = 0; i < 26; i++) { const R2 = scRng(i * 31 + 5), y0 = H * i / 26, y1 = H * (i + 1) / 26, d = Math.abs((y0 + y1) / 2 / H - 0.5) * 2, w = W * spineW(d); if (w < 1) continue; drawQ(c, vzS(st, cx + (R2() - 0.5) * w * 0.4, y0 - 2, cx + (R2() - 0.5) * w * 0.8, (y0 + y1) / 2, cx + (R2() - 0.5) * w * 0.4, y1 + 2, Math.max(1.4, w * 1.9), ink, 0.85)); if (w > M * 0.02) drawQ(c, { t: 'E', st, args: [cx, (y0 + y1) / 2, w * 1.1, w * 0.7, 0, 0, ink, ink, 0.6] }); } }
-  else { if (CAN_BLUR) c.filter = `blur(${Math.max(0.8, M * 0.004).toFixed(1)}px)`; spine(c, 1.15, 0.6); c.filter = 'none'; spine(c, 0.7, 0.9); c.globalAlpha = 0.9; c.fillStyle = ink; c.fillRect(cx - Math.max(0.6, M * 0.0012), 0, Math.max(1.2, M * 0.0024), H); }
+  const spineW = d => SCP.w * Math.max(0.15, 1 + SCP.bead * 0.9 * Math.sin(d * 26 - T * 5) - SCP.bead * 0.45) * Math.pow(Math.max(0, 1 - d), 0.55) * (0.004 + 0.048 * (scLevel(T - d * 1.1 - 0.04) + scLevel(T - d * 1.1) * 2 + scLevel(T - d * 1.1 + 0.04)) / 4 * (songT ? 1 : 0.8));
+  const spine = (ctx, wk, a) => { ctx.globalAlpha = a; ctx.fillStyle = ink; ctx.beginPath(); ctx.moveTo(...MPP(spX(0), 0)); for (let yy = 0; yy <= H; yy += H / 160) ctx.lineTo(...MPP(spX(yy) + W * wk * spineW(Math.abs(yy / H - 0.5) * 2), yy)); for (let yy = H; yy >= 0; yy -= H / 160) ctx.lineTo(...MPP(spX(yy) - W * wk * spineW(Math.abs(yy / H - 0.5) * 2), yy)); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1; };
+  if (organic) { /* (its spine is in the goo) */ } else if (brush) { const st = stOf({ seed: 11 }); for (let i = 0; i < 26; i++) { const R2 = scRng(i * 31 + 5), y0 = H * i / 26, y1 = H * (i + 1) / 26, d = Math.abs((y0 + y1) / 2 / H - 0.5) * 2, w = W * spineW(d); if (w < 1) continue; drawQ(c, vzS(st, ...MPP(spX(y0) + (R2() - 0.5) * w * 0.4, y0 - 2), ...MPP(spX((y0 + y1) / 2) + (R2() - 0.5) * w * 0.8, (y0 + y1) / 2), ...MPP(spX(y1) + (R2() - 0.5) * w * 0.4, y1 + 2), Math.max(1.4, w * 1.9), ink, 0.85)); if (w > M * 0.02) drawQ(c, { t: 'E', st, args: [...MPP(spX((y0 + y1) / 2), (y0 + y1) / 2), w * 1.1, w * 0.7, 0, 0, ink, ink, 0.6] }); } }
+  else { if (CAN_BLUR) c.filter = `blur(${Math.max(0.8, M * 0.004).toFixed(1)}px)`; spine(c, 1.15, 0.6); c.filter = 'none'; spine(c, 0.7, 0.9); c.globalAlpha = 0.9; c.strokeStyle = ink; c.lineWidth = Math.max(1.2, M0 * 0.0024); c.beginPath(); for (let yy = 0; yy <= H; yy += H / 80) c[yy ? 'lineTo' : 'moveTo'](...MPP(spX(yy), yy)); c.stroke(); }
   c.globalAlpha = 1;
   // ── the glow: a small canvas that keeps a blurred, fading trail, moving left with the score; the notes' colour
   //    clouds and the spine's halo go in, and the crisp layer itself (its glow)
   const fw = Math.max(32, Math.round(W / 4)), fh = Math.max(32, Math.round(H / 4)), fk = fw / W;
   if (!SC.fog || SC.fog.width !== fw || SC.fog.height !== fh) { SC.fog = vzCanvas(null, fw, fh); SC.fog2 = vzCanvas(null, fw, fh); }
   const z = SC.fog.getContext('2d'), z2 = SC.fog2.getContext('2d');
-  z2.globalCompositeOperation = 'copy'; z2.filter = CAN_BLUR ? 'blur(1.2px)' : 'none'; z2.drawImage(SC.fog, -dT * v * fk, 0); z2.filter = 'none';
+  z2.globalCompositeOperation = 'copy'; z2.filter = CAN_BLUR ? 'blur(1.2px)' : 'none'; if (bent) { const q = Math.max(0.9, 1 - dT * SCP.speed * 0.34); z2.drawImage(SC.fog, fw * (1 - q) / 2, fh * (1 - q) / 2, fw * q, fh * q); } else z2.drawImage(SC.fog, -dT * v * fk, 0); z2.filter = 'none';
   z.globalCompositeOperation = 'copy'; z.globalAlpha = 0.9; z.drawImage(SC.fog2, 0, 0); z.globalAlpha = 1; z.globalCompositeOperation = 'source-over';
   for (const n of vis) {
     const age = T - n.t; if (age < 0 || age > 2.5) continue;
-    const x = (cx + (n.t - T) * v) * fk, y = n.y * H * fk, col = colOf(n), r = (n.r * 1.6 + 0.035) * M * fk * (1 + 1.2 * Math.max(0, 1 - age / 0.4)), a = (0.12 + 0.55 * Math.exp(-age / 0.5)) * (0.5 + n.s);
+    const [x, y] = MPP(cx + (n.t - T) * v, Y(n.y)).map(q => q * fk), col = colOf(n), r = (n.r * 1.6 + 0.035) * M * fk * (1 + 1.2 * Math.max(0, 1 - age / 0.4)), a = (0.12 + 0.55 * Math.exp(-age / 0.5)) * (0.5 + n.s) * SCP.glow;
     const G = z.createRadialGradient(x, y, 0, x, y, r); G.addColorStop(0, col); G.addColorStop(1, rgba(col, 0)); z.globalAlpha = Math.min(1, a); z.fillStyle = G; z.fillRect(x - r, y - r, r * 2, r * 2);
   }
-  { const r = H * fk * 0.45, w = W * fk * (0.05 + 0.12 * VZ.lv), G = z.createRadialGradient(cx * fk, SC.cy * fk, 0, cx * fk, SC.cy * fk, r); const hc = P.acc[(si + 1) % P.acc.length]; G.addColorStop(0, hc); G.addColorStop(1, rgba(hc, 0)); z.globalAlpha = 0.12 + 0.35 * VZ.lv; z.fillStyle = G; z.save(); z.translate(cx * fk, SC.cy * fk); z.scale(w / r, 1); z.translate(-cx * fk, -SC.cy * fk); z.fillRect(cx * fk - r, SC.cy * fk - r, r * 2, r * 2); z.restore(); }
+  if (bent) { const hc = P.acc[(si + 1) % P.acc.length]; z.save(); z.scale(fk, fk); z.globalAlpha = 0.12 + 0.35 * VZ.lv; z.strokeStyle = hc; z.lineWidth = W * (0.04 + 0.1 * VZ.lv); z.beginPath(); for (let i = 0; i <= 64; i++) { const [px, py] = MP(cx, H * i / 64); z[i ? 'lineTo' : 'moveTo'](px, py); } z.stroke(); z.restore(); }
+  else { const r = H * fk * 0.45, w = W * fk * (0.05 + 0.12 * VZ.lv), G = z.createRadialGradient(cx * fk, SC.cy * fk, 0, cx * fk, SC.cy * fk, r); const hc = P.acc[(si + 1) % P.acc.length]; G.addColorStop(0, hc); G.addColorStop(1, rgba(hc, 0)); z.globalAlpha = 0.12 + 0.35 * VZ.lv; z.fillStyle = G; z.save(); z.translate(cx * fk, SC.cy * fk); z.scale(w / r, 1); z.translate(-cx * fk, -SC.cy * fk); z.fillRect(cx * fk - r, SC.cy * fk - r, r * 2, r * 2); z.restore(); }
   z.globalAlpha = 0.35; z.drawImage(SC.ink, 0, 0, fw, fh); z.globalAlpha = 1;
   // ── onto the stage: paper, the glow, the crisp layer
-  X.save(); X.beginPath(); X.rect(X0, Y0, W, H); X.clip();
-  X.fillStyle = P.bg; X.fillRect(X0, Y0, W, H);
-  X.imageSmoothingQuality = 'high'; X.globalAlpha = 0.95; X.drawImage(SC.fog, X0, Y0, W, H); X.globalAlpha = 1;
-  X.drawImage(SC.ink, X0, Y0, W, H);
+  const bw = b.w, bh = b.h, tl = SCP.tilt * Math.PI / 180, ct = Math.abs(Math.cos(tl)), st2 = Math.abs(Math.sin(tl)), cover = Math.max((bw * ct + bh * st2) / bw, (bw * st2 + bh * ct) / bh);
+  X.save(); X.beginPath(); X.rect(X0, Y0, bw, bh); X.clip();
+  X.fillStyle = P.bg; X.fillRect(X0, Y0, bw, bh);
+  X.translate(X0 + bw / 2, Y0 + bh / 2); X.rotate(turn + tl); X.scale(cover, cover);
+  X.imageSmoothingQuality = 'high'; X.globalAlpha = Math.min(1, 0.95 * SCP.glow); X.drawImage(SC.fog, -W / 2, -H / 2, W, H); X.globalAlpha = 1;
+  X.drawImage(SC.ink, -W / 2, -H / 2, W, H);
   X.restore();
 }
 // ═════════════════════════════════════════════════════════════
@@ -8344,6 +8360,22 @@ function stylePicker() {
   return { values: () => L.subj, bg: () => L.bg, set: (subj, bg) => { L.subj = subj && subj.length ? subj : ['painterly']; if (bg) L.bg = bg; keep(); } };
 }
 const stylePick = stylePicker();
+// score shape: the line's place, width, wave and beads, the spread, size, speed, glow, the path, direction and tilt
+{ const sel = $('score'), panel = sel.closest('.panel'); panel.style.position = 'relative';
+  sel.insertAdjacentHTML('afterend', '<button type="button" class="mini" id="scorebtn" title="Score shape: where the line sits and its shape, a ring or a loop round the frame instead, how far it spreads, the size, speed, glow, direction and tilt">shape</button>');
+  panel.insertAdjacentHTML('beforeend', `<div id="scorepop" class="gradepop" hidden><div class="gp-h"><b>score shape</b><button type="button" class="mini" id="scorereset" title="Every slider back">reset</button><button type="button" class="mini" id="scorex" title="Close">✕</button></div><div class="gp-row"><select id="scpath" class="sel" aria-label="Path" title="What now lies on: a line · a ring in the middle (the past sinks inwards, what's coming arrives from outside) · a loop round the whole frame"><option value="line">path: line</option><option value="ring">path: ring</option><option value="frame">path: frame</option></select><select id="scdir" class="sel" aria-label="Direction" title="Which way a line score flows"><option value="left">flows ←</option><option value="right">flows →</option><option value="up">flows ↑</option><option value="down">flows ↓</option></select></div><label title="Where the line (now) sits, left to right (double-click: back to 50)"><span>line position</span><input id="scx" type="range" min="20" max="80" value="50" aria-label="line position"><output>50</output></label><label title="How thick the line swells (double-click: back to 100)"><span>line width</span><input id="scw" type="range" min="0" max="250" value="100" aria-label="line width"><output>100</output></label><label title="The line snakes from side to side, moving (double-click: back to 0)"><span>line wave</span><input id="scwave" type="range" min="0" max="100" value="0" aria-label="line wave"><output>0</output></label><label title="Smooth or beaded (double-click: back to 50)"><span>line beads</span><input id="scbead" type="range" min="0" max="100" value="50" aria-label="line beads"><output>50</output></label><label title="How far the lanes reach from the middle (round it, with ring and frame) (double-click: back to 100)"><span>spread</span><input id="scspread" type="range" min="30" max="160" value="100" aria-label="spread"><output>100</output></label><label title="The size of every figure (double-click: back to 100)"><span>size</span><input id="scsize" type="range" min="40" max="220" value="100" aria-label="size"><output>100</output></label><label title="How fast the score moves (double-click: back to 100)"><span>speed</span><input id="scspeed" type="range" min="30" max="250" value="100" aria-label="speed"><output>100</output></label><label title="How strongly the colours glow (double-click: back to 100)"><span>glow</span><input id="scglow" type="range" min="0" max="250" value="100" aria-label="glow"><output>100</output></label><label title="Turn the whole score (double-click: back to 0)"><span>tilt</span><input id="sctilt" type="range" min="-45" max="45" value="0" aria-label="tilt"><output>0</output></label></div>`);
+  const K = [["scx", "x", 50], ["scw", "w", 100], ["scwave", "wave", 0], ["scbead", "bead", 50], ["scspread", "spread", 100], ["scsize", "size", 100], ["scspeed", "speed", 100], ["scglow", "glow", 100], ["sctilt", "tilt", 0]];
+  let saved = {}; try { saved = JSON.parse(store('cp-scoreshape') || '{}') || {}; } catch (e) { /* none */ }
+  const sync = keep => { for (const [id, k] of K) { const el = $(id); SCP[k] = k === 'x' || k === 'w' || k === 'wave' || k === 'bead' || k === 'spread' || k === 'size' || k === 'speed' || k === 'glow' ? +el.value / 100 : +el.value; el.nextElementSibling.textContent = el.value; }
+    SCP.path = $('scpath').value; SCP.dir = $('scdir').value; SC.spr.clear(); SC.fog = null;
+    if (keep) { const o = { path: SCP.path, dir: SCP.dir }; for (const [id] of K) o[id] = +$(id).value; store('cp-scoreshape', JSON.stringify(o)); } };
+  for (const [id, , d] of K) { const el = $(id); if (saved[id] != null) el.value = saved[id]; el.addEventListener('input', () => sync(true)); el.addEventListener('dblclick', () => { el.value = d; sync(true); }); }
+  if (saved.path) $('scpath').value = saved.path; if (saved.dir) $('scdir').value = saved.dir;
+  $('scpath').onchange = $('scdir').onchange = () => sync(true);
+  $('scorereset').onclick = () => { for (const [id, , d] of K) $(id).value = d; $('scpath').value = 'line'; $('scdir').value = 'left'; sync(true); };
+  $('scorex').onclick = () => { $('scorepop').hidden = true; };
+  $('scorebtn').onclick = () => { $('scorepop').hidden = !$('scorepop').hidden; };
+  sync(false); }
 // score (music): the sound drawn as a moving score, on paper or over the painting
 { const sel = $('score'), v = store('cp-score'); if (v && [...sel.options].some(o => o.value === v)) sel.value = v;
   const set = () => { VZ.mode = sel.value; VZ.on = VZ.mode !== 'off'; window.__cpScoreFull = VZ.mode === 'paper' || VZ.mode === 'brush' || VZ.mode === 'organic'; SC.spr.clear(); SC.fog = null; if (typeof applyStageSize === 'function') { $('layout').disabled = $('igguides').disabled = DISPLAY === 'painting' && !scoreFull(); applyStageSize(); } VZ.els = []; VZ.lanes = []; VZ.hz = VZ.ink = null; };
