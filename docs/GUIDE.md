@@ -172,6 +172,10 @@ It works in the studio, simple, +code and editor displays, shows in recordings, 
 
 **grade** (in the out panel) opens the colour sliders: *brightness*, *contrast*, *saturation*, *highlights*, *shadows*, *hue*, *colour boost*, *glow* and *haze*. They change the painting as it shows, so recordings get them too, and the saved PNGs, stills and covers. Saved code and SVG keep the plain colours. Double-click a slider to put it back to 0; *reset* clears them all. The **grade** button lights up while any slider is in use.
 
+## Vector base
+
+**vector** (beside *under*, next to the live input menu) puts the picture, traced into flat colour shapes, under a normal painting. The shapes pop in on the notes like *score · vector*, and the painter paints only what they miss: the edges, lines and details, in small strokes in your ticked styles. So graffiti, oil, ink or any style gets a vector base with its own marks on top, using the same caps, wall and piece order as usual. It uses fewer strokes than a normal painting. The colours, detail and fill of the shapes come from *score → shape* (*vector colours*, *vector detail*, *fill*). Saved PNGs and stills have the shapes under the strokes.
+
 ## Signal
 
 **signal** (in the out panel) puts the painting through old video gear, on the graphics card, after the grade. Pick a **look** to set the sliders together, then change any of them:
