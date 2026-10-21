@@ -161,7 +161,10 @@
   .gradepop label { display: grid; grid-template-columns: 82px 1fr 32px; align-items: center; gap: 6px; margin: 4px 0; }
   .gradepop input { width: 100%; accent-color: var(--accent); }
   .gradepop output { text-align: right; color: var(--dim); }
-  #gradebtn.on { color: var(--accent); border-color: var(--accent); }
+  #gradebtn.on, #wordsbtn.on { color: var(--accent); border-color: var(--accent); }
+  .gradepop .gp-row { display: flex; gap: 6px; margin: 6px 0; }
+  .gradepop .gp-row .sel { flex: 1; min-width: 0; }
+  .gradepop textarea { width: 100%; box-sizing: border-box; min-height: 84px; resize: vertical; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel2, #111); color: var(--text); font: 400 12px 'IBM Plex Mono', monospace; }
   #stylepick label.key[data-sz]::after { content: attr(data-sz); position: absolute; right: 2px; top: 1px; font-size: 7px; color: var(--accent); }
   /* style groups: tabs over the style keys */
   .stytabs { display: flex; gap: 4px; flex-wrap: nowrap; }
@@ -345,7 +348,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.27.0">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.28.0">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -734,6 +737,7 @@
       <label class="key" title="splash: on the beat, the brushes being drawn flick drops of their paint off the tip"><input type="checkbox" id="beat_splash" value="splash"><span class="led"></span>splash</label>
       <label class="key" title="branch: with one line, every beat splits the line into a new branch that draws on beside it (up to four)"><input type="checkbox" id="beat_branch" value="branch"><span class="led"></span>branch</label>
       <label class="key" title="glow: on the beat, the tip of each brush being drawn lights up in its own shape and colour, and fades as it moves on"><input type="checkbox" id="beat_glow" value="glow"><span class="led"></span>glow</label>
+      <select id="score" class="sel" aria-label="Score" title="score: the sound drawn as a moving score — a spine down the middle that swells with the sound, lines, rings, curves and sprigs shooting out on the hits, colour clouds blooming and smearing, dots drifting away — all in your ticked styles. paper: on its own, in the picture's colours · painting: over the painting as it's made, the lines running to the strokes that land, in their own style and colour, the painting smearing and blooming with the bass · motion only: none of the score drawn — the strokes that land swell out on the hits, colour blooms under them, the painting smears and glows with the bass" style="flex: none; width: 92px"><option value="off" selected>score: off</option><option value="paper">score · paper</option><option value="paint">score · painting</option><option value="motion">score · motion only</option></select>
     </div>
   </div>
   <div class="panel">
@@ -1276,7 +1280,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.27.0 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.28.0 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1294,7 +1298,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.27.0', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.28.0', FOOTER = `Code Painter by Jas Black`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -1763,6 +1767,7 @@ function releaseLiveAudio() {
   AU.live = null; if (!AU.el) $('audioname').textContent = '';
 }
 function onBeat(h) {
+  if (VZ.on) vizHit(h);
   // the music in the paint: every beat lands one big bold stroke, snapped down on the beat (the painter makes it the
   // moment the beat comes: the worker's 'accent'); with one line, the line swells instead; on the 3D styles the light swings
   const bt = beatsOn(), st = Math.min(1, 0.35 + h.s), amt = musicAmt();
@@ -5667,11 +5672,278 @@ const frameReact = () => $('framereact').checked && musicOn() ? AU.bass : 0;
 function paintPanel(b, now, r) {
   const P = frameShape(b, now);
   X.save(); tracePts(X, P); X.clip();
-  paintContent(b, now, r);
-  if (SPRAY.wall !== 'none' && S.out) wallOver(X, b.x, b.y, b.w, b.h);
+  if (VZ.on) vizDraw(b, now, r); else paintContent(b, now, r);
+  if (SPRAY.wall !== 'none' && S.out && !VZ.on) wallOver(X, b.x, b.y, b.w, b.h);
   if (GRADE.on && S.out) { const m = X.getTransform(); gradeApply(X, Math.round(m.a * b.x + m.e), Math.round(m.d * b.y + m.f), Math.round(m.a * b.w), Math.round(m.d * b.h)); }
   X.restore();
   drawRim(b, now, P);
+}
+// ═════════════════════════════════════════════════════════════
+//  Score: the sound drawn as a moving score (music → score). A dark spine down the middle swells with the sound,
+//  the swells running out from its centre; on every hit lines shoot out of it with nodes along them, rings pulse on
+//  the low hits, curves join things up, fans of short sprigs fly off on the high ones, dotted particles drift away to
+//  the right and soft clouds of colour bloom and smear behind it all. Everything is drawn in the ticked styles.
+//    paper     on its own, on paper, in the picture's colours
+//    painting  over the painting as it's made: the lines run from the spine to the strokes that are landing, the
+//              rings and sprigs sit on them, in each stroke's own style and colour, and the painting smears and
+//              blooms with the bass
+//  Three layers: the haze (a small canvas that keeps a blurred, fading, drifting copy of the frame: the smear and
+//  the glow), the ink (shapes baked in once they're fully grown; it fades and drifts as a whole, so a busy score
+//  costs no more than a quiet one) and the shapes still growing, drawn fresh each frame.
+// ═════════════════════════════════════════════════════════════
+const VZ = { mode: 'off', on: false, els: [], hist: new Float32Array(64), hi: 0, last: 0, pal: null, palKey: null, lanes: [], hz: null, hz2: null, ink: null, ink2: null, sec: -1, bud: 0 };
+const vzRnd = (a, b) => a + Math.random() * (b - a);
+const vzPick = a => a[Math.floor(Math.random() * a.length)];
+function vizPalette() {
+  const d = S.target, key = d ? d.length + ':' + d[(d.length >> 1) & ~3] + ':' + d[(d.length >> 2) & ~3] : 'none';
+  if (VZ.pal && VZ.palKey === key) return VZ.pal;
+  const bins = Array.from({ length: 12 }, () => ({ w: 0, r: 0, g: 0, b: 0 }));
+  if (d) for (let i = 0; i < d.length; i += 4 * 37) {
+    const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, c = mx - mn;
+    if (c < 0.22 || l < 0.18 || l > 0.85) continue;
+    let h = mx === r ? ((g - b) / c) % 6 : mx === g ? (b - r) / c + 2 : (r - g) / c + 4; h = (h + 6) % 6;
+    const B = bins[Math.floor(h * 2) % 12], w = c * c; B.w += w; B.r += d[i] * w; B.g += d[i + 1] * w; B.b += d[i + 2] * w;
+  }
+  const hex = v => '#' + v.map(x => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0')).join('');
+  const boost = ([r, g, b]) => { const m = (r + g + b) / 3; return [r, g, b].map(x => m + (x - m) * 1.35); };
+  const acc = bins.map((B, i) => ({ i, w: B.w, c: B.w ? hex(boost([B.r / B.w, B.g / B.w, B.b / B.w])) : null })).filter(x => x.w > 0).sort((a, b) => b.w - a.w);
+  const pick = []; for (const a of acc) if (pick.every(p => Math.min(Math.abs(p.i - a.i), 12 - Math.abs(p.i - a.i)) >= 2)) pick.push(a);
+  const cols = pick.slice(0, 3).map(p => p.c);
+  for (const c of ['#3df03d', '#e4ee3a', '#e3207f']) if (cols.length < 3) cols.push(c);
+  VZ.palKey = key; return VZ.pal = { bg: '#f6f5f2', ink: '#151517', acc: cols };
+}
+function vizLanes() { const n = 5 + Math.floor(Math.random() * 3), L = [0.5]; while (L.length < n) { const y = vzRnd(0.12, 0.88); if (L.every(v => Math.abs(v - y) > 0.06)) L.push(y); } VZ.lanes = L.sort((a, b) => a - b); }
+const vzStyle = () => vzPick(stylePick.values()) || 'painterly';
+// where the painting's newest strokes are (box fractions), with their style and colour — the painting mode's anchors
+function vizAnchors(n) {
+  const out = [], d = S.drawn, W0 = S.out ? S.out.width : 1, H0 = S.out ? S.out.height : 1;
+  for (let i = d.length - 1; i >= 0 && out.length < n; i--) {
+    const q = d[i], a = q.args; if (!a) continue;
+    const [x, y] = q.t === 'S' ? [a[2], a[3]] : q.t === 'T' ? [(a[0] + a[2] + a[4]) / 3, (a[1] + a[3] + a[5]) / 3] : [a[0], a[1]], c = colsOf(q)[0];
+    if (typeof c !== 'string' || !(x >= 0 && y >= 0 && x <= W0 && y <= H0)) continue;
+    out.push({ x: x / W0, y: y / H0, st: q.st || 'painterly', col: c.slice(0, 7), q });
+  }
+  return out;
+}
+// on a hit: what comes out of the spine depends on how hard it is and where its weight is (low · mid · high)
+function vizHit(h) {
+  if (!VZ.lanes.length) vizLanes();
+  const P = vizPalette(), s = Math.min(1, 0.3 + h.s), lo = AU.bass, hi = AU.high, now = clock(), cx = 0.5, E = VZ.els, paint = VZ.mode === 'paint';
+  const sec = AU.sections ? AU.sections.findIndex(x => aTime() >= x.t0 && aTime() < x.t1) : -1;
+  if (sec !== VZ.sec) { VZ.sec = sec; vizLanes(); }
+  if (VZ.mode === 'motion') {        // the mechanism alone: the strokes that just landed pulse out on the hit, colour blooms under them
+    const anc = vizAnchors(14); for (let j = 0, n = Math.min(anc.length, 2 + Math.round(6 * s)); j < n; j++) { const A = anc[j]; E.push({ k: 'echo', q: A.q, t0: now + j * 25, grow: 1, life: 380 + 520 * s, s: s * (0.6 + 0.6 * Math.random()) * (lo > 0.45 ? 1.4 : 1) }); if (j < 2 && (lo > 0.4 || s > 0.6)) E.push({ k: 'cloud', t0: now, grow: 120, life: vzRnd(900, 1800), x: A.x, y: A.y, r: 0.08 + 0.12 * s, col: A.col, a: 0.6 + 0.4 * s }); }
+    if (E.length > 200) E.splice(0, E.length - 200); return;
+  }
+  const anc = paint ? vizAnchors(12) : [];
+  // the lines: out of the spine to a lane (paper) or to a stroke that just landed (painting)
+  let last = null;
+  for (let j = 0, nr = 1 + (s > 0.55) + (s > 0.85); j < nr; j++) {
+    const A = anc.length ? vzPick(anc) : null, kind = Math.random();
+    const y = A ? A.y : vzPick(VZ.lanes) + vzRnd(-0.012, 0.012), x1 = A ? A.x : cx - (kind < 0.3 ? vzRnd(0.35, 0.5) : vzRnd(0.1, 0.18) + 0.25 * s);
+    const col = A ? A.col : Math.random() < 0.55 ? P.ink : vzPick(P.acc), st = A ? A.st : vzStyle();
+    const nodes = Array.from({ length: 2 + Math.floor(Math.random() * 4) }, () => vzRnd(0.12, 1)).sort();
+    E.push({ k: 'rail', t0: now + j * 60, grow: 200 + 200 * Math.random(), y, x0: cx, x1, w: kind < 0.3 ? 0.0016 : 0.004 + 0.012 * s * Math.random(), col, st, nodes, dot: A ? (Math.random() < 0.5 ? P.ink : vzPick(P.acc)) : col === P.ink ? vzPick(P.acc) : P.ink });
+    last = { x: x1, y, A, col, st };
+  }
+  if (lo > 0.42 || s > 0.62) {          // the low end: a ring pulses (on the line's end), a cloud blooms under it
+    const r = (0.025 + 0.11 * s * Math.min(1, lo + 0.2)) * (Math.random() < 0.15 ? 2.2 : 1), c = last.A ? last.col : vzPick(P.acc);
+    E.push({ k: 'ring', t0: now, grow: 320, x: last.x, y: last.y, r, col: Math.random() < 0.5 ? P.ink : c, fill: c, st: last.st, w: 0.0025 + 0.003 * s });
+    E.push({ k: 'cloud', t0: now, grow: 120, life: vzRnd(1400, 2400), x: last.x, y: last.y, r: r * 2.6 + 0.08, col: c, a: 0.5 + 0.4 * s });
+  }
+  if (Math.random() < 0.6) {          // a curve joins the line's end to another place (or back to the spine)
+    const B = anc.length > 1 ? vzPick(anc) : null, y2 = B ? B.y : vzPick(VZ.lanes), x2 = B ? B.x : Math.random() < 0.4 ? cx : cx - vzRnd(0.05, 0.45);
+    E.push({ k: 'curve', t0: now + 80, grow: 420, x0: last.x, y0: last.y, x2, y2, bx: vzRnd(-0.2, 0.15), col: B ? B.col : P.ink, st: B ? B.st : vzStyle(), w: 0.0018 + 0.002 * s });
+    if (hi > 0.25 || Math.random() < 0.45) E.push({ k: 'sprig', t0: now + 400, grow: 220, x: x2, y: y2, a0: vzRnd(-2.6, -0.5), n: 4 + Math.floor(Math.random() * 4), len: vzRnd(0.05, 0.12), col: B ? B.col : Math.random() < 0.5 ? P.ink : P.acc[0], st: B ? B.st : vzStyle(), w: 0.0018 });
+  }
+  if (hi > 0.3) vizDots(8 + Math.floor(hi * 18), anc.length ? vzPick(anc) : null);
+  if (E.length > 260) E.splice(0, E.length - 260);
+}
+function vizDots(n, A) {         // a row of dots drifting out to the right of the spine
+  const P = vizPalette(), now = clock(), y = A ? A.y : vzPick(VZ.lanes) + vzRnd(-0.01, 0.01), c = A ? A.col : Math.random() < 0.5 ? P.ink : vzPick(P.acc);
+  for (let i = 0; i < n; i++) VZ.els.push({ k: 'dot', t0: now + i * 28, grow: 1, life: vzRnd(800, 1700), x: 0.52 + i * vzRnd(0.008, 0.02), y: y + vzRnd(-0.004, 0.004), v: vzRnd(0.05, 0.2), r: vzRnd(0.0016, 0.0036), col: c });
+}
+// between the hits: small things keep coming as long as it's loud (the busier the sound, the more)
+function vizFill(dt) {
+  VZ.bud += dt / 1000 * (0.6 * AU.mid + 1.4 * AU.high + 0.5 * AU.bass) * 10;
+  while (VZ.bud > 1) {
+    VZ.bud -= 1; const P = vizPalette(), now = clock(), r = Math.random();
+    if (VZ.mode === 'motion') { const A = vzPick(vizAnchors(30)); if (A) VZ.els.push(r < 0.7 ? { k: 'echo', q: A.q, t0: now, grow: 1, life: 300 + 300 * Math.random(), s: 0.25 + 0.35 * AU.high } : { k: 'cloud', t0: now, grow: 200, life: vzRnd(800, 1500), x: A.x, y: A.y, r: vzRnd(0.05, 0.12), col: A.col, a: 0.5 }); continue; }
+    const A = VZ.mode === 'paint' ? vzPick(vizAnchors(20)) : null, lane = A ? A.y : vzPick(VZ.lanes);
+    if (r < 0.45) vizDots(4 + Math.floor(AU.high * 10), A);
+    else if (r < 0.88) VZ.els.push({ k: 'rail', t0: now, grow: 160, y: lane + (A ? 0 : vzRnd(-0.02, 0.02)), x0: 0.5 - (A ? 0 : vzRnd(0, 0.15)), x1: A ? A.x : 0.5 - vzRnd(0.2, 0.48), w: 0.0012 + 0.002 * Math.random(), col: A ? A.col : Math.random() < 0.7 ? P.ink : P.acc[0], st: A ? A.st : vzStyle(), nodes: [vzRnd(0.2, 1)], dot: vzPick(P.acc) });
+    else VZ.els.push({ k: 'cloud', t0: now, grow: 200, life: vzRnd(1000, 2000), x: A ? A.x : vzRnd(0.15, 0.6), y: lane, r: vzRnd(0.06, 0.16), col: A ? A.col : vzPick(P.acc), a: 0.6 });
+  }
+}
+const vzS = (st, x0, y0, x1, y1, x2, y2, w, c, a) => ({ t: 'S', st, args: [x0, y0, x1, y1, x2, y2, w, 0, c, c, a] });
+const vzE = (st, x, y, r, c, a) => ({ t: 'E', st, args: [x, y, r, r, 0, 0, c, c, a] });
+// one shape at growth g (0…1) onto x, in box pixels W × H (M: the short side)
+function vizShape(x, e, g, W, H, M, now) {
+  const px = (u, v) => [u * W, v * H];
+  if (e.k === 'rail') {
+    const [x0, y] = px(e.x0, e.y), [x1] = px(e.x0 + (e.x1 - e.x0) * g, e.y);
+    drawQ(x, vzS(e.st, x0, y, (x0 + x1) / 2, y, x1, y, Math.max(1, e.w * M), e.col, 0.92));
+    for (const f of e.nodes) { if (f > g) continue; const [nx] = px(e.x0 + (e.x1 - e.x0) * f, e.y); drawQ(x, vzE(e.st, nx, y, Math.max(1.5, e.w * M * 1.6), e.dot, 0.95)); }
+  } else if (e.k === 'ring') {
+    const [cx, cy] = px(e.x, e.y), pulse = g < 1 ? 0.35 * Math.sin(g * Math.PI) : 0, r = e.r * M * (0.7 + 0.3 * g) * (1 + pulse);
+    drawQ(x, vzE(e.st, cx, cy, r * 0.92, e.fill, 0.28));
+    const segs = 14, upto = Math.ceil(segs * Math.min(1, g * 1.4));
+    for (let i = 0; i < upto; i++) { const a0 = i / segs * 6.2832 - 1.57, a1 = (i + 1) / segs * 6.2832 - 1.57, am = (a0 + a1) / 2, rc = r / Math.cos(Math.PI / segs);
+      drawQ(x, vzS(e.st, cx + Math.cos(a0) * r, cy + Math.sin(a0) * r, cx + Math.cos(am) * rc, cy + Math.sin(am) * rc, cx + Math.cos(a1) * r, cy + Math.sin(a1) * r, Math.max(1, e.w * M), e.col, 0.9)); }
+    drawQ(x, vzE(e.st, cx, cy, Math.max(1.5, M * 0.005), e.col, 1));
+  } else if (e.k === 'curve') {
+    const [x0, y0] = px(e.x0, e.y0), [x2, y2] = px(e.x2, e.y2), cx1 = x0 + (x2 - x0) * 0.5 + e.bx * W, cy1 = y0;
+    // the first g of a quadratic is itself a quadratic (de Casteljau)
+    const qx = x0 + (cx1 - x0) * g, qy = y0 + (cy1 - y0) * g, ex = (1 - g) * qx + g * (cx1 + (x2 - cx1) * g), ey = (1 - g) * qy + g * (cy1 + (y2 - cy1) * g);
+    drawQ(x, vzS(e.st, x0, y0, qx, qy, ex, ey, Math.max(1, e.w * M), e.col, 0.85));
+    if (g >= 1) drawQ(x, vzE(e.st, x2, y2, Math.max(1.5, M * 0.004), e.col, 1));
+  } else if (e.k === 'sprig') {
+    const [cx, cy] = px(e.x, e.y);
+    for (let i = 0; i < e.n; i++) { const an = e.a0 + i * 0.22, L = e.len * M * g * (0.7 + 0.15 * ((i * 7) % 3)), x1 = cx + Math.cos(an) * L, y1 = cy + Math.sin(an) * L;
+      drawQ(x, vzS(e.st, cx, cy, (cx + x1) / 2 + Math.sin(an) * L * 0.08, (cy + y1) / 2 - Math.cos(an) * L * 0.08, x1, y1, Math.max(1, e.w * M), e.col, 0.9));
+      if (g >= 1) drawQ(x, vzE(e.st, x1, y1, Math.max(1.3, M * 0.0035), e.col, 1)); }
+  }
+}
+const vzCanvas = (c, w, h) => { if (!c || c.width !== w || c.height !== h) { c = document.createElement('canvas'); c.width = w; c.height = h; } return c; };
+function vizDraw(b, now, r) {
+  const P = vizPalette(), motion = VZ.mode === 'motion', paint = VZ.mode === 'paint' || motion, dt = Math.min(100, Math.max(0, now - (VZ.last || now))), playing = !!(AU.moving || AU.live), k = dt / 33; VZ.last = now;
+  if (!VZ.lanes.length) vizLanes();
+  // the sound level, kept for the spine (its swells run out from the middle)
+  const lv = Math.min(1, 0.65 * AU.bass + 0.45 * AU.mid + 0.5 * AU.beat);
+  VZ.lv = (VZ.lv || 0) + ((playing ? lv : 0) - (VZ.lv || 0)) * Math.min(1, 0.3 * (dt / 33));          // (smoothed: the spine swells, it doesn't jump)
+  if (dt > 0) { VZ.hi = (VZ.hi + 1) % VZ.hist.length; VZ.hist[VZ.hi] = VZ.lv; }
+  if (playing) vizFill(dt); else if (!paint && !VZ.els.length && Math.random() < 0.02) vizHit({ s: 0.3 });
+  const W = b.w, H = b.h, M = Math.min(W, H), X0 = b.x, Y0 = b.y, m = X.getTransform(), dw = Math.max(16, Math.round(m.a * W)), dh = Math.max(16, Math.round(m.d * H)), sc = dw / W;
+  // ── the haze: smears, fades and drifts; clouds and the spine go in, and (at the end) the frame itself
+  const hw = Math.max(32, Math.round(W / 3)), hh = Math.max(32, Math.round(H / 3));
+  if (!VZ.hz || VZ.hz.width !== hw || VZ.hz.height !== hh) { VZ.hz = vzCanvas(null, hw, hh); VZ.hz2 = vzCanvas(null, hw, hh); if (!paint) { const z0 = VZ.hz.getContext('2d'); z0.fillStyle = P.bg; z0.fillRect(0, 0, hw, hh); } }
+  const z = VZ.hz.getContext('2d'), z2 = VZ.hz2.getContext('2d');
+  if (dt > 0) {
+    z2.globalCompositeOperation = 'copy'; z2.filter = CAN_BLUR ? `blur(${(0.6 * k).toFixed(2)}px)` : 'none'; z2.drawImage(VZ.hz, -0.35 * k, 0); z2.filter = 'none';
+    z.globalCompositeOperation = 'copy'; z.drawImage(VZ.hz2, 0, 0); z.globalCompositeOperation = paint ? 'destination-out' : 'source-over';
+    z.globalAlpha = Math.min(1, 0.09 * k); z.fillStyle = paint ? '#000' : P.bg; z.fillRect(0, 0, hw, hh); z.globalAlpha = 1; z.globalCompositeOperation = 'source-over';
+  }
+  const hp = (u, v) => [u * hw, v * hh], hm = Math.min(hw, hh);
+  for (const e of VZ.els) if (e.k === 'cloud') {
+    const t = now - e.t0, a = t < 0 || t > e.life ? 0 : t < e.grow ? t / e.grow : 1 - (t - e.grow) / (e.life - e.grow); if (!a) continue;
+    const [x, y] = hp(e.x, e.y), rr = e.r * hm * (1 + 0.25 * AU.bass), G = z.createRadialGradient(x, y, 0, x, y, rr);
+    G.addColorStop(0, e.col); G.addColorStop(1, rgba(e.col, 0)); z.globalAlpha = Math.min(1, 0.2 * a * e.a * k); z.fillStyle = G; z.beginPath(); z.ellipse(x, y, rr * 1.5, rr, 0, 0, 7); z.fill();
+  }
+  { const [x, y] = hp(0.5, 0.5), rr = hm * (0.22 + 0.25 * AU.bass), G = z.createRadialGradient(x, y, 0, x, y, rr); G.addColorStop(0, P.acc[0]); G.addColorStop(1, rgba(P.acc[0], 0)); z.globalAlpha = Math.min(1, 0.06 * k * (0.3 + AU.bass) * (paint ? 0.5 : 1)); z.fillStyle = G; z.fillRect(x - rr * 1.6, y - rr, rr * 3.2, rr * 2); }
+  const N = VZ.hist.length, lvAt = d => { const f = d * (N - 1), i0 = Math.floor(f), w = f - i0, a = VZ.hist[(VZ.hi - i0 + N) % N], b2 = VZ.hist[(VZ.hi - i0 - 1 + N) % N]; return a + (b2 - a) * w; };
+  const spineW = d => Math.pow(1 - d, 0.6) * (0.004 + (paint ? 0.022 : 0.045) * lvAt(d));          // (d: 0 in the middle … 1 at the ends) as a share of the width
+  const spine = (x, cxp, top, hgt, wid, step) => { x.beginPath(); x.moveTo(cxp, top); for (let yy = 0; yy <= hgt; yy += step) x.lineTo(cxp + wid * spineW(Math.abs(yy / hgt - 0.5) * 2), top + yy); for (let yy = hgt; yy >= 0; yy -= step) x.lineTo(cxp - wid * spineW(Math.abs(yy / hgt - 0.5) * 2), top + yy); x.closePath(); x.fill(); };
+  if (!motion) { z.globalAlpha = Math.min(1, (paint ? 0.15 : 0.35) * k); z.fillStyle = P.ink; spine(z, hw / 2, 0, hh, hw * 1.25, 2); z.globalAlpha = 1; }
+  // ── the ink: grown shapes baked in; it fades as a whole (the haze carries their drift and smear)
+  VZ.ink = vzCanvas(VZ.ink, dw, dh);
+  const ik = VZ.ink.getContext('2d');
+  VZ.fk = (VZ.fk || 0) + k;
+  if (VZ.fk >= 3) { ik.globalCompositeOperation = 'destination-out'; ik.globalAlpha = Math.min(1, 0.022 * VZ.fk); VZ.fk = 0; ik.fillRect(0, 0, dw, dh); ik.globalAlpha = 1; ik.globalCompositeOperation = 'source-over'; }
+  const grow = [], keep = [];
+  for (const e of VZ.els) {
+    const t = now - e.t0;
+    if (e.k === 'cloud') { if (t < e.life) keep.push(e); continue; }
+    if (e.k === 'dot' || e.k === 'echo') { if (t < e.life) keep.push(e); continue; }
+    if (t < 0) { keep.push(e); continue; }
+    if (t < e.grow) { grow.push(e); keep.push(e); continue; }
+    ik.save(); ik.scale(sc, sc); vizShape(ik, e, 1, W, H, M, now); ik.restore();       // grown: into the ink, once
+  }
+  VZ.els = keep;
+  // ── onto the stage
+  X.save(); X.beginPath(); X.rect(X0, Y0, W, H); X.clip();
+  if (paint) { if (S.out) paintContent(b, now, r); else { X.fillStyle = S.bgHex || P.bg; X.fillRect(X0, Y0, W, H); } X.globalAlpha = Math.min(0.6, 0.12 + 0.4 * AU.bass); X.imageSmoothingQuality = 'high'; X.drawImage(VZ.hz, X0, Y0, W, H); X.globalAlpha = 1; }
+  else { X.fillStyle = P.bg; X.fillRect(X0, Y0, W, H); X.imageSmoothingQuality = 'high'; X.drawImage(VZ.hz, X0, Y0, W, H); }
+  const ax = X0 + W / 2;
+  if (motion) {          // the strokes' echoes: each one swells out from where it landed and fades, in its own style
+    const W1 = S.out ? S.out.width : W, H1 = S.out ? S.out.height : H;
+    for (const e of VZ.els) if (e.k === 'echo') {
+      const t = now - e.t0; if (t < 0 || t >= e.life) continue; const f = t / e.life, a = e.q.args, [cx, cy] = e.q.t === 'S' ? [a[2], a[3]] : [a[0], a[1]], z1 = 1 + e.s * 0.45 * Math.sqrt(f);
+      X.save(); X.translate(X0, Y0); X.scale(W / W1, H / H1); X.translate(cx, cy); X.scale(z1, z1); X.translate(-cx, -cy); X.globalAlpha = (1 - f) * (1 - f) * 0.7; drawQ(X, e.q); X.restore();
+    }
+    X.globalAlpha = 1; X.drawImage(VZ.ink, X0, Y0, W, H);
+  } else {
+  X.globalAlpha = paint ? 0.55 : 0.9; X.fillStyle = P.ink; X.fillRect(ax - Math.max(0.6, M * 0.0012), Y0, Math.max(1.2, M * 0.0024), H);        // the hairline through the spine
+  X.globalAlpha = paint ? 0.35 : 0.7; spine(X, ax, Y0, H, W, Math.max(2, H / 160)); X.globalAlpha = paint ? 0.55 : 0.9; spine(X, ax, Y0, H, W * 0.45, Math.max(2, H / 160));
+  if (!paint) { X.globalAlpha = 0.85; X.fillRect(X0, Y0 + H / 2 - Math.max(0.6, M * 0.002), W / 2, Math.max(1.2, M * 0.004)); }
+  X.globalAlpha = 1; X.drawImage(VZ.ink, X0, Y0, W, H);
+  }
+  X.save(); X.translate(X0, Y0); for (const e of grow) vizShape(X, e, (now - e.t0) / e.grow, W, H, M, now); X.restore();
+  for (const e of VZ.els) if (e.k === 'dot') {
+    const t = now - e.t0; if (t < 0) continue; const a = 1 - t / e.life;
+    X.globalAlpha = Math.max(0, a); X.fillStyle = e.col; X.beginPath(); X.arc(X0 + (e.x + e.v * t / 1000) * W, Y0 + e.y * H, Math.max(0.8, e.r * M), 0, 7); X.fill();
+  }
+  X.globalAlpha = 1;
+  // the shapes (and in painting mode the painting) go back into the haze, faintly: they smear and drift behind
+  if (dt > 0) { z.globalAlpha = Math.min(1, (paint ? 0.3 : 0.2) * k); if (paint && S.out) z.drawImage(S.out, 0, 0, hw, hh); z.drawImage(VZ.ink, 0, 0, hw, hh); z.globalAlpha = 1; }
+  X.restore();
+}
+// ═════════════════════════════════════════════════════════════
+//  Text bar: your own words between the picture and the code, painted out stroke by stroke like the picture, in the
+//  ticked styles. The text is set in one of ten fonts (vendor/fonts, carried with the app), fitted to the bar, and
+//  turned into brush strokes: short strokes down each column of every letter, in writing order (line by line, left
+//  to right), so the words appear as the painting goes (they're finished a little before it is). Baked into a canvas
+//  of their own as they come; rebuilt when the words, the font, the colour, the styles or the size change.
+// ═════════════════════════════════════════════════════════════
+const WFONTS = [['archivo-black', 'Archivo Black', 'bold sans'], ['bebas-neue', 'Bebas Neue', 'tall caps'], ['playfair-display', 'Playfair Display', 'serif', '700'], ['permanent-marker', 'Permanent Marker', 'marker'], ['caveat', 'Caveat', 'handwriting', '600'], ['space-mono', 'Space Mono', 'mono', '700'], ['abril-fatface', 'Abril Fatface', 'fat serif'], ['rubik-mono-one', 'Rubik Mono One', 'wide block'], ['pacifico', 'Pacifico', 'script'], ['rock-salt', 'Rock Salt', 'rough hand']];
+const WORDS = { on: false, text: '', font: 'archivo-black', col: 'light', key: '', list: null, cv: null, n: 0, ready: {}, loading: {} };
+function wordsFont(id) {
+  const f = WFONTS.find(x => x[0] === id) || WFONTS[0], fam = 'CPW ' + f[1], wt = f[3] || '400';
+  if (WORDS.ready[id]) return { fam, wt, ok: true };
+  if (!WORDS.loading[id] && typeof FontFace !== 'undefined') WORDS.loading[id] = new FontFace(fam, `url(${new URL('vendor/fonts/' + id + '.woff2', location.href).href})`, { weight: wt }).load()
+    .then(ff => { document.fonts.add(ff); WORDS.ready[id] = true; WORDS.key = ''; }).catch(() => { WORDS.ready[id] = true; WORDS.key = ''; });      // (no font file: a fallback face)
+  return { fam, wt, ok: false };
+}
+// the words as strokes, in bar pixels (w × h)
+function wordsBuild(w, h) {
+  const text = WORDS.text.replace(/\s+/g, ' ').trim(); if (!text || w < 20 || h < 12) return [];
+  const F = wordsFont(WORDS.font), c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d');
+  const face = fs => `${F.wt} ${fs}px "${F.fam}", ${WORDS.font === 'space-mono' ? 'monospace' : 'sans-serif'}`;
+  const wrap = fs => { x.font = face(fs); const out = []; let line = ''; for (const wd of text.split(' ')) { const t = line ? line + ' ' + wd : wd; if (line && x.measureText(t).width > w * 0.94) { out.push(line); line = wd; } else line = t; } if (line) out.push(line); return out; };
+  let fs = Math.floor(h * 0.8), lines = wrap(fs);
+  while (fs > 8 && (lines.length * fs * 1.12 > h * 0.92 || lines.some(l => x.measureText(l).width > w * 0.96))) { fs = Math.floor(fs * 0.93); lines = wrap(fs); }
+  const lh = fs * 1.12, top = (h - lines.length * lh) / 2;
+  x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = face(fs);
+  lines.forEach((l, i) => x.fillText(l, w / 2, top + lh * (i + 0.5)));
+  const D = x.getImageData(0, 0, w, h).data, step = Math.max(1.2, fs * 0.075), out = [], R = rngFor([w, h, fs, text.length, 3, 9]);
+  const styles = stylePick.values(), pal = WORDS.col === 'picture' ? vizPalette() : null, T = S.target, tw = S.ww || 0, th = S.wh || 0;
+  for (let li = 0; li < lines.length; li++) {
+    const y0 = Math.max(0, Math.floor(top + lh * li - fs * 0.15)), y1 = Math.min(h - 1, Math.ceil(top + lh * (li + 1) + fs * 0.15));
+    for (let cx = step / 2; cx < w; cx += step) {
+      const col = Math.round(cx); let run = -1;
+      for (let y = y0; y <= y1 + 1; y++) {
+        const on = y <= y1 && D[(y * w + col) * 4 + 3] > 110;
+        if (on && run < 0) run = y;
+        if (!on && run >= 0) {
+          const ya = run, yb = y - 1, j = (R() - 0.5) * step * 0.6, sl = (R() - 0.5) * step * 0.8; run = -1;
+          let c = WORDS.col === 'accent' ? COL.accent : '#f3efe6';
+          if (WORDS.col === 'light') { const v = 228 + Math.round((R() - 0.5) * 30); c = `#${[v, v - 3, v - 10].map(q => Math.max(0, Math.min(255, q)).toString(16).padStart(2, '0')).join('')}`; }
+          else if (WORDS.col === 'picture') {
+            if (T && tw) { const px = Math.min(tw - 1, Math.floor(cx / w * tw)), py = Math.min(th - 1, Math.floor((ya + yb) / 2 / h * th)), o = (py * tw + px) * 4, k = (q => Math.min(255, Math.round(q * 1.25 + 30))); c = '#' + [T[o], T[o + 1], T[o + 2]].map(q => k(q).toString(16).padStart(2, '0')).join(''); }
+            else c = pal.acc[li % pal.acc.length];
+          }
+          out.push({ t: 'S', st: styles[Math.floor(R() * styles.length)] || 'painterly', args: [cx + j - sl, ya - step * 0.3, cx + j, (ya + yb) / 2, cx + j + sl, yb + step * 0.3, step * 1.7, 0, c, c, 0.95] });
+        }
+      }
+    }
+  }
+  return out;
+}
+// the bar: the words baked in as far as the painting has got
+function wordsDraw(B) {
+  if (!B || !WORDS.on) return;
+  const w = Math.round(B.w), h = Math.round(B.h), key = [WORDS.text, WORDS.font, WORDS.col, w, h, stylePick.values().join(','), WORDS.col === 'picture' ? S.gen : 0].join('|');
+  if (key !== WORDS.key) { WORDS.key = key; WORDS.list = wordsBuild(w, h); WORDS.cv = vzCanvas(null, Math.max(1, w), Math.max(1, h)); WORDS.n = 0; }
+  const L = WORDS.list || [], want = S.mode === 'idle' ? L.length : S.done ? L.length : Math.round(L.length * Math.min(1, progress() * 1.12));
+  const x = WORDS.cv.getContext('2d');
+  if (want < WORDS.n) { x.clearRect(0, 0, w, h); WORDS.n = 0; }
+  for (const t0 = performance.now(); WORDS.n < want && (OFF.on || performance.now() - t0 < 8);) drawQ(x, L[WORDS.n++]);
+  X.drawImage(WORDS.cv, B.x, B.y, B.w, B.h);
+}
+// room for the bar: taken from the code's side of the layout, between it and the picture
+function wordsCut(code, under) {
+  if (!WORDS.on || !WORDS.text.trim()) return { code, words: null };
+  const g = Math.round(Math.min(SW, SH) * 0.02), bh = Math.round(Math.min(code.h * 0.4, Math.max(70, Math.min(SW, SH) * (under ? 0.13 : 0.16))));
+  return { code: { ...code, y: code.y + bh + g, h: code.h - bh - g }, words: { x: code.x, y: code.y, w: code.w, h: bh } };
 }
 // ═════════════════════════════════════════════════════════════
 //  Colour grade: brightness, contrast, saturation, highlights, shadows, hue, colour boost, glow and haze — on the
@@ -6123,7 +6395,7 @@ function codeLines(rows, which) {
 // how far along the run is (the chosen part of the song when one is loaded)
 const progress = () => AU.el && AU.dur ? clamp01((aTime() - AU.in) / Math.max(0.01, AU.out - AU.in)) : S.total ? Math.min(1, S.count / S.total) * (1 - easeInOut(S.dz || 0)) : 0;
 function codePanel(now) {
-  const CODE = LY.code;
+  const Wc = wordsCut(LY.code, SH > SW), CODE = Wc.code; wordsDraw(Wc.words);
   rr(CODE.x, CODE.y, CODE.w, CODE.h, 14, COL.panel2, COL.line, 1);
   [COL.accent, COL.accent2, COL.dim].forEach((c, i) => { X.fillStyle = c; X.beginPath(); X.arc(CODE.x + 24 + i * 18, CODE.y + 23, 5, 0, 7); X.fill(); });
   const file = S.mode === 'replay' ? `recreate/pieces/${S.name}.js` : S.mode === 'auto' ? 'painting.js' : 'code';
@@ -6268,6 +6540,11 @@ function simpleCode(C, o = {}) {
 }
 function simple(now) {
   const G = simpleGeom(), r = fxAmt();
+  if (WORDS.on && WORDS.text.trim()) {          // the words: between the picture and the row under it (9:16), or atop the code (16:9)
+    const tall = SH >= SW, row = tall && G.orig ? { x: G.orig.x, y: G.orig.y, w: G.code.x + G.code.w - G.orig.x, h: G.code.h } : G.code, Wc = wordsCut(row, tall);
+    const dy = Wc.code.y - row.y; G.code = { ...G.code, y: G.code.y + dy, h: G.code.h - dy }; if (tall && G.orig) G.orig = { ...G.orig, y: G.orig.y + dy, h: G.orig.h - dy };
+    wordsDraw(Wc.words);
+  }
   if (!S.orig) {   // idle hint (never recorded: a run always has an image)
     X.setLineDash([10, 10]); rr(G.paint.x, G.paint.y, G.paint.w, G.paint.h, 20, null, COL.line); X.setLineDash([]);
     X.fillStyle = COL.dim; X.font = `600 30px ${MONO}`; X.textAlign = 'center';
@@ -6314,7 +6591,7 @@ function duoGeom() {
   return { paint: { x, y: top, w: Math.round(pw), h: Math.round(ph) }, wave, code: { x: cx, y: Math.round(y), w: cw, h: codeH } };
 }
 function duo(now) {
-  const G = duoGeom(), r = fxAmt();
+  const G = duoGeom(), r = fxAmt(), Wc = wordsCut(G.code, true); G.code = Wc.code; wordsDraw(Wc.words);
   if (!S.orig) {
     X.setLineDash([10, 10]); rr(G.paint.x, G.paint.y, G.paint.w, G.paint.h, 20, null, COL.line); X.setLineDash([]);
     X.fillStyle = COL.dim; X.font = `600 30px ${MONO}`; X.textAlign = 'center';
@@ -6480,7 +6757,7 @@ function editorCode(C, now) {
   X.fillStyle = COL.dim; X.font = `${Math.max(10, Math.round(fs * 0.62))}px ${MONO}`; X.textAlign = 'center'; X.fillText(FOOTER, C.x + C.w / 2, C.y + C.h - Math.round(fs * 0.5)); X.textAlign = 'left';
 }
 function editor(now) {
-  const G = editorGeom(), r = fxAmt();
+  const G = editorGeom(), r = fxAmt(), Wc = wordsCut(G.code, SW <= SH * 1.2); G.code = Wc.code; wordsDraw(Wc.words);
   if (!S.orig) {
     X.setLineDash([10, 10]); rr(G.paint.x, G.paint.y, G.paint.w, G.paint.h, 20, null, COL.line); X.setLineDash([]);
     X.fillStyle = COL.dim; X.font = `600 30px ${MONO}`; X.textAlign = 'center'; X.fillText('drop any image', G.paint.x + G.paint.w / 2, G.paint.y + G.paint.h / 2); X.textAlign = 'left';
@@ -6506,6 +6783,7 @@ function updateGuides() {
 //  Painting display: nothing but the painting, edge to edge, as big as the window (or ⛶ the screen) allows
 // ═════════════════════════════════════════════════════════════
 function paintingOnly(now) {
+  if (VZ.mode === 'paper' || (VZ.on && !S.out)) { paintPanel({ x: 0, y: 0, w: SW, h: SH, k: 1 }, now, fxAmt()); return; }
   if (!S.out) {
     X.fillStyle = COL.dim; X.font = `600 ${Math.round(SH / 30)}px ${MONO}`; X.textAlign = 'center';
     X.fillText(S.orig ? '' : 'drop any image', SW / 2, SH / 2); X.textAlign = 'left';
@@ -7386,7 +7664,7 @@ const presetEls = () => [...document.querySelectorAll('#app input[id], #app sele
 const fire = (el, type) => el.dispatchEvent(new Event(type, { bubbles: true }));
 function presetGet() {
   const v = {}; for (const el of presetEls()) v[el.id] = el.type === 'checkbox' ? el.checked : el.value;
-  return { v, styles: stylePick.values(), bgStyles: stylePick.bg(), motions: motionPick.values(), display: DISPLAY };
+  return { v, styles: stylePick.values(), bgStyles: stylePick.bg(), motions: motionPick.values(), display: DISPLAY, words: WORDS.text };
 }
 function presetApply(p) {
   for (const el of presetEls()) {
@@ -7401,6 +7679,7 @@ function presetApply(p) {
   if (p.styles) stylePick.set(p.styles, p.bgStyles || []);
   if (p.motions) motionPick.set(p.motions);
   if (p.display) setDisplay(p.display);
+  if (typeof p.words === 'string' && $('wordstext')) { $('wordstext').value = p.words; fire($('wordstext'), 'input'); }
 }
 const PRESETS = (() => { try { return JSON.parse(store('cp-presets') || '{}') || {}; } catch (e) { return {}; } })();
 const PR = { arm: false, on: null };
@@ -7837,16 +8116,35 @@ function stylePicker() {
   return { values: () => L.subj, bg: () => L.bg, set: (subj, bg) => { L.subj = subj && subj.length ? subj : ['painterly']; if (bg) L.bg = bg; keep(); } };
 }
 const stylePick = stylePicker();
+// score (music): the sound drawn as a moving score, on paper or over the painting
+{ const sel = $('score'), v = store('cp-score'); if (v && [...sel.options].some(o => o.value === v)) sel.value = v;
+  const set = () => { VZ.mode = sel.value; VZ.on = VZ.mode !== 'off'; VZ.els = []; VZ.lanes = []; VZ.hz = VZ.ink = null; };
+  set(); sel.addEventListener('change', () => { store('cp-score', sel.value); set(); $('hint').textContent = VZ.mode === 'paper' ? 'Score on paper: the song drawn as a moving score in your ticked styles, in the picture\'s colours. Play a song.' : VZ.mode === 'paint' ? 'Score over the painting: on the hits, lines shoot from the spine to the strokes that land, rings pulse and sprigs fly off them, the painting smears with the bass.' : VZ.mode === 'motion' ? 'Score motion only: no score drawn — the strokes that land swell out on the hits, colour blooms under them and the painting smears and glows with the bass.' : 'Score off.'; }); }
 // colour grade sliders (kept in this browser; double-click a slider for 0) · face detail
 { { const pw = $('perfwin'), panel = pw.closest('.panel'); panel.style.position = 'relative';      // (the grade button and its sliders join the out panel)
     pw.insertAdjacentHTML('beforebegin', `<button type="button" class="mini" id="gradebtn" title="Colour grade: brightness, contrast, saturation, highlights, shadows, hue, colour boost, glow and haze. On the painting as it shows, in recordings and in the saved PNGs, stills and covers (not in saved code or SVG)">grade</button>`);
+    pw.insertAdjacentHTML('beforebegin', `<button type="button" class="mini" id="wordsbtn" title="Text bar: your own words between the picture and the code, in one of ten fonts, painted out like the picture">text</button>`);
+    panel.querySelector('.ttl').insertAdjacentHTML('afterend', `<div id="wordspop" class="gradepop" hidden><div class="gp-h"><b>text bar</b><button type="button" class="mini" id="wordsx" title="Close">✕</button></div><div class="gp-row"><select id="wordson" class="sel" aria-label="Text bar" title="Text bar: your words between the picture and the code, painted out stroke by stroke in your styles as the painting goes (studio, simple, +code and editor displays)"><option value="off" selected>text: off</option><option value="on">text: on</option></select><select id="wordscol" class="sel" aria-label="Text colour" title="The colour of the words: light · picture (they take the colours of the picture) · accent (the theme colour)"><option value="light">light</option><option value="picture">picture</option><option value="accent">accent</option></select></div><div class="gp-row"><select id="wordsfont" class="sel" aria-label="Font" title="The font the words are set in (then painted)"><option value="archivo-black">Archivo Black</option><option value="bebas-neue">Bebas Neue</option><option value="playfair-display">Playfair</option><option value="permanent-marker">Marker</option><option value="caveat">Caveat</option><option value="space-mono">Space Mono</option><option value="abril-fatface">Abril Fatface</option><option value="rubik-mono-one">Rubik Mono</option><option value="pacifico">Pacifico</option><option value="rock-salt">Rock Salt</option></select></div><textarea id="wordstext" placeholder="Write a sentence or two. They are painted out between the picture and the code, stroke by stroke, like the picture." aria-label="The words"></textarea></div>`);
     panel.querySelector('.ttl').insertAdjacentHTML('afterend', `<div id="gradepop" class="gradepop" hidden><div class="gp-h"><b>colour grade</b><button type="button" class="mini" id="gradereset" title="Every slider back to 0">reset</button><button type="button" class="mini" id="gradex" title="Close">✕</button></div><label title="Double-click to reset"><span>brightness</span><input id="g_bri" type="range" min="-100" max="100" value="0" aria-label="brightness"><output>0</output></label><label title="Double-click to reset"><span>contrast</span><input id="g_con" type="range" min="-100" max="100" value="0" aria-label="contrast"><output>0</output></label><label title="Double-click to reset"><span>saturation</span><input id="g_sat" type="range" min="-100" max="100" value="0" aria-label="saturation"><output>0</output></label><label title="Double-click to reset"><span>highlights</span><input id="g_hil" type="range" min="-100" max="100" value="0" aria-label="highlights"><output>0</output></label><label title="Double-click to reset"><span>shadows</span><input id="g_sha" type="range" min="-100" max="100" value="0" aria-label="shadows"><output>0</output></label><label title="Double-click to reset"><span>hue</span><input id="g_hue" type="range" min="-180" max="180" value="0" aria-label="hue"><output>0</output></label><label title="Double-click to reset"><span>colour boost</span><input id="g_vib" type="range" min="0" max="100" value="0" aria-label="colour boost"><output>0</output></label><label title="Double-click to reset"><span>glow</span><input id="g_glo" type="range" min="0" max="100" value="0" aria-label="glow"><output>0</output></label><label title="Double-click to reset"><span>haze</span><input id="g_haz" type="range" min="0" max="100" value="0" aria-label="haze"><output>0</output></label></div>`); }
   let saved = {}; try { saved = JSON.parse(store('cp-grade') || '{}') || {}; } catch (e) { /* none */ }
   const sync = keep => { for (const [k] of GR_DEF) { const el = $('g_' + k); GRADE.v[k] = +el.value; el.nextElementSibling.textContent = el.value; } gradeBuild(); $('gradebtn').classList.toggle('on', GRADE.on); if (keep) store('cp-grade', JSON.stringify(GRADE.v)); };
   for (const [k] of GR_DEF) { const el = $('g_' + k); if (saved[k] != null) el.value = saved[k]; el.addEventListener('input', () => sync(true)); el.addEventListener('dblclick', () => { el.value = 0; sync(true); }); }
   $('gradereset').onclick = () => { for (const [k] of GR_DEF) $('g_' + k).value = 0; sync(true); };
   $('gradex').onclick = () => { $('gradepop').hidden = true; };
-  $('gradebtn').onclick = () => { $('gradepop').hidden = !$('gradepop').hidden; };
+  $('gradebtn').onclick = () => { $('gradepop').hidden = !$('gradepop').hidden; $('wordspop').hidden = true; };
+  // the text bar
+  const wv = (id, k) => { const v = store('cp-' + id); if (v != null && [...$(id).options].some(o => o.value === v)) $(id).value = v; WORDS[k] = $(id).value; };
+  wv('wordsfont', 'font'); wv('wordscol', 'col'); { const v = store('cp-wordson'); if (v) $('wordson').value = v; }
+  WORDS.text = store('cp-wordstext') || ''; $('wordstext').value = WORDS.text;
+  const won = () => { WORDS.on = $('wordson').value === 'on'; $('wordsbtn').classList.toggle('on', WORDS.on); if (WORDS.on) wordsFont(WORDS.font); };
+  won();
+  $('wordson').onchange = () => { store('cp-wordson', $('wordson').value); won(); $('hint').textContent = WORDS.on ? (WORDS.text.trim() ? 'Text bar on: your words are painted out between the picture and the code.' : 'Text bar on: write your words in the box.') : 'Text bar off.'; };
+  $('wordsfont').onchange = () => { WORDS.font = $('wordsfont').value; store('cp-wordsfont', WORDS.font); wordsFont(WORDS.font); WORDS.key = ''; };
+  $('wordscol').onchange = () => { WORDS.col = $('wordscol').value; store('cp-wordscol', WORDS.col); WORDS.key = ''; };
+  $('wordstext').addEventListener('input', () => { WORDS.text = $('wordstext').value; store('cp-wordstext', WORDS.text); if (WORDS.text.trim() && $('wordson').value === 'off') { $('wordson').value = 'on'; store('cp-wordson', 'on'); won(); } });
+  $('wordstext').addEventListener('keydown', e => e.stopPropagation());          // (typing in it isn't a shortcut)
+  $('wordsx').onclick = () => { $('wordspop').hidden = true; };
+  $('wordsbtn').onclick = () => { $('wordspop').hidden = !$('wordspop').hidden; $('gradepop').hidden = true; };
   sync(false);
   const fv = store('cp-faces'); if (fv && [...$('faces').options].some(o => o.value === fv)) $('faces').value = fv;
   $('faces').onchange = () => { store('cp-faces', $('faces').value); if (faceK()) faceModel(); $('hint').textContent = faceK() ? 'Face detail on: faces get more, finer strokes. Repainting.' : 'Face detail off. Repainting.'; rerunSoon(); };
@@ -8423,7 +8721,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.27.0');
+    const V = await import('./viewer3d.js?v=4.28.0');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
