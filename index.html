@@ -348,7 +348,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.33.0">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.34.0">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -1280,7 +1280,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.33.0 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.34.0 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1298,7 +1298,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.33.0', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.34.0', FOOTER = `Code Painter by Jas Black`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -5956,12 +5956,12 @@ function scorePost(b, now, draw) {
 //  the big ones. On the beats the shapes pop in (overshooting and settling), and the hits make shapes jump; a video
 //  is traced again a couple of times a second. "save svg" (in shape) saves the shapes as an SVG file.
 // ═════════════════════════════════════════════════════════════
-const VEC = { key: '', shapes: [], at: -1e9, shown: 0, fired: new Set(), lastT: null, born: [], bw: 0, bh: 0 };
-function vecTrace(src, bw, bh, K) {
-  // the frame, small (about 200 px on its long side) and softened
+const VEC = { key: '', base: '', shapes: [], at: -1e9, shown: 0, fired: new Set(), lastT: null, born: [], hits: [], bw: 0, bh: 0, t0: 0, song: null, lay: null, layKey: '', painted: 0, lk: 1 };
+function vecTrace(src, bw, bh, K, det = 0.5) {
+  // the frame, small (120..480 px on its long side, with the detail) and softened
   const s0 = document.createElement('canvas'); s0.width = src.w; s0.height = src.h; s0.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(src.d.buffer ? src.d : src.d), src.w, src.h), 0, 0);
-  const k0 = Math.min(1, 200 / Math.max(src.w, src.h)), w = Math.max(8, Math.round(src.w * k0)), h = Math.max(8, Math.round(src.h * k0));
-  const c = vzCanvas(null, w, h), x = c.getContext('2d', { willReadFrequently: true }); x.filter = CAN_BLUR ? 'blur(0.7px)' : 'none'; x.drawImage(s0, 0, 0, w, h); x.filter = 'none';
+  const side = Math.round(120 + det * 360), k0 = Math.min(side / Math.max(src.w, src.h), 4), w = Math.max(8, Math.round(src.w * k0)), h = Math.max(8, Math.round(src.h * k0));
+  const c = vzCanvas(null, w, h), x = c.getContext('2d', { willReadFrequently: true }); x.filter = CAN_BLUR ? `blur(${(0.7 * side / 200).toFixed(2)}px)` : 'none'; x.drawImage(s0, 0, 0, w, h); x.filter = 'none';
   const d = x.getImageData(0, 0, w, h).data, n = w * h;
   // k colours: k-means on a sample, started from far-apart picks
   const R = scRng(K * 13 + n), smp = []; for (let i = 0; i < 2600; i++) { const o = Math.floor(R() * n) * 4; smp.push([d[o], d[o + 1], d[o + 2]]); }
@@ -5971,61 +5971,127 @@ function vecTrace(src, bw, bh, K) {
   for (let i = 0; i < n; i++) { const o = i * 4; let bi = 0, bd = 1e9; for (let j = 0; j < K; j++) { const q = C[j], dd = (d[o] - q[0]) ** 2 + (d[o + 1] - q[1]) ** 2 + (d[o + 2] - q[2]) ** 2; if (dd < bd) { bd = dd; bi = j; } } L[i] = bi; }
   // specks out: each pixel takes the label most of its neighbours have (twice)
   for (let pass = 0; pass < 2; pass++) { const L2 = L.slice(), cnt = new Uint8Array(K); for (let y = 1; y < h - 1; y++) for (let xx = 1; xx < w - 1; xx++) { cnt.fill(0); let bi = L[y * w + xx], bc = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const l = L[(y + dy) * w + xx + dx]; if (++cnt[l] > bc) { bc = cnt[l]; bi = l; } } if (bc >= 5) L2[y * w + xx] = bi; } L = L2; }
-  // regions, and each one's outline (Moore neighbour tracing round its first pixel)
-  const reg = new Int32Array(n).fill(-1), out = [], stack = [], minA = Math.max(4, n * 0.00025);
-  const DX = [1, 1, 0, -1, -1, -1, 0, 1], DY = [0, 1, 1, 1, 0, -1, -1, -1];
-  const sk = Math.max(bw / w, bh / h), ox = (bw - w * sk) / 2, oy = (bh - h * sk) / 2;
-  for (let i0 = 0; i0 < n; i0++) {
-    if (reg[i0] >= 0) continue; const lab = L[i0], id = out.length + 1; let area = 0, sx = 0, sy = 0; stack.push(i0); reg[i0] = id;
-    while (stack.length) { const i = stack.pop(), px = i % w, py = (i / w) | 0; area++; sx += px; sy += py; for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const qx = px + ax, qy = py + ay; if (qx < 0 || qy < 0 || qx >= w || qy >= h) continue; const q = qy * w + qx; if (reg[q] < 0 && L[q] === lab) { reg[q] = id; stack.push(q); } } }
-    if (area < minA) { out.push(null); continue; }
-    // trace: start at i0 (the region's top-left pixel), walk its border clockwise
-    const inR = (px, py) => px >= 0 && py >= 0 && px < w && py < h && reg[py * w + px] === id, pts = [];
-    let cx = i0 % w, cy = (i0 / w) | 0, dir = 7, guard = 0; const sx0 = cx, sy0 = cy;
-    do { pts.push([cx, cy]); let found = false; for (let k = 0; k < 8; k++) { const dd = (dir + 6 + k) % 8, nx = cx + DX[dd], ny = cy + DY[dd]; if (inR(nx, ny)) { cx = nx; cy = ny; dir = dd; found = true; break; } } if (!found) break; } while ((cx !== sx0 || cy !== sy0) && ++guard < 20000);
-    if (pts.length < 3) { out.push(null); continue; }
-    // simplify (Ramer–Douglas–Peucker), then round the corners (Chaikin), into stage coordinates
-    const rdp = (P, e) => { if (P.length < 3) return P; let mi = 0, md = 0; const [ax, ay] = P[0], [bx, by] = P[P.length - 1], ll = Math.hypot(bx - ax, by - ay) || 1; for (let i = 1; i < P.length - 1; i++) { const dd = Math.abs((by - ay) * P[i][0] - (bx - ax) * P[i][1] + bx * ay - by * ax) / ll; if (dd > md) { md = dd; mi = i; } } return md > e ? rdp(P.slice(0, mi + 1), e).slice(0, -1).concat(rdp(P.slice(mi), e)) : [P[0], P[P.length - 1]]; };
-    let P = rdp(pts, 0.75); if (P.length < 3) P = pts;
-    for (let it = 0; it < 2; it++) { const Q = []; for (let i = 0; i < P.length; i++) { const a = P[i], b2 = P[(i + 1) % P.length]; Q.push([a[0] * 0.75 + b2[0] * 0.25, a[1] * 0.75 + b2[1] * 0.25], [a[0] * 0.25 + b2[0] * 0.75, a[1] * 0.25 + b2[1] * 0.75]); } P = Q; }
-    const S = P.map(([px, py]) => [ox + (px + 0.5) * sk, oy + (py + 0.5) * sk]), path = new Path2D(); let dstr = '';
-    S.forEach(([px, py], i) => { path[i ? 'lineTo' : 'moveTo'](px, py); dstr += (i ? 'L' : 'M') + px.toFixed(1) + ' ' + py.toFixed(1); }); path.closePath(); dstr += 'Z';
-    const col = C[lab].map(v => Math.round(v)), hex = '#' + col.map(v => v.toString(16).padStart(2, '0')).join('');
-    out.push({ path, d: dstr, col: hex, area: area * sk * sk, cx: ox + (sx / area + 0.5) * sk, cy: oy + (sy / area + 0.5) * sk, seed: id });
+  // regions (4-connected runs of one colour)
+  const reg = new Int32Array(n), stack = [], N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  const flood = () => {
+    reg.fill(-1); const A = [];
+    for (let i0 = 0; i0 < n; i0++) {
+      if (reg[i0] >= 0) continue; const lab = L[i0], id = A.length; let area = 0; stack.push(i0); reg[i0] = id;
+      while (stack.length) { const i = stack.pop(), px = i % w, py = (i / w) | 0; area++; for (const [ax, ay] of N4) { const qx = px + ax, qy = py + ay; if (qx < 0 || qy < 0 || qx >= w || qy >= h) continue; const q = qy * w + qx; if (reg[q] < 0 && L[q] === lab) { reg[q] = id; stack.push(q); } } }
+      A.push(area);
+    }
+    return A;
+  };
+  // the small ones join the neighbour they touch most (so nothing is left empty); fewer, bigger shapes at low detail
+  const minA = Math.max(3, n * (0.004 * Math.pow(1 - det, 2.2) + 0.00004));
+  let A = flood();
+  for (let round = 0; round < 4; round++) {
+    const nb = new Map();
+    for (let i = 0; i < n; i++) { const id = reg[i]; if (A[id] >= minA) continue; const px = i % w, py = (i / w) | 0; for (const [ax, ay] of N4) { const qx = px + ax, qy = py + ay; if (qx < 0 || qy < 0 || qx >= w || qy >= h) continue; const q = qy * w + qx; if (reg[q] !== id) { let cn = nb.get(id); if (!cn) nb.set(id, cn = new Float32Array(K)); cn[L[q]] += A[reg[q]] >= minA ? 2 : 1; } } }
+    if (!nb.size) break;
+    const to = new Map(); for (const [id, cn] of nb) { let bl = 0, bc = -1; for (let j = 0; j < K; j++) if (cn[j] > bc) { bc = cn[j]; bl = j; } to.set(id, bl); }
+    for (let i = 0; i < n; i++) { const t = to.get(reg[i]); if (t != null) L[i] = t; }
+    A = flood();
   }
-  return out.filter(Boolean).sort((a, b) => b.area - a.area);
+  // each region's outline (Moore neighbour tracing round its first pixel, stopping when it comes back the way it left)
+  const out = [], DX = [1, 1, 0, -1, -1, -1, 0, 1], DY = [0, 1, 1, 1, 0, -1, -1, -1], seen = new Uint8Array(A.length);
+  const sk = Math.max(bw / w, bh / h), ox = (bw - w * sk) / 2, oy = (bh - h * sk) / 2, eps = 1.15 - 0.6 * det;
+  const rdp = (P, e) => { if (P.length < 3) return P; let mi = 0, md = 0; const [ax, ay] = P[0], [bx, by] = P[P.length - 1], ll = Math.hypot(bx - ax, by - ay) || 1; for (let i = 1; i < P.length - 1; i++) { const dd = Math.abs((by - ay) * P[i][0] - (bx - ax) * P[i][1] + bx * ay - by * ax) / ll; if (dd > md) { md = dd; mi = i; } } return md > e ? rdp(P.slice(0, mi + 1), e).slice(0, -1).concat(rdp(P.slice(mi), e)) : [P[0], P[P.length - 1]]; };
+  for (let i0 = 0; i0 < n; i0++) {
+    const id = reg[i0]; if (seen[id]) continue; seen[id] = 1;
+    const area = A[id], lab = L[i0]; let sx = 0, sy = 0;
+    const inR = (px, py) => px >= 0 && py >= 0 && px < w && py < h && reg[py * w + px] === id, pts = [];
+    let cx = i0 % w, cy = (i0 / w) | 0, dir = 7, first = -1, guard = 0; const sx0 = cx, sy0 = cy;
+    while (guard++ < 60000) {
+      pts.push([cx, cy]); sx += cx; sy += cy; let dd = -1;
+      for (let k = 0; k < 8; k++) { const e = (dir + 6 + k) % 8; if (inR(cx + DX[e], cy + DY[e])) { dd = e; break; } }
+      if (dd < 0 || (cx === sx0 && cy === sy0 && dd === first)) break;
+      if (first < 0) first = dd;
+      cx += DX[dd]; cy += DY[dd]; dir = dd;
+    }
+    if (pts.length > 1 && pts[pts.length - 1][0] === sx0 && pts[pts.length - 1][1] === sy0) pts.pop();
+    let P = pts.length < 3 ? [[sx0 - 0.5, sy0 - 0.5], [sx0 + 0.5, sy0 - 0.5], [sx0 + 0.5, sy0 + 0.5], [sx0 - 0.5, sy0 + 0.5]] : rdp(pts, eps);
+    if (P.length < 3) P = pts.length >= 3 ? pts : P;
+    // round the corners (Chaikin), a little outwards from the centre so neighbours overlap (no hairline gaps), into stage coordinates
+    for (let it = 0; it < 2; it++) { const Q = []; for (let i = 0; i < P.length; i++) { const a = P[i], b2 = P[(i + 1) % P.length]; Q.push([a[0] * 0.75 + b2[0] * 0.25, a[1] * 0.75 + b2[1] * 0.25], [a[0] * 0.25 + b2[0] * 0.75, a[1] * 0.25 + b2[1] * 0.75]); } P = Q; }
+    const mx = sx / pts.length, my = sy / pts.length;
+    const S = P.map(([px, py]) => { const dx = px - mx, dy = py - my, l = Math.hypot(dx, dy) || 1; return [ox + (px + 0.5 + dx / l * 0.45) * sk, oy + (py + 0.5 + dy / l * 0.45) * sk]; }), path = new Path2D(); let dstr = '', x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    S.forEach(([px, py], i) => { path[i ? 'lineTo' : 'moveTo'](px, py); dstr += (i ? 'L' : 'M') + px.toFixed(1) + ' ' + py.toFixed(1); x0 = Math.min(x0, px); y0 = Math.min(y0, py); x1 = Math.max(x1, px); y1 = Math.max(y1, py); }); path.closePath(); dstr += 'Z';
+    const col = C[lab].map(v => Math.round(v)), hex = '#' + col.map(v => v.toString(16).padStart(2, '0')).join('');
+    out.push({ path, d: dstr, col: hex, rgb: col, area: area * sk * sk, seam: sk * 1.1, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, bx: x0, by: y0, bw: x1 - x0, bh: y1 - y0, seed: out.length + 1 });
+  }
+  return out.sort((a, b) => b.area - a.area);
+}
+// painted / mixed fill: each shape's own brushwork in the ticked styles, painted once into a layer (a few shapes a frame,
+// in the order they appear), clipped to the shape; a shape whose brushwork isn't ready yet shows flat
+function vecPaint(bw, bh, k, dens) {
+  const W = Math.max(2, Math.round(bw * k)), H = Math.max(2, Math.round(bh * k)), key = VEC.key + '|' + SCP.vfill + '|' + W + 'x' + H + '|' + stylePick.values().join(',');
+  if (!VEC.lay || VEC.layKey !== key) { VEC.lay = vzCanvas(VEC.lay, W, H); VEC.lay.getContext('2d').clearRect(0, 0, W, H); VEC.layKey = key; VEC.painted = 0; VEC.lk = k; }
+  const lx = VEC.lay.getContext('2d'), S = VEC.shapes, t0 = performance.now(), budget = OFF.on ? 60 : 7, upto = Math.min(S.length, VEC.shown + 6), m = Math.min(bw, bh);
+  while (VEC.painted < upto && performance.now() - t0 < budget) {
+    const s = S[VEC.painted++], R = scRng(s.seed * 131 + 7), st = vzStyle(), sz = Math.sqrt(s.area);
+    lx.save(); lx.setTransform(k, 0, 0, k, 0, 0); lx.clip(s.path); lx.clearRect(s.bx - 1, s.by - 1, s.bw + 2, s.bh + 2);
+    const w = Math.max(1.5, Math.min(m * 0.03, sz * 0.09)), Ln = Math.max(5, Math.min(m * 0.12, sz * 0.5)), cnt = Math.min(320, Math.ceil(s.area / (Ln * w) * 2.2 * dens) + 1);
+    const fl = Math.sin(s.cx / m * 5.1) + Math.cos(s.cy / m * 4.3), ang = fl * 1.3 + (R() - 0.5) * 0.6;
+    for (let i = 0; i < cnt; i++) {
+      let x = 0, y = 0, ok = false;
+      for (let tr = 0; tr < 6 && !ok; tr++) { x = s.bx + R() * s.bw; y = s.by + R() * s.bh; ok = lx.isPointInPath(s.path, x * k, y * k); }
+      if (!ok) continue;
+      const a = ang + (R() - 0.5) * 0.5, l = Ln * (0.6 + R() * 0.7), ca = Math.cos(a) * l / 2, sa = Math.sin(a) * l / 2, bend = (R() - 0.5) * l * 0.25, f = 0.72 + R() * 0.5;
+      const c = '#' + s.rgb.map(v => Math.max(0, Math.min(255, Math.round(v * f + (R() - 0.5) * 34))).toString(16).padStart(2, '0')).join('');
+      drawQ(lx, vzS(st, x - ca, y - sa, x - sa / l * 2 * bend, y + ca / l * 2 * bend, x + ca, y + sa, w * (0.6 + R() * 1.0), c, 0.95));
+    }
+    lx.restore();
+  }
 }
 function vectorDraw(b, now) {
-  const P = scPal(), bw = b.w, bh = b.h, X0 = b.x, Y0 = b.y, songT = AU.el && !AU.live && AU.rms, T = songT ? aTime() : now / 1000;
-  const src = dfSource(), K = Math.round(SCP.vcol || 12);
+  const P = scPal(), bw = b.w, bh = b.h, X0 = b.x, Y0 = b.y, songT = !!(AU.el && !AU.live && AU.rms), T = songT ? aTime() : now / 1000;
+  const src = dfSource(), K = Math.round(SCP.vcol || 12), det = SCP.vdet ?? 0.5, D = Math.round(det * 100), fill = SCP.vfill || 'flat';
   X.save(); X.beginPath(); X.rect(X0, Y0, bw, bh); X.clip(); X.fillStyle = P.bg; X.fillRect(X0, Y0, bw, bh);
   if (!src) { X.restore(); return; }
-  const key = src.id + ':' + Math.round(bw) + 'x' + Math.round(bh) + ':' + K, base = key.split('.')[0] + ':' + K + Math.round(bw);
+  const dims = Math.round(bw) + 'x' + Math.round(bh) + ':' + K + ':' + D, key = src.id + ':' + dims, base = String(src.id).split('.')[0] + ':' + dims;
+  let fresh = false;
   if (key !== VEC.key && (!src.video || Math.abs(clock() - VEC.at) > 450 || !VEC.shapes.length)) {
-    const fresh = !VEC.key || VEC.key.split('.')[0] + ':' + K + Math.round(VEC.bw) !== base;
-    VEC.key = key; VEC.at = clock(); VEC.shapes = vecTrace(src, bw, bh, K); VEC.bw = bw; VEC.bh = bh;
-    if (fresh && !src.video) { VEC.shown = 0; VEC.fired = new Set(); VEC.born = []; }
+    fresh = VEC.base !== base; VEC.base = base;
+    VEC.key = key; VEC.at = clock(); VEC.shapes = vecTrace(src, bw, bh, K, det); VEC.bw = bw; VEC.bh = bh;
   }
-  if (VEC.lastT != null && T < VEC.lastT - 0.5) { VEC.shown = 0; VEC.fired = new Set(); VEC.born = []; }
   const S = VEC.shapes, N = S.length;
-  // the shapes come in on the notes: a share of them for each note (more on the strong ones), biggest first
+  // the build: the shapes come in on the notes, biggest first, all of them in by a third of the song (6..30 s);
+  // between notes nothing new comes unless it has fallen behind
+  if ((fresh && !src.video) || VEC.lastT == null || T < VEC.lastT - 0.5 || VEC.song !== songT) { VEC.shown = 0; VEC.fired = new Set(); VEC.born = []; VEC.hits = []; VEC.t0 = T; VEC.song = songT; }
+  const BD = (songT ? Math.min(30, Math.max(6, ((AU.out || AU.dur || 30) - (AU.in || 0)) * 0.33)) : 6) / Math.max(0.3, SCP.speed || 1), due = t => N * Math.min(1, Math.max(0, (t - VEC.t0) / BD));
+  const reveal = to => { while (VEC.shown < Math.min(N, to)) VEC.born[VEC.shown++] = T; };
+  const notes = songT || AU.live ? scVisible(T) : null;
+  if (notes) for (const q of notes) { if (q.t > T || VEC.fired.has(q.id)) continue; VEC.fired.add(q.id); if (T - q.t < 0.5) VEC.hits.push({ t: q.t, id: q.id, s: q.s }); reveal(Math.max(due(T + 0.6), VEC.shown + (q.s > 0.55 ? 2 : 1))); }
   if (src.video) VEC.shown = N;
-  else {
-    const notes = songT ? scVisible(T) : null, all = songT && SC.notes ? SC.notes.filter(q => q.t >= AU.in && q.t <= AU.out).length : 0;
-    if (notes && all) { for (const n of notes) { if (n.t > T || VEC.fired.has(n.id)) continue; VEC.fired.add(n.id); const add = Math.max(1, Math.round(N * 1.25 / all * (0.5 + n.s))); for (let i = 0; i < add && VEC.shown < N; i++) VEC.born[VEC.shown++] = T; } }
-    else while (VEC.shown < N && VEC.shown < N * Math.min(1, (T - (VEC.t0 || (VEC.t0 = T))) / 6)) VEC.born[VEC.shown++] = T;
-  }
-  VEC.lastT = T;
-  const BB = scBeat(T), jump = VEC.lastJump && T - VEC.lastJump.t < 0.6 ? VEC.lastJump : null;
-  if (BB.since < 0.03 && (!VEC.lastJump || T - VEC.lastJump.t > 0.1)) VEC.lastJump = { t: T, seed: Math.floor(T * 1000) };
+  else if (VEC.shown < due(T) - Math.max(2, N * 0.06) || !notes) reveal(due(T));
+  VEC.lastT = T; VEC.hits = VEC.hits.filter(h => T - h.t < 1);
+  if (fill !== 'flat') vecPaint(bw, bh, Math.abs(X.getTransform().a) || 1, fill === 'painted' ? 1 : 0.35);
+  // the whole picture breathes with the beat: draws in before a strong note, punches out on it
+  const BB = scBeat(T), g = 1 - 0.012 * BB.pre + 0.03 * BB.post + 0.008 * BB.wob, box = bw * bh, cxB = bw / 2, cyB = bh / 2;
+  X.translate(X0 + cxB * (1 - g), Y0 + cyB * (1 - g)); X.scale(g, g);
   for (let i = 0; i < Math.min(VEC.shown, N); i++) {
-    const s = S[i], age = T - (VEC.born[i] ?? -9);
-    // the pop: from nothing past its size and back (back.out), a squash that wobbles out; then the hits make some jump
-    let k = 1, sq = 0;
+    const s = S[i], age = T - (VEC.born[i] ?? -9), small = s.area < box * 0.12;
+    // the pop: from nothing past its size and back (back.out), a squash that wobbles out
+    let k = 1, sq = 0, ox = 0, oy = 0, fl = 0;
     if (age < 0.55) { const u = Math.max(0, age) / 0.35; k = u >= 1 ? 1 + 0.06 * Math.exp(-(age - 0.35) * 18) : (() => { const c1 = 2.2, c3 = c1 + 1, v = u - 1; return 1 + c3 * v * v * v + c1 * v * v; })(); sq = 0.25 * Math.exp(-age * 7) * Math.cos(age * 26); }
-    if (jump && (s.seed * 7 + jump.seed) % 5 === 0 && s.area < bw * bh * 0.08) { const a2 = T - jump.t; k *= 1 + 0.12 * Math.exp(-a2 * 7) * Math.cos(a2 * 20) * (0.5 + BB.s); }
+    // every note kicks a group of the shapes (a third of them on the strong ones): they swell, flash and, the small ones, jump outwards
+    for (const h of VEC.hits) {
+      if ((s.seed * 31 + h.id * 17) % (h.s > 0.55 ? 3 : 6)) continue;
+      const a = Math.max(0, T - h.t), e = Math.exp(-a * 6), kick = (0.06 + 0.16 * h.s) * e * Math.cos(a * 17) * (small ? 1 : 0.2);
+      k *= 1 + kick; sq += 0.12 * h.s * e * Math.sin(a * 21) * (small ? 1 : 0.2); fl = Math.max(fl, Math.exp(-a * 9) * (0.3 + 0.7 * h.s));
+      if (small && h.s > 0.55) { const dx = s.cx - cxB, dy = s.cy - cyB, l = Math.hypot(dx, dy) || 1, j = Math.min(bw, bh) * 0.035 * e * Math.cos(a * 12); ox += dx / l * j; oy += dy / l * j; }
+    }
     if (k <= 0.001) continue;
-    X.save(); X.translate(X0 + s.cx, Y0 + s.cy); X.scale(k * (1 + sq), k * (1 - sq)); X.translate(-s.cx, -s.cy); X.fillStyle = s.col; X.fill(s.path); if (SCP.vline) { X.lineWidth = Math.max(0.6, Math.min(bw, bh) * 0.0015); X.strokeStyle = P.ink; X.globalAlpha = 0.6; X.stroke(s.path); } X.restore();
+    X.save(); X.translate(s.cx + ox, s.cy + oy); X.scale(k * (1 + sq), k * (1 - sq)); X.translate(-s.cx, -s.cy);
+    X.fillStyle = X.strokeStyle = s.col; X.lineWidth = s.seam; X.lineJoin = 'round'; X.stroke(s.path); X.fill(s.path);          // (its own colour round the edge: no seams between neighbours)
+    if (fill !== 'flat' && i < VEC.painted && VEC.lay) {
+      X.save(); X.clip(s.path); const q = VEC.lk, sx = Math.max(0, (s.bx - 1) * q), sy = Math.max(0, (s.by - 1) * q), sw = Math.min(VEC.lay.width - sx, (s.bw + 2) * q), sh = Math.min(VEC.lay.height - sy, (s.bh + 2) * q);
+      if (sw > 0 && sh > 0) X.drawImage(VEC.lay, sx, sy, sw, sh, sx / q, sy / q, sw / q, sh / q); X.restore();
+    }
+    if (fl > 0.03) { X.globalAlpha = Math.min(0.55, fl * 0.55); X.fillStyle = '#ffffff'; X.globalCompositeOperation = 'soft-light'; X.fill(s.path); X.globalCompositeOperation = 'source-over'; X.globalAlpha = 1; }
+    if (SCP.vline) { X.lineWidth = Math.max(0.6, Math.min(bw, bh) * 0.0015); X.strokeStyle = P.ink; X.globalAlpha = 0.6; X.stroke(s.path); }
+    X.restore();
   }
   X.restore();
 }
@@ -6653,7 +6719,7 @@ const SG_LOOKS = {
   celtv: { cel: 60, ink: 50, ble: 45, scan: 40, mask: 35, glow: 25, curve: 25, snow: 6, size: 20 },
   thermal: { syn: 0, tint: 'thermal', ble: 40, scan: 40, mask: 40, glow: 45, warp: 15 }
 };
-const SIGNAL = { v: {}, on: false, tint: 'none', mask: 'grille', react: true, gl: null, cv: null, tmp: null, fail: false };
+const SIGNAL = { v: {}, on: false, enabled: true, tint: 'none', mask: 'grille', react: true, gl: null, cv: null, tmp: null, fail: false };
 const SG_FS = `precision highp float;
 uniform sampler2D u; uniform vec2 R; uniform float T, B, U, sz, rip, pix, dit, cel, ink, ble, fm, syn, warp, scan, mask, glow, snow, curv, tint, mt; varying vec2 v;
 float h1(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -6767,7 +6833,7 @@ function signalApply(x, dx, dy, dw, dh) {
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.filter = 'none'; x.drawImage(cv, dx, dy); x.restore();
 }
-const signalBuild = () => { SIGNAL.on = SG_DEF.some(([k]) => SIGNAL.v[k]) || SIGNAL.tint !== 'none'; };
+const signalBuild = () => { SIGNAL.on = SIGNAL.enabled && (SIGNAL.tint !== 'none' || SG_DEF.some(([k]) => SIGNAL.v[k])); };
 // ═════════════════════════════════════════════════════════════
 //  Face detail: MediaPipe's face detector (vendor/mediapipe, runs on this computer, loaded the first time it's
 //  switched on) finds the faces in the picture the painter works from — in a video, in its frames — and the painter
@@ -8434,6 +8500,8 @@ async function renderOffline() {
 const PRESET_SKIP = new Set(['example', 'livein', 'replay', 'igguides', 'sendon']);
 const presetEls = () => [...document.querySelectorAll('#app input[id], #app select[id]')].filter(el => !PRESET_SKIP.has(el.id) && el.type !== 'file' && el.type !== 'text');
 const fire = (el, type) => el.dispatchEvent(new Event(type, { bubbles: true }));
+// right-click any slider: back to its default (a slider with a right-click of its own keeps that)
+document.addEventListener('contextmenu', e => { const el = e.target; if (e.defaultPrevented || !el || el.tagName !== 'INPUT' || el.type !== 'range' || el.disabled) return; e.preventDefault(); if (el.value === el.defaultValue) return; el.value = el.defaultValue; fire(el, 'input'); fire(el, 'change'); });
 function presetGet() {
   const v = {}; for (const el of presetEls()) v[el.id] = el.type === 'checkbox' ? el.checked : el.value;
   return { v, styles: stylePick.values(), bgStyles: stylePick.bg(), motions: motionPick.values(), display: DISPLAY, words: WORDS.text };
@@ -8892,17 +8960,17 @@ const stylePick = stylePicker();
 { const pw = $('perfwin'), panel = pw.closest('.panel');
   pw.insertAdjacentHTML('beforebegin', `<button type="button" class="mini" id="signalbtn" title="Signal: analogue TV, VHS, composite colour bleed, video synth colour, fm lines, cel bands and ink, dither and big pixels, scanlines and the phosphor mask. On the painting as it shows, in recordings and in the saved PNGs and stills">signal</button>`);
   const opt = (a, sel) => a.map(([v, t]) => `<option value="${v}"${v === sel ? ' selected' : ''}>${t}</option>`).join('');
-  panel.querySelector('.ttl').insertAdjacentHTML('afterend', `<div id="signalpop" class="gradepop" style="max-height:72vh;overflow:auto" hidden><div class="gp-h"><b>signal</b><button type="button" class="mini" id="signalreset" title="Every slider back to 0, no tint">reset</button><button type="button" class="mini" id="signalx" title="Close">✕</button></div>` +
+  panel.querySelector('.ttl').insertAdjacentHTML('afterend', `<div id="signalpop" class="gradepop" style="max-height:72vh;overflow:auto" hidden><div class="gp-h"><b>signal</b><label class="key" title="Signal on or off: off keeps every setting for later"><input id="sgon" type="checkbox" checked><span class="led"></span>on</label><button type="button" class="mini" id="signalreset" title="Every slider back to 0, no tint">reset</button><button type="button" class="mini" id="signalx" title="Close">✕</button></div>` +
     `<div class="gp-row"><select id="sglook" class="sel" aria-label="Look" title="A look sets the sliders together; move any slider after to make it your own">${opt([['custom', 'look: your own'], ['crt', 'crt tv'], ['composite', 'composite'], ['vhs', 'vhs'], ['synth', 'video synth'], ['fm', 'fm lines'], ['phosphor', 'phosphor'], ['dither', 'dither'], ['cel', '90s cel'], ['celtv', 'cel on tv'], ['thermal', 'thermal']], 'custom')}</select><select id="sgtint" class="sel" aria-label="Tint" title="The colours: the picture's own, or one screen's few: green or amber phosphor, blue, the handheld's four greens, cga's cyan / magenta / white, thermal, mono">${opt(SG_TINTS.map(t => [t, t === 'none' ? 'tint: none' : t]), 'none')}</select></div>` +
     `<div class="gp-row"><select id="sgmask" class="sel" aria-label="Phosphor mask" title="The phosphor pattern: stripes (an aperture grille) or staggered dots (a shadow mask)">${opt([['grille', 'mask: stripes'], ['dots', 'mask: dots']], 'grille')}</select><label style="display:flex;grid-template-columns:none;gap:4px;margin:0;align-items:center" title="The warp, the fm lines and the synth colour kick with the bass"><input type="checkbox" id="sgreact" style="width:auto" checked>on the beat</label></div>` +
     SG_DEF.map(([k, t]) => `<label title="Double-click to reset"><span>${t}</span><input id="sg_${k}" type="range" min="0" max="100" value="0" aria-label="${t}"><output>0</output></label>`).join('') + `</div>`);
   let saved = {}; try { saved = JSON.parse(store('cp-signal') || '{}') || {}; } catch (e) { /* none */ }
-  const sync = keep => { for (const [k] of SG_DEF) { const el = $('sg_' + k); SIGNAL.v[k] = +el.value; el.nextElementSibling.textContent = el.value; } SIGNAL.tint = $('sgtint').value; SIGNAL.mask = $('sgmask').value; SIGNAL.react = $('sgreact').checked; signalBuild(); $('signalbtn').classList.toggle('on', SIGNAL.on);
-    if (keep) store('cp-signal', JSON.stringify(Object.assign({ tint: SIGNAL.tint, mtype: SIGNAL.mask, react: SIGNAL.react, look: $('sglook').value }, SIGNAL.v))); };
-  for (const [k] of SG_DEF) { const el = $('sg_' + k); if (saved[k] != null) el.value = saved[k]; el.addEventListener('input', () => { $('sglook').value = 'custom'; sync(true); }); el.addEventListener('dblclick', () => { el.value = 0; $('sglook').value = 'custom'; sync(true); }); }
-  if (SG_TINTS.includes(saved.tint)) $('sgtint').value = saved.tint; if (saved.mtype) $('sgmask').value = saved.mtype; if (saved.react === false) $('sgreact').checked = false; if (saved.look && SG_LOOKS[saved.look]) $('sglook').value = saved.look;
-  $('sglook').onchange = () => { const L = SG_LOOKS[$('sglook').value]; if (L) { for (const [k] of SG_DEF) $('sg_' + k).value = L[k] || 0; $('sgtint').value = L.tint || 'none'; } sync(true); };
-  $('sgtint').onchange = $('sgmask').onchange = $('sgreact').onchange = () => sync(true);
+  const sync = keep => { for (const [k] of SG_DEF) { const el = $('sg_' + k); SIGNAL.v[k] = +el.value; el.nextElementSibling.textContent = el.value; } SIGNAL.tint = $('sgtint').value; SIGNAL.mask = $('sgmask').value; SIGNAL.react = $('sgreact').checked; SIGNAL.enabled = $('sgon').checked; signalBuild(); $('signalbtn').classList.toggle('on', SIGNAL.on);
+    if (keep) store('cp-signal', JSON.stringify(Object.assign({ off: !SIGNAL.enabled, tint: SIGNAL.tint, mtype: SIGNAL.mask, react: SIGNAL.react, look: $('sglook').value }, SIGNAL.v))); };
+  for (const [k] of SG_DEF) { const el = $('sg_' + k); if (saved[k] != null) el.value = saved[k]; el.addEventListener('input', () => { $('sglook').value = 'custom'; $('sgon').checked = true; sync(true); }); el.addEventListener('dblclick', () => { el.value = 0; $('sglook').value = 'custom'; sync(true); }); }
+  if (SG_TINTS.includes(saved.tint)) $('sgtint').value = saved.tint; if (saved.mtype) $('sgmask').value = saved.mtype; if (saved.react === false) $('sgreact').checked = false; if (saved.off) $('sgon').checked = false; if (saved.look && SG_LOOKS[saved.look]) $('sglook').value = saved.look;
+  $('sglook').onchange = () => { const L = SG_LOOKS[$('sglook').value]; $('sgon').checked = true; if (L) { for (const [k] of SG_DEF) $('sg_' + k).value = L[k] || 0; $('sgtint').value = L.tint || 'none'; } sync(true); };
+  $('sgtint').onchange = $('sgmask').onchange = $('sgreact').onchange = $('sgon').onchange = () => sync(true);
   $('signalreset').onclick = () => { for (const [k] of SG_DEF) $('sg_' + k).value = 0; $('sgtint').value = 'none'; $('sglook').value = 'custom'; sync(true); };
   $('signalx').onclick = () => { $('signalpop').hidden = true; };
   $('signalbtn').onclick = () => { $('signalpop').hidden = !$('signalpop').hidden; $('gradepop').hidden = $('wordspop').hidden = true; };
@@ -8910,19 +8978,19 @@ const stylePick = stylePicker();
 // score shape: the line's place, width, wave and beads, the spread, size, speed, glow, the path, direction and tilt
 { const sel = $('score'), panel = sel.closest('.panel'); panel.style.position = 'relative';
   sel.insertAdjacentHTML('afterend', '<button type="button" class="mini" id="scorebtn" title="Score shape: where the line sits and its shape, a ring or a loop round the frame instead, how far it spreads, the size, speed, glow, direction and tilt">shape</button>');
-  panel.insertAdjacentHTML('beforeend', `<div id="scorepop" class="gradepop" hidden><div class="gp-h"><b>score shape</b><button type="button" class="mini" id="scorereset" title="Every slider back">reset</button><button type="button" class="mini" id="scorex" title="Close">✕</button></div><div class="gp-row"><select id="scbg" class="sel" aria-label="Background" title="The background: the picture\'s own paper tint · dark · black · white · your own colour (the lines turn light on a dark one)"><option value="picture">bg: picture</option><option value="dark">bg: dark</option><option value="black">bg: black</option><option value="white">bg: white</option><option value="custom">bg: own…</option></select><input id="scbgc" class="swatch" type="color" value="#101014" title="Your own background colour" aria-label="Background colour"></div><div class="gp-row"><select id="scdotc" class="sel" aria-label="Dot colour" title="The dots\' colour: the picture\'s · mono (against the background) · accent (the score\'s colours) · your own (what they paint into keeps the picture\'s colours)"><option value="picture">dots: picture</option><option value="mono">dots: mono</option><option value="accent">dots: accent</option><option value="custom">dots: own…</option></select><input id="scdotcc" class="swatch" type="color" value="#ffffff" title="Your own dot colour" aria-label="Dot colour"><select id="scdot" class="sel" aria-label="Dot style" title="The dots\' shape: dot · ring · cross · dash (along the line) · square · star"><option value="dot">●</option><option value="ring">○</option><option value="cross">×</option><option value="dash">—</option><option value="square">■</option><option value="star">✦</option></select></div><div class="gp-row"><label class="key" title="score · vector: a thin outline round every shape"><input id="scvline" type="checkbox"><span class="led"></span>outlines</label><button type="button" class="mini" id="scsvg" title="Save the vector shapes (score · vector) as an SVG file: sharp at any size, editable">save svg</button></div><div class="gp-row"><select id="scpic" class="sel" aria-label="The picture" title="picture dots: the picture becomes sparse dots (you can still see what it is) — the notes — and the moving shapes wake the dots they pass, every woken dot blooming into a painted mark, so the picture gets painted where they go · score only: no picture"><option value="on">picture dots</option><option value="off">score only</option></select><select id="scform" class="sel" aria-label="Nature form" title="score · nature: what the living movers are — cells (pulse with the bass, split on the hard hits) · plants (growing tips leave stems, branch on the hits, dots become leaves) · spores (pods puff spores, dots become spore heads) · bones (bone chains crawl, dots become bones)"><option value="cells">cells</option><option value="plants">plants</option><option value="spores">spores</option><option value="bones">bones</option></select></div><div class="gp-row"><select id="scpath" class="sel" aria-label="Path" title="What now lies on: a line · a ring in the middle (the past sinks inwards, what's coming arrives from outside) · a loop round the whole frame"><option value="line">path: line</option><option value="ring">path: ring</option><option value="frame">path: frame</option></select><select id="scdir" class="sel" aria-label="Direction" title="Which way a line score flows"><option value="left">flows ←</option><option value="right">flows →</option><option value="up">flows ↑</option><option value="down">flows ↓</option></select></div><label title="Where the line (now) sits, left to right (double-click: back to 50)"><span>line position</span><input id="scx" type="range" min="20" max="80" value="50" aria-label="line position"><output>50</output></label><label title="How thick the line swells (double-click: back to 100)"><span>line width</span><input id="scw" type="range" min="0" max="250" value="100" aria-label="line width"><output>100</output></label><label title="The line snakes from side to side, moving (double-click: back to 0)"><span>line wave</span><input id="scwave" type="range" min="0" max="100" value="0" aria-label="line wave"><output>0</output></label><label title="Smooth or beaded (double-click: back to 50)"><span>line beads</span><input id="scbead" type="range" min="0" max="100" value="50" aria-label="line beads"><output>50</output></label><label title="score · vector: how many colours the picture is traced in (double-click: 12)"><span>vector colours</span><input id="scvcol" type="range" min="3" max="32" value="12" aria-label="vector colours"><output>12</output></label><label title="Echo: the last frames trail behind the shapes, slightly zoomed and turned, more on the hits (double-click: off)"><span>echo</span><input id="scecho" type="range" min="0" max="100" value="0" aria-label="echo"><output>0</output></label><label title="How far apart the picture\'s dots are (double-click: back to 50)"><span>sparsity</span><input id="scsparse" type="range" min="0" max="100" value="50" aria-label="sparsity"><output>50</output></label><label title="The size of the picture\'s dots (double-click: back to 100)"><span>dot size</span><input id="scdsize" type="range" min="40" max="300" value="100" aria-label="dot size"><output>100</output></label><label title="How far the lanes reach from the middle (round it, with ring and frame) (double-click: back to 100)"><span>spread</span><input id="scspread" type="range" min="30" max="160" value="100" aria-label="spread"><output>100</output></label><label title="The size of every figure (double-click: back to 100)"><span>size</span><input id="scsize" type="range" min="40" max="220" value="100" aria-label="size"><output>100</output></label><label title="How fast the score moves (double-click: back to 100)"><span>speed</span><input id="scspeed" type="range" min="30" max="250" value="100" aria-label="speed"><output>100</output></label><label title="How strongly the colours glow (double-click: back to 100)"><span>glow</span><input id="scglow" type="range" min="0" max="250" value="100" aria-label="glow"><output>100</output></label><label title="Turn the whole score (double-click: back to 0)"><span>tilt</span><input id="sctilt" type="range" min="-45" max="45" value="0" aria-label="tilt"><output>0</output></label></div>`);
-  const K = [["scvcol", "vcol", 12], ["scecho", "echo", 0], ["scsparse", "sparse", 50], ["scdsize", "dsize", 100], ["scx", "x", 50], ["scw", "w", 100], ["scwave", "wave", 0], ["scbead", "bead", 50], ["scspread", "spread", 100], ["scsize", "size", 100], ["scspeed", "speed", 100], ["scglow", "glow", 100], ["sctilt", "tilt", 0]];
+  panel.insertAdjacentHTML('beforeend', `<div id="scorepop" class="gradepop" hidden><div class="gp-h"><b>score shape</b><button type="button" class="mini" id="scorereset" title="Every slider back">reset</button><button type="button" class="mini" id="scorex" title="Close">✕</button></div><div class="gp-row"><select id="scbg" class="sel" aria-label="Background" title="The background: the picture\'s own paper tint · dark · black · white · your own colour (the lines turn light on a dark one)"><option value="picture">bg: picture</option><option value="dark">bg: dark</option><option value="black">bg: black</option><option value="white">bg: white</option><option value="custom">bg: own…</option></select><input id="scbgc" class="swatch" type="color" value="#101014" title="Your own background colour" aria-label="Background colour"></div><div class="gp-row"><select id="scdotc" class="sel" aria-label="Dot colour" title="The dots\' colour: the picture\'s · mono (against the background) · accent (the score\'s colours) · your own (what they paint into keeps the picture\'s colours)"><option value="picture">dots: picture</option><option value="mono">dots: mono</option><option value="accent">dots: accent</option><option value="custom">dots: own…</option></select><input id="scdotcc" class="swatch" type="color" value="#ffffff" title="Your own dot colour" aria-label="Dot colour"><select id="scdot" class="sel" aria-label="Dot style" title="The dots\' shape: dot · ring · cross · dash (along the line) · square · star"><option value="dot">●</option><option value="ring">○</option><option value="cross">×</option><option value="dash">—</option><option value="square">■</option><option value="star">✦</option></select></div><div class="gp-row"><select id="scvfill" class="sel" aria-label="Vector fill" title="score · vector: flat colour shapes · painted (each shape filled with brushwork in your ticked styles) · mixed (flat shapes with brush accents)"><option value="flat">fill: flat</option><option value="painted">fill: painted</option><option value="mixed">fill: mixed</option></select><label class="key" title="score · vector: a thin outline round every shape"><input id="scvline" type="checkbox"><span class="led"></span>outlines</label><button type="button" class="mini" id="scsvg" title="Save the vector shapes (score · vector) as an SVG file: sharp at any size, editable">save svg</button></div><div class="gp-row"><select id="scpic" class="sel" aria-label="The picture" title="picture dots: the picture becomes sparse dots (you can still see what it is) — the notes — and the moving shapes wake the dots they pass, every woken dot blooming into a painted mark, so the picture gets painted where they go · score only: no picture"><option value="on">picture dots</option><option value="off">score only</option></select><select id="scform" class="sel" aria-label="Nature form" title="score · nature: what the living movers are — cells (pulse with the bass, split on the hard hits) · plants (growing tips leave stems, branch on the hits, dots become leaves) · spores (pods puff spores, dots become spore heads) · bones (bone chains crawl, dots become bones)"><option value="cells">cells</option><option value="plants">plants</option><option value="spores">spores</option><option value="bones">bones</option></select></div><div class="gp-row"><select id="scpath" class="sel" aria-label="Path" title="What now lies on: a line · a ring in the middle (the past sinks inwards, what's coming arrives from outside) · a loop round the whole frame"><option value="line">path: line</option><option value="ring">path: ring</option><option value="frame">path: frame</option></select><select id="scdir" class="sel" aria-label="Direction" title="Which way a line score flows"><option value="left">flows ←</option><option value="right">flows →</option><option value="up">flows ↑</option><option value="down">flows ↓</option></select></div><label title="Where the line (now) sits, left to right (double-click: back to 50)"><span>line position</span><input id="scx" type="range" min="20" max="80" value="50" aria-label="line position"><output>50</output></label><label title="How thick the line swells (double-click: back to 100)"><span>line width</span><input id="scw" type="range" min="0" max="250" value="100" aria-label="line width"><output>100</output></label><label title="The line snakes from side to side, moving (double-click: back to 0)"><span>line wave</span><input id="scwave" type="range" min="0" max="100" value="0" aria-label="line wave"><output>0</output></label><label title="Smooth or beaded (double-click: back to 50)"><span>line beads</span><input id="scbead" type="range" min="0" max="100" value="50" aria-label="line beads"><output>50</output></label><label title="score · vector: how many colours the picture is traced in (double-click: 12)"><span>vector colours</span><input id="scvcol" type="range" min="3" max="32" value="12" aria-label="vector colours"><output>12</output></label><label title="score · vector: how many shapes make up the picture — low: a few big flat shapes, high: many small ones (double-click: 50)"><span>vector detail</span><input id="scvdet" type="range" min="0" max="100" value="50" aria-label="vector detail"><output>50</output></label><label title="Echo: the last frames trail behind the shapes, slightly zoomed and turned, more on the hits (double-click: off)"><span>echo</span><input id="scecho" type="range" min="0" max="100" value="0" aria-label="echo"><output>0</output></label><label title="How far apart the picture\'s dots are (double-click: back to 50)"><span>sparsity</span><input id="scsparse" type="range" min="0" max="100" value="50" aria-label="sparsity"><output>50</output></label><label title="The size of the picture\'s dots (double-click: back to 100)"><span>dot size</span><input id="scdsize" type="range" min="40" max="300" value="100" aria-label="dot size"><output>100</output></label><label title="How far the lanes reach from the middle (round it, with ring and frame) (double-click: back to 100)"><span>spread</span><input id="scspread" type="range" min="30" max="160" value="100" aria-label="spread"><output>100</output></label><label title="The size of every figure (double-click: back to 100)"><span>size</span><input id="scsize" type="range" min="40" max="220" value="100" aria-label="size"><output>100</output></label><label title="How fast the score moves (double-click: back to 100)"><span>speed</span><input id="scspeed" type="range" min="30" max="250" value="100" aria-label="speed"><output>100</output></label><label title="How strongly the colours glow (double-click: back to 100)"><span>glow</span><input id="scglow" type="range" min="0" max="250" value="100" aria-label="glow"><output>100</output></label><label title="Turn the whole score (double-click: back to 0)"><span>tilt</span><input id="sctilt" type="range" min="-45" max="45" value="0" aria-label="tilt"><output>0</output></label></div>`);
+  const K = [["scvcol", "vcol", 12], ["scvdet", "vdet", 50], ["scecho", "echo", 0], ["scsparse", "sparse", 50], ["scdsize", "dsize", 100], ["scx", "x", 50], ["scw", "w", 100], ["scwave", "wave", 0], ["scbead", "bead", 50], ["scspread", "spread", 100], ["scsize", "size", 100], ["scspeed", "speed", 100], ["scglow", "glow", 100], ["sctilt", "tilt", 0]];
   let saved = {}; try { saved = JSON.parse(store('cp-scoreshape') || '{}') || {}; } catch (e) { /* none */ }
-  const sync = keep => { for (const [id, k] of K) { const el = $(id); SCP[k] = k === 'echo' || k === 'sparse' || k === 'dsize' || k === 'x' || k === 'w' || k === 'wave' || k === 'bead' || k === 'spread' || k === 'size' || k === 'speed' || k === 'glow' ? +el.value / 100 : +el.value; el.nextElementSibling.textContent = el.value; }
-    SCP.path = $('scpath').value; SCP.dir = $('scdir').value; SCP.pic = $('scpic').value === 'on'; SCP.form = $('scform').value; SCP.bg = $('scbg').value; SCP.bgc = $('scbgc').value; SCP.dotc = $('scdotc').value; SCP.dotcc = $('scdotcc').value; SCP.dot = $('scdot').value; SCP.vline = $('scvline').checked; SC.spr.clear(); SC.fog = null;
-    if (keep) { const o = { path: SCP.path, dir: SCP.dir, pic: $('scpic').value, form: $('scform').value, bg: SCP.bg, bgc: SCP.bgc, dotc: SCP.dotc, dotcc: SCP.dotcc, dot: SCP.dot }; for (const [id] of K) o[id] = +$(id).value; store('cp-scoreshape', JSON.stringify(o)); } };
+  const sync = keep => { for (const [id, k] of K) { const el = $(id); SCP[k] = k === 'vdet' || k === 'echo' || k === 'sparse' || k === 'dsize' || k === 'x' || k === 'w' || k === 'wave' || k === 'bead' || k === 'spread' || k === 'size' || k === 'speed' || k === 'glow' ? +el.value / 100 : +el.value; el.nextElementSibling.textContent = el.value; }
+    SCP.path = $('scpath').value; SCP.dir = $('scdir').value; SCP.pic = $('scpic').value === 'on'; SCP.form = $('scform').value; SCP.bg = $('scbg').value; SCP.bgc = $('scbgc').value; SCP.dotc = $('scdotc').value; SCP.dotcc = $('scdotcc').value; SCP.dot = $('scdot').value; SCP.vline = $('scvline').checked; SCP.vfill = $('scvfill').value; SC.spr.clear(); SC.fog = null;
+    if (keep) { const o = { vfill: SCP.vfill, path: SCP.path, dir: SCP.dir, pic: $('scpic').value, form: $('scform').value, bg: SCP.bg, bgc: SCP.bgc, dotc: SCP.dotc, dotcc: SCP.dotcc, dot: SCP.dot }; for (const [id] of K) o[id] = +$(id).value; store('cp-scoreshape', JSON.stringify(o)); } };
   for (const [id, , d] of K) { const el = $(id); if (saved[id] != null) el.value = saved[id]; el.addEventListener('input', () => sync(true)); el.addEventListener('dblclick', () => { el.value = d; sync(true); }); }
   for (const [k, id] of [['bg', 'scbg'], ['bgc', 'scbgc'], ['dotc', 'scdotc'], ['dotcc', 'scdotcc'], ['dot', 'scdot']]) if (saved[k]) $(id).value = saved[k];
-  if (saved.pic) $('scpic').value = saved.pic; if (saved.form) $('scform').value = saved.form; if (saved.path) $('scpath').value = saved.path; if (saved.dir) $('scdir').value = saved.dir;
-  $('scpath').onchange = $('scdir').onchange = $('scpic').onchange = $('scform').onchange = $('scbg').onchange = $('scdotc').onchange = $('scdot').onchange = $('scvline').onchange = () => sync(true);
+  if (saved.vfill) $('scvfill').value = saved.vfill; if (saved.pic) $('scpic').value = saved.pic; if (saved.form) $('scform').value = saved.form; if (saved.path) $('scpath').value = saved.path; if (saved.dir) $('scdir').value = saved.dir;
+  $('scpath').onchange = $('scdir').onchange = $('scpic').onchange = $('scform').onchange = $('scbg').onchange = $('scdotc').onchange = $('scdot').onchange = $('scvline').onchange = $('scvfill').onchange = () => sync(true);
   $('scsvg').onclick = vectorSvg;
   $('scbgc').oninput = () => { $('scbg').value = 'custom'; sync(true); }; $('scdotcc').oninput = () => { $('scdotc').value = 'custom'; sync(true); };
-  $('scorereset').onclick = () => { for (const [id, , d] of K) $(id).value = d; $('scpath').value = 'line'; $('scdir').value = 'left'; $('scpic').value = 'on'; $('scbg').value = 'picture'; $('scdotc').value = 'picture'; $('scdot').value = 'dot'; sync(true); };
+  $('scorereset').onclick = () => { for (const [id, , d] of K) $(id).value = d; $('scvfill').value = 'flat'; $('scpath').value = 'line'; $('scdir').value = 'left'; $('scpic').value = 'on'; $('scbg').value = 'picture'; $('scdotc').value = 'picture'; $('scdot').value = 'dot'; sync(true); };
   $('scorex').onclick = () => { $('scorepop').hidden = true; };
   $('scorebtn').onclick = () => { $('scorepop').hidden = !$('scorepop').hidden; };
   sync(false); }
@@ -9532,7 +9600,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.33.0');
+    const V = await import('./viewer3d.js?v=4.34.0');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
@@ -9667,7 +9735,7 @@ showAutoShapes();
   h.addEventListener('mouseenter', () => { if (h.scrollWidth > h.clientWidth + 1) { f.textContent = h.textContent; f.hidden = false; } });
   h.addEventListener('mouseleave', () => { f.hidden = true; });
   new MutationObserver(() => { h.title = h.textContent; if (!f.hidden) f.textContent = h.textContent; }).observe(h, { childList: true, characterData: true, subtree: true }); }
-window.STUDIO = { S, AU, OFF, LDANCE, tagFile, readMeta, presetGet, TIPG, startAuto, startReplay, loadAudio, setLiveAudio, startLive, autoProgram, codeSize, renderBig, RLF, LAG, _relief: { makeRelief, reliefAdd, reliefRender }, _draw: { drawQ, strokeAt, fillParts }, relief: () => ({ on: RLF.on, gl: !!reliefGL() }), relight, LIGHT, SHP_svg: () => SHP.svg(S.drawn, S.out.width, S.out.height, S.bgHex) };
+window.STUDIO = { S, AU, OFF, VEC, LDANCE, tagFile, readMeta, presetGet, TIPG, startAuto, startReplay, loadAudio, setLiveAudio, startLive, autoProgram, codeSize, renderBig, RLF, LAG, _relief: { makeRelief, reliefAdd, reliefRender }, _draw: { drawQ, strokeAt, fillParts }, relief: () => ({ on: RLF.on, gl: !!reliefGL() }), relight, LIGHT, SHP_svg: () => SHP.svg(S.drawn, S.out.width, S.out.height, S.bgHex) };
 })();
 
 </script>
