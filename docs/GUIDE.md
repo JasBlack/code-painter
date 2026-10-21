@@ -122,6 +122,7 @@ swells with the sound, and the colours change with the song's sections.
 - **score · brush**: the same score drawn loose in your ticked styles and brush: gestures that swell and taper, loose loops, dabs. No clean circles or bars.
 - **score · organic**: the same score as liquid. Blobs run together, the lanes are wobbling chains of drops, stems are drips, sprigs are splats and the spine is a column of molten drops, with a grain over it.
 - **score · nature**: the same dynamics, but the movers are living things wandering over the picture: *cells* (pulse with the bass, split on the hard hits), *plants* (growing tips leave stems in the paint and branch on the hits), *spores* (pods that puff spores on the hits) or *bones* (bone chains that crawl). Pick the form in *shape*. They crawl along the picture's dotted lines, heading for the nearest sleeping dot each time, so they trace the drawing. Each wakes the picture's dots it passes, and a hit wakes a whole patch round it; woken dots become leaves, cells, spore heads or bones in the dot's colour and your styles. Over the song the canvas gets painted where they've been.
+- **score · vector**: the picture traced into flat colour shapes, like a vector drawing. The shapes pop in on the notes, biggest first, with a little overshoot and wobble, and the small ones jump on the hits. With a video the shapes are traced again from the frame a couple of times a second. *shape → save svg* saves the shapes as an SVG, sharp at any size.
 - **score · motion only**: none of the score drawn. The painting's strokes swell out on the hits, and the painting smears and glows with the bass.
 
 **shape** (the button beside the score menu) reshapes it:
@@ -134,6 +135,10 @@ swells with the sound, and the colours change with the song's sections.
 - **flows**: which way a line score runs (←, →, ↑, ↓).
 - **line position**, **line width**, **line wave** (the line snakes, moving) and **line beads** (smooth or beaded).
 - **spread** (how far the lanes reach), **size** (every figure), **speed**, **glow** and **tilt** (turns the whole score).
+- **vector colours** (how many flat colours score · vector uses), **outlines** (an ink line round each shape) and **save svg**.
+- **echo**: the frames before trail behind, zooming and turning a little more on each hit. 0 is off.
+
+The movers squash and stretch: they gather in just before a strong note, stretch out on it and settle back with a wobble.
 
 Double-click a slider to put it back; *reset* puts them all back.
 
@@ -166,6 +171,20 @@ It works in the studio, simple, +code and editor displays, shows in recordings, 
 ## Colour grade
 
 **grade** (in the out panel) opens the colour sliders: *brightness*, *contrast*, *saturation*, *highlights*, *shadows*, *hue*, *colour boost*, *glow* and *haze*. They change the painting as it shows, so recordings get them too, and the saved PNGs, stills and covers. Saved code and SVG keep the plain colours. Double-click a slider to put it back to 0; *reset* clears them all. The **grade** button lights up while any slider is in use.
+
+## Signal
+
+**signal** (in the out panel) puts the painting through old video gear, on the graphics card, after the grade. Pick a **look** to set the sliders together, then change any of them:
+
+- **looks**: *crt tv*, *composite*, *vhs*, *video synth*, *fm lines*, *phosphor*, *dither*, *90s cel*, *cel on tv*, *thermal*.
+- **tint**: the picture's own colours, or a screen's few: *green* or *amber* phosphor, *blue*, *gameboy* (four greens), *cga* (cyan, magenta, white), *thermal*, *mono*.
+- **mask**: the phosphor pattern, *stripes* or *dots*. **on the beat**: the warp, ripple, fm lines and synth colour kick with the bass.
+- **pixels** (big square pixels), **dither** (an ordered pattern of a few levels), **cel bands** (flat tones) and **cel ink** (dark edges).
+- **colour bleed** (the colour smears along the line and rainbows crawl on the edges, like composite video), **fm lines** (horizontal lines bent and thickened by the brightness), **synth colour** (the brightness mapped round the colour wheel, like the old video synthesisers).
+- **sync warp** (lines torn sideways, a tracking band rolling down) and **ripple** (edges wobble in zig-zags).
+- **scanlines**, **phosphor**, **bloom**, **snow**, **tube curve** and **screen size** (how big the scanlines and phosphor dots are, up to the close-up look of a camera pointed at a TV).
+
+It works on every score mode too, and shows in recordings and the saved PNGs and stills. Double-click a slider for 0; *reset* clears it.
 
 ## Presets and reset
 
