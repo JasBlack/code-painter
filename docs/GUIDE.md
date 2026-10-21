@@ -126,7 +126,7 @@ swells with the sound, and the colours change with the song's sections.
 
 **shape** (the button beside the score menu) reshapes it:
 
-- **picture dots** (on by default): the picture becomes a dotted line drawing: dots an even step apart along its lines and outlines, so you can see what it is without it being drawn. These dots are the notes: the score's figures wake the dots they pass over (a hit wakes more), and each woken dot blooms into a painted mark in its colour, so the picture gets painted where the score goes. *score only* turns it off.
+- **picture dots** (on by default): the picture becomes a dotted line drawing: dots an even step apart along its lines and outlines, so you can see what it is without it being drawn. These dots are the notes: the score's figures wake the dots they pass over (a hit wakes more), and each woken dot blooms into a painted mark in its colour, so the picture gets painted where the score goes. *score only* turns it off. With a video, the outlines are read again from the frame showing about three times a second, so they follow the video, and the painted marks fade slowly so the painting follows it too. The colours come from the video as it plays.
 - **path**: *line* (as above), *ring* (a circle in the middle: what's coming arrives from outside, the past sinks inwards) or *frame* (a loop round the whole canvas).
 - **flows**: which way a line score runs (←, →, ↑, ↓).
 - **line position**, **line width**, **line wave** (the line snakes, moving) and **line beads** (smooth or beaded).
