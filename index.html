@@ -348,7 +348,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.31.1">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.32.0">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -1280,7 +1280,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.31.1 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.32.0 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1298,7 +1298,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.31.1', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.32.0', FOOTER = `Code Painter by Jas Black`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -5696,6 +5696,14 @@ function paintPanel(b, now, r) {
 const VZ = { mode: 'off', on: false, els: [], hist: new Float32Array(64), hi: 0, last: 0, pal: null, palKey: null, lanes: [], hz: null, hz2: null, ink: null, ink2: null, sec: -1, bud: 0 };
 const vzRnd = (a, b) => a + Math.random() * (b - a);
 const vzPick = a => a[Math.floor(Math.random() * a.length)];
+// the score's colours with the background chosen in shape: the picture's paper, dark, black, white or your own — the
+// ink (the spine, the lines) turns light on a dark background so it still shows
+function scPal() {
+  const P = vizPalette(); if (!SCP.bg || SCP.bg === 'picture') return P;
+  const bg = SCP.bg === 'dark' ? '#121216' : SCP.bg === 'black' ? '#000000' : SCP.bg === 'white' ? '#ffffff' : SCP.bgc || '#101014';
+  const n = parseInt(bg.slice(1), 16), L = (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255;
+  return { bg, ink: L < 0.45 ? '#ece9e2' : '#151517', acc: P.acc };
+}
 function vizPalette() {
   // the score's colours come from the picture: its three strongest distinct colours, its darkest tone (the ink) and its
   // lightest (a tinted paper) — or from the locked palette when there is one. (A video: looked at again once a second.)
@@ -5901,7 +5909,7 @@ function vizDraw(b, now, r) {
 //    brush  the same score drawn loose, in the ticked styles and brush: no clean circles or bars
 //  No song: a quiet score keeps time on its own. Live sound: the notes appear as they're heard.
 // ═════════════════════════════════════════════════════════════
-const SCP = { form: 'cells', pic: true, path: 'line', x: 0.5, w: 1, wave: 0, bead: 0.5, spread: 1, size: 1, speed: 1, glow: 1, dir: 'left', tilt: 0 };          // the shape sliders
+const SCP = { bg: 'picture', bgc: '#101014', dotc: 'picture', dotcc: '#ffffff', dot: 'dot', sparse: 0.5, dsize: 1, form: 'cells', pic: true, path: 'line', x: 0.5, w: 1, wave: 0, bead: 0.5, spread: 1, size: 1, speed: 1, glow: 1, dir: 'left', tilt: 0 };          // the shape sliders
 // ═════════════════════════════════════════════════════════════
 //  The picture as a field of notes. The picture is turned into sparse dots — more of them where it has detail, each in
 //  its colour there, so you can still see what it is without it being drawn. The dots are the notes: the moving shapes
@@ -5925,12 +5933,12 @@ function dfSource() {
   return { d: DFSRC.d, w: DFSRC.w, h: DFSRC.h, id: 'v' + S.gen + '.' + DFSRC.n, video: true };
 }
 function dfBuild(bw, bh, dw, dh) {
-  const src = dfSource(), d = src && src.d, iw = src ? src.w : 0, ih = src ? src.h : 0, key = (src ? src.id : 'none') + ':' + dw + 'x' + dh;
+  const src = dfSource(), d = src && src.d, iw = src ? src.w : 0, ih = src ? src.h : 0, look = [SCP.sparse, SCP.dsize, SCP.dot, SCP.dotc, SCP.dotcc, SCP.bg, SCP.bgc].join(','), key = (src ? src.id : 'none') + ':' + dw + 'x' + dh + ':' + look;
   if (DF.key === key) return;
-  const same = DF.key && DF.key.split('.')[0] === key.split('.')[0] && DF.dims === dw + 'x' + dh && src && src.video;          // (the next frame of the same video: keep the painting, cross-fade the dots)
+  const same = DF.key && DF.key.split('.')[0] === key.split('.')[0] && DF.dims === dw + 'x' + dh && DF.look === look && src && src.video; DF.look = look;          // (the next frame of the same video: keep the painting, cross-fade the dots)
   DF.prevDots = same ? DF.dots : null; DF.fadeAt = clock(); DF.video = !!(src && src.video); DF.dims = dw + 'x' + dh; const keepPaint = same ? DF.paint : null;
   DF.key = key; DF.pops = []; DF.woke = 0;
-  const M = Math.min(bw, bh), sp = M / 78, R = scRng(7 + (S.gen | 0)), X1 = [], Y1 = [], R1 = [], C1 = [], P = vizPalette();
+  const M = Math.min(bw, bh), sp = M / 78, R = scRng(7 + (S.gen | 0)), X1 = [], Y1 = [], R1 = [], C1 = [], A1 = [], P = scPal();
   const sk = d ? Math.max(bw / iw, bh / ih) : 1, ox = d ? (bw - iw * sk) / 2 : 0, oy = d ? (bh - ih * sk) / 2 : 0;
   const at = (x, y) => (Math.min(ih - 1, Math.max(0, Math.floor((y - oy) / sk))) * iw + Math.min(iw - 1, Math.max(0, Math.floor((x - ox) / sk)))) * 4;
   const lum = o => (0.299 * d[o] + 0.587 * d[o + 1] + 0.114 * d[o + 2]) / 255;
@@ -5945,7 +5953,7 @@ function dfBuild(bw, bh, dw, dh) {
     for (let y = 1; y < ih - 1; y++) for (let x = 1; x < iw - 1; x++) { let g = 0; for (let c = 0; c < 3; c++) { const gx = A[(y * iw + x + 1) * 3 + c] - A[(y * iw + x - 1) * 3 + c], gy = A[((y + 1) * iw + x) * 3 + c] - A[((y - 1) * iw + x) * 3 + c]; g += gx * gx + gy * gy; } G[y * iw + x] = Math.sqrt(g); }
     const sorted = Float32Array.from(G).sort(), thr = sorted[Math.floor(sorted.length * 0.84)] || 1;
     const cand = []; for (let i = 0; i < N; i++) if (G[i] > thr) cand.push(i); cand.sort((a, b) => G[b] - G[a]);
-    const minD = sp * 1.05, hc = minD, hw = Math.ceil(bw / hc) + 2, hash = new Map(), gmax = G[cand[0]] || 1;
+    const minD = sp * (SCP.sparse < 0.5 ? 0.5 + SCP.sparse * 1.1 : 1.05 + (SCP.sparse - 0.5) * 3.4) /* sparsity: the step between dots */, hc = minD, hw = Math.ceil(bw / hc) + 2, hash = new Map(), gmax = G[cand[0]] || 1;
     for (const i of cand) {
       const x = i % iw, y = (i / iw) | 0, bx = ox + (x + 0.5) * sk + (R() - 0.5) * sk * 0.6, by = oy + (y + 0.5) * sk + (R() - 0.5) * sk * 0.6;
       if (bx < 0 || by < 0 || bx > bw || by > bh) continue;
@@ -5954,16 +5962,29 @@ function dfBuild(bw, bh, dw, dh) {
       if (near) continue;
       const k2 = (hy * hw + hx); if (!hash.has(k2)) hash.set(k2, []); hash.get(k2).push(X1.length);
       const o = i * 4, f = 0.82;          // (a little darker than the picture there: the lines read)
-      X1.push(bx); Y1.push(by); R1.push(sp * (0.24 + 0.16 * Math.min(1, G[i] / gmax * 1.6))); C1.push('#' + [d[o] * f, d[o + 1] * f, d[o + 2] * f].map(v => Math.round(v).toString(16).padStart(2, '0')).join(''));
-      if (X1.length >= 2400) break;
+      let gxs = 0, gys = 0; if (x > 0 && y > 0 && x < iw - 1 && y < ih - 1) for (let c = 0; c < 3; c++) { gxs += A[(y * iw + x + 1) * 3 + c] - A[(y * iw + x - 1) * 3 + c]; gys += A[((y + 1) * iw + x) * 3 + c] - A[((y - 1) * iw + x) * 3 + c]; }
+      A1.push(Math.atan2(gys, gxs) + Math.PI / 2);          // (along the line)
+      X1.push(bx); Y1.push(by); R1.push(sp * SCP.dsize * (0.24 + 0.16 * Math.min(1, G[i] / gmax * 1.6))); C1.push('#' + [d[o] * f, d[o + 1] * f, d[o + 2] * f].map(v => Math.round(v).toString(16).padStart(2, '0')).join(''));
+      if (X1.length >= 5000) break;
     }
-  } else for (let i = 0; i < 700; i++) { X1.push(R() * bw); Y1.push(R() * bh); R1.push(sp * (0.2 + 0.15 * R())); C1.push(R() < 0.4 ? P.ink : P.acc[Math.floor(R() * 3)]); }
+  } else for (let i = 0, nn = Math.round(700 / (0.4 + SCP.sparse * 1.6)); i < nn; i++) { A1.push(R() * 6.283); X1.push(R() * bw); Y1.push(R() * bh); R1.push(sp * SCP.dsize * (0.2 + 0.15 * R())); C1.push(R() < 0.4 ? P.ink : P.acc[Math.floor(R() * 3)]); }
   const n = X1.length; DF.n = n; DF.x = Float32Array.from(X1); DF.y = Float32Array.from(Y1); DF.r = Float32Array.from(R1); DF.col = C1; DF.on = new Uint8Array(n); DF.sp = sp;
   DF.gs = sp * 3; DF.gw = Math.ceil(bw / DF.gs) + 1; DF.gh = Math.ceil(bh / DF.gs) + 1; DF.grid = Array.from({ length: DF.gw * DF.gh }, () => []);
   for (let i = 0; i < n; i++) DF.grid[Math.floor(DF.y[i] / DF.gs) * DF.gw + Math.floor(DF.x[i] / DF.gs)].push(i);
   const k = dw / bw; DF.dots = vzCanvas(null, dw, dh); DF.paint = keepPaint || vzCanvas(null, dw, dh);
   const g = DF.dots.getContext('2d'); g.setTransform(k, 0, 0, k, 0, 0);
-  for (let i = 0; i < n; i++) { g.fillStyle = DF.col[i]; g.beginPath(); g.arc(DF.x[i], DF.y[i], DF.r[i], 0, 7); g.fill(); }
+  // the dots in their colour and style (the painting they become keeps the picture's colours)
+  const dc = i => SCP.dotc === 'mono' ? P.ink : SCP.dotc === 'accent' ? P.acc[(Math.floor(DF.x[i] / (bw / 3)) + Math.floor(DF.y[i] / (bh / 4))) % P.acc.length] : SCP.dotc === 'custom' ? SCP.dotcc : DF.col[i];
+  g.lineCap = 'round';
+  for (let i = 0; i < n; i++) {
+    const x = DF.x[i], y = DF.y[i], r = DF.r[i], a = A1[i] || 0, c = dc(i); g.fillStyle = g.strokeStyle = c;
+    if (SCP.dot === 'ring') { g.lineWidth = Math.max(0.8, r * 0.45); g.beginPath(); g.arc(x, y, r * 1.25, 0, 7); g.stroke(); }
+    else if (SCP.dot === 'cross') { g.lineWidth = Math.max(0.8, r * 0.42); g.beginPath(); g.moveTo(x - r * 1.3, y - r * 1.3); g.lineTo(x + r * 1.3, y + r * 1.3); g.moveTo(x + r * 1.3, y - r * 1.3); g.lineTo(x - r * 1.3, y + r * 1.3); g.stroke(); }
+    else if (SCP.dot === 'dash') { g.lineWidth = Math.max(0.8, r * 0.7); g.beginPath(); g.moveTo(x - Math.cos(a) * r * 2.2, y - Math.sin(a) * r * 2.2); g.lineTo(x + Math.cos(a) * r * 2.2, y + Math.sin(a) * r * 2.2); g.stroke(); }
+    else if (SCP.dot === 'square') { g.save(); g.translate(x, y); g.rotate(a); g.fillRect(-r * 0.95, -r * 0.95, r * 1.9, r * 1.9); g.restore(); }
+    else if (SCP.dot === 'star') { g.beginPath(); for (let k = 0; k < 8; k++) { const rr = k % 2 ? r * 0.45 : r * 1.7, an = a + k * Math.PI / 4; g[k ? 'lineTo' : 'moveTo'](x + Math.cos(an) * rr, y + Math.sin(an) * rr); } g.closePath(); g.fill(); }
+    else { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
+  }
 }
 // wake the sleeping dots within r of (x, y): at most max; mark(ctx, i, closeness) paints each into the canvas
 function dfWake(x, y, r, max, mark) {
@@ -6050,7 +6071,7 @@ function natNew(form, i, bw, bh, M, P, styles, R) {
   return { id: i, x: bw * (0.2 + 0.6 * R()), y: bh * (0.2 + 0.6 * R()), a: R() * 6.283, s: M * (form === 'cells' ? 0.045 : form === 'spores' ? 0.04 : 0.03), col, st, tgt: -1, life: Infinity, seg: [], last: null, born: 0 };
 }
 function natureDraw(b, now) {
-  const P = vizPalette(), bw = b.w, bh = b.h, X0 = b.x, Y0 = b.y, M = Math.min(bw, bh), m = X.getTransform(), dw = Math.max(16, Math.round(m.a * bw)), dh = Math.max(16, Math.round(m.d * bh)), k = dw / bw;
+  const P = scPal(), bw = b.w, bh = b.h, X0 = b.x, Y0 = b.y, M = Math.min(bw, bh), m = X.getTransform(), dw = Math.max(16, Math.round(m.a * bw)), dh = Math.max(16, Math.round(m.d * bh)), k = dw / bw;
   const songT = AU.el && !AU.live && AU.rms, T = songT ? aTime() : now / 1000, form = SCP.form || 'cells', styles = stylePick.values().length ? stylePick.values() : ['painterly'];
   const lv = Math.min(1, 0.65 * AU.bass + 0.45 * AU.mid + 0.5 * AU.beat); VZ.lv = (VZ.lv || 0) + (lv - (VZ.lv || 0)) * 0.3;
   dfBuild(bw, bh, dw, dh);
@@ -6273,7 +6294,7 @@ function scoreDraw(b, now, brush) {
   const organic = brush === 'organic'; if (organic) brush = false;
   // the score is drawn flowing right to left in its own box, then turned to the chosen direction (and tilt) onto the stage
   const bent = SCP.path !== 'line', turn = bent ? 0 : { left: 0, right: Math.PI, up: Math.PI / 2, down: -Math.PI / 2 }[SCP.dir] || 0, side = !bent && (SCP.dir === 'up' || SCP.dir === 'down');
-  const P = vizPalette(), W = side ? b.h : b.w, H = side ? b.w : b.h, M0 = Math.min(W, H), M = M0 * SCP.size, X0 = b.x, Y0 = b.y, m = X.getTransform(), dw = Math.max(16, Math.round(m.a * W)), dh = Math.max(16, Math.round(m.d * H)), sc = dw / W;
+  const P = scPal(), W = side ? b.h : b.w, H = side ? b.w : b.h, M0 = Math.min(W, H), M = M0 * SCP.size, X0 = b.x, Y0 = b.y, m = X.getTransform(), dw = Math.max(16, Math.round(m.a * W)), dh = Math.max(16, Math.round(m.d * H)), sc = dw / W;
   const songT = AU.el && !AU.live && AU.rms, T = songT ? aTime() : now / 1000, v = SC.v * W * SCP.speed, cx = W * SCP.x; SC.cy = H * 0.5;
   const Y = yy => (0.5 + (yy - 0.5) * SCP.spread) * H, spX = yy => cx + SCP.wave * W * 0.09 * Math.sin(yy / H * 9.4 + T * 2.2);
   // the path "now" lies on: a line (as is), or bent round — a ring in the middle or a loop round the whole frame. The
@@ -8598,16 +8619,18 @@ const stylePick = stylePicker();
 // score shape: the line's place, width, wave and beads, the spread, size, speed, glow, the path, direction and tilt
 { const sel = $('score'), panel = sel.closest('.panel'); panel.style.position = 'relative';
   sel.insertAdjacentHTML('afterend', '<button type="button" class="mini" id="scorebtn" title="Score shape: where the line sits and its shape, a ring or a loop round the frame instead, how far it spreads, the size, speed, glow, direction and tilt">shape</button>');
-  panel.insertAdjacentHTML('beforeend', `<div id="scorepop" class="gradepop" hidden><div class="gp-h"><b>score shape</b><button type="button" class="mini" id="scorereset" title="Every slider back">reset</button><button type="button" class="mini" id="scorex" title="Close">✕</button></div><div class="gp-row"><select id="scpic" class="sel" aria-label="The picture" title="picture dots: the picture becomes sparse dots (you can still see what it is) — the notes — and the moving shapes wake the dots they pass, every woken dot blooming into a painted mark, so the picture gets painted where they go · score only: no picture"><option value="on">picture dots</option><option value="off">score only</option></select><select id="scform" class="sel" aria-label="Nature form" title="score · nature: what the living movers are — cells (pulse with the bass, split on the hard hits) · plants (growing tips leave stems, branch on the hits, dots become leaves) · spores (pods puff spores, dots become spore heads) · bones (bone chains crawl, dots become bones)"><option value="cells">cells</option><option value="plants">plants</option><option value="spores">spores</option><option value="bones">bones</option></select></div><div class="gp-row"><select id="scpath" class="sel" aria-label="Path" title="What now lies on: a line · a ring in the middle (the past sinks inwards, what's coming arrives from outside) · a loop round the whole frame"><option value="line">path: line</option><option value="ring">path: ring</option><option value="frame">path: frame</option></select><select id="scdir" class="sel" aria-label="Direction" title="Which way a line score flows"><option value="left">flows ←</option><option value="right">flows →</option><option value="up">flows ↑</option><option value="down">flows ↓</option></select></div><label title="Where the line (now) sits, left to right (double-click: back to 50)"><span>line position</span><input id="scx" type="range" min="20" max="80" value="50" aria-label="line position"><output>50</output></label><label title="How thick the line swells (double-click: back to 100)"><span>line width</span><input id="scw" type="range" min="0" max="250" value="100" aria-label="line width"><output>100</output></label><label title="The line snakes from side to side, moving (double-click: back to 0)"><span>line wave</span><input id="scwave" type="range" min="0" max="100" value="0" aria-label="line wave"><output>0</output></label><label title="Smooth or beaded (double-click: back to 50)"><span>line beads</span><input id="scbead" type="range" min="0" max="100" value="50" aria-label="line beads"><output>50</output></label><label title="How far the lanes reach from the middle (round it, with ring and frame) (double-click: back to 100)"><span>spread</span><input id="scspread" type="range" min="30" max="160" value="100" aria-label="spread"><output>100</output></label><label title="The size of every figure (double-click: back to 100)"><span>size</span><input id="scsize" type="range" min="40" max="220" value="100" aria-label="size"><output>100</output></label><label title="How fast the score moves (double-click: back to 100)"><span>speed</span><input id="scspeed" type="range" min="30" max="250" value="100" aria-label="speed"><output>100</output></label><label title="How strongly the colours glow (double-click: back to 100)"><span>glow</span><input id="scglow" type="range" min="0" max="250" value="100" aria-label="glow"><output>100</output></label><label title="Turn the whole score (double-click: back to 0)"><span>tilt</span><input id="sctilt" type="range" min="-45" max="45" value="0" aria-label="tilt"><output>0</output></label></div>`);
-  const K = [["scx", "x", 50], ["scw", "w", 100], ["scwave", "wave", 0], ["scbead", "bead", 50], ["scspread", "spread", 100], ["scsize", "size", 100], ["scspeed", "speed", 100], ["scglow", "glow", 100], ["sctilt", "tilt", 0]];
+  panel.insertAdjacentHTML('beforeend', `<div id="scorepop" class="gradepop" hidden><div class="gp-h"><b>score shape</b><button type="button" class="mini" id="scorereset" title="Every slider back">reset</button><button type="button" class="mini" id="scorex" title="Close">✕</button></div><div class="gp-row"><select id="scbg" class="sel" aria-label="Background" title="The background: the picture\'s own paper tint · dark · black · white · your own colour (the lines turn light on a dark one)"><option value="picture">bg: picture</option><option value="dark">bg: dark</option><option value="black">bg: black</option><option value="white">bg: white</option><option value="custom">bg: own…</option></select><input id="scbgc" class="swatch" type="color" value="#101014" title="Your own background colour" aria-label="Background colour"></div><div class="gp-row"><select id="scdotc" class="sel" aria-label="Dot colour" title="The dots\' colour: the picture\'s · mono (against the background) · accent (the score\'s colours) · your own (what they paint into keeps the picture\'s colours)"><option value="picture">dots: picture</option><option value="mono">dots: mono</option><option value="accent">dots: accent</option><option value="custom">dots: own…</option></select><input id="scdotcc" class="swatch" type="color" value="#ffffff" title="Your own dot colour" aria-label="Dot colour"><select id="scdot" class="sel" aria-label="Dot style" title="The dots\' shape: dot · ring · cross · dash (along the line) · square · star"><option value="dot">●</option><option value="ring">○</option><option value="cross">×</option><option value="dash">—</option><option value="square">■</option><option value="star">✦</option></select></div><div class="gp-row"><select id="scpic" class="sel" aria-label="The picture" title="picture dots: the picture becomes sparse dots (you can still see what it is) — the notes — and the moving shapes wake the dots they pass, every woken dot blooming into a painted mark, so the picture gets painted where they go · score only: no picture"><option value="on">picture dots</option><option value="off">score only</option></select><select id="scform" class="sel" aria-label="Nature form" title="score · nature: what the living movers are — cells (pulse with the bass, split on the hard hits) · plants (growing tips leave stems, branch on the hits, dots become leaves) · spores (pods puff spores, dots become spore heads) · bones (bone chains crawl, dots become bones)"><option value="cells">cells</option><option value="plants">plants</option><option value="spores">spores</option><option value="bones">bones</option></select></div><div class="gp-row"><select id="scpath" class="sel" aria-label="Path" title="What now lies on: a line · a ring in the middle (the past sinks inwards, what's coming arrives from outside) · a loop round the whole frame"><option value="line">path: line</option><option value="ring">path: ring</option><option value="frame">path: frame</option></select><select id="scdir" class="sel" aria-label="Direction" title="Which way a line score flows"><option value="left">flows ←</option><option value="right">flows →</option><option value="up">flows ↑</option><option value="down">flows ↓</option></select></div><label title="Where the line (now) sits, left to right (double-click: back to 50)"><span>line position</span><input id="scx" type="range" min="20" max="80" value="50" aria-label="line position"><output>50</output></label><label title="How thick the line swells (double-click: back to 100)"><span>line width</span><input id="scw" type="range" min="0" max="250" value="100" aria-label="line width"><output>100</output></label><label title="The line snakes from side to side, moving (double-click: back to 0)"><span>line wave</span><input id="scwave" type="range" min="0" max="100" value="0" aria-label="line wave"><output>0</output></label><label title="Smooth or beaded (double-click: back to 50)"><span>line beads</span><input id="scbead" type="range" min="0" max="100" value="50" aria-label="line beads"><output>50</output></label><label title="How far apart the picture\'s dots are (double-click: back to 50)"><span>sparsity</span><input id="scsparse" type="range" min="0" max="100" value="50" aria-label="sparsity"><output>50</output></label><label title="The size of the picture\'s dots (double-click: back to 100)"><span>dot size</span><input id="scdsize" type="range" min="40" max="300" value="100" aria-label="dot size"><output>100</output></label><label title="How far the lanes reach from the middle (round it, with ring and frame) (double-click: back to 100)"><span>spread</span><input id="scspread" type="range" min="30" max="160" value="100" aria-label="spread"><output>100</output></label><label title="The size of every figure (double-click: back to 100)"><span>size</span><input id="scsize" type="range" min="40" max="220" value="100" aria-label="size"><output>100</output></label><label title="How fast the score moves (double-click: back to 100)"><span>speed</span><input id="scspeed" type="range" min="30" max="250" value="100" aria-label="speed"><output>100</output></label><label title="How strongly the colours glow (double-click: back to 100)"><span>glow</span><input id="scglow" type="range" min="0" max="250" value="100" aria-label="glow"><output>100</output></label><label title="Turn the whole score (double-click: back to 0)"><span>tilt</span><input id="sctilt" type="range" min="-45" max="45" value="0" aria-label="tilt"><output>0</output></label></div>`);
+  const K = [["scsparse", "sparse", 50], ["scdsize", "dsize", 100], ["scx", "x", 50], ["scw", "w", 100], ["scwave", "wave", 0], ["scbead", "bead", 50], ["scspread", "spread", 100], ["scsize", "size", 100], ["scspeed", "speed", 100], ["scglow", "glow", 100], ["sctilt", "tilt", 0]];
   let saved = {}; try { saved = JSON.parse(store('cp-scoreshape') || '{}') || {}; } catch (e) { /* none */ }
-  const sync = keep => { for (const [id, k] of K) { const el = $(id); SCP[k] = k === 'x' || k === 'w' || k === 'wave' || k === 'bead' || k === 'spread' || k === 'size' || k === 'speed' || k === 'glow' ? +el.value / 100 : +el.value; el.nextElementSibling.textContent = el.value; }
-    SCP.path = $('scpath').value; SCP.dir = $('scdir').value; SCP.pic = $('scpic').value === 'on'; SCP.form = $('scform').value; SC.spr.clear(); SC.fog = null;
-    if (keep) { const o = { path: SCP.path, dir: SCP.dir, pic: $('scpic').value, form: $('scform').value }; for (const [id] of K) o[id] = +$(id).value; store('cp-scoreshape', JSON.stringify(o)); } };
+  const sync = keep => { for (const [id, k] of K) { const el = $(id); SCP[k] = k === 'sparse' || k === 'dsize' || k === 'x' || k === 'w' || k === 'wave' || k === 'bead' || k === 'spread' || k === 'size' || k === 'speed' || k === 'glow' ? +el.value / 100 : +el.value; el.nextElementSibling.textContent = el.value; }
+    SCP.path = $('scpath').value; SCP.dir = $('scdir').value; SCP.pic = $('scpic').value === 'on'; SCP.form = $('scform').value; SCP.bg = $('scbg').value; SCP.bgc = $('scbgc').value; SCP.dotc = $('scdotc').value; SCP.dotcc = $('scdotcc').value; SCP.dot = $('scdot').value; SC.spr.clear(); SC.fog = null;
+    if (keep) { const o = { path: SCP.path, dir: SCP.dir, pic: $('scpic').value, form: $('scform').value, bg: SCP.bg, bgc: SCP.bgc, dotc: SCP.dotc, dotcc: SCP.dotcc, dot: SCP.dot }; for (const [id] of K) o[id] = +$(id).value; store('cp-scoreshape', JSON.stringify(o)); } };
   for (const [id, , d] of K) { const el = $(id); if (saved[id] != null) el.value = saved[id]; el.addEventListener('input', () => sync(true)); el.addEventListener('dblclick', () => { el.value = d; sync(true); }); }
+  for (const [k, id] of [['bg', 'scbg'], ['bgc', 'scbgc'], ['dotc', 'scdotc'], ['dotcc', 'scdotcc'], ['dot', 'scdot']]) if (saved[k]) $(id).value = saved[k];
   if (saved.pic) $('scpic').value = saved.pic; if (saved.form) $('scform').value = saved.form; if (saved.path) $('scpath').value = saved.path; if (saved.dir) $('scdir').value = saved.dir;
-  $('scpath').onchange = $('scdir').onchange = $('scpic').onchange = $('scform').onchange = () => sync(true);
-  $('scorereset').onclick = () => { for (const [id, , d] of K) $(id).value = d; $('scpath').value = 'line'; $('scdir').value = 'left'; $('scpic').value = 'on'; sync(true); };
+  $('scpath').onchange = $('scdir').onchange = $('scpic').onchange = $('scform').onchange = $('scbg').onchange = $('scdotc').onchange = $('scdot').onchange = () => sync(true);
+  $('scbgc').oninput = () => { $('scbg').value = 'custom'; sync(true); }; $('scdotcc').oninput = () => { $('scdotc').value = 'custom'; sync(true); };
+  $('scorereset').onclick = () => { for (const [id, , d] of K) $(id).value = d; $('scpath').value = 'line'; $('scdir').value = 'left'; $('scpic').value = 'on'; $('scbg').value = 'picture'; $('scdotc').value = 'picture'; $('scdot').value = 'dot'; sync(true); };
   $('scorex').onclick = () => { $('scorepop').hidden = true; };
   $('scorebtn').onclick = () => { $('scorepop').hidden = !$('scorepop').hidden; };
   sync(false); }
@@ -9217,7 +9240,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.31.1');
+    const V = await import('./viewer3d.js?v=4.32.0');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
