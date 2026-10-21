@@ -109,6 +109,30 @@ Every PNG, MP4 (⏺ render or ⏺ live), SVG and ⬇ code page you save carries 
 - To paint a file that carries settings (instead of loading them), **hold Alt (Option on a Mac) while you drop it**.
 - Only files saved from version 4.25.0 on carry settings; an older file is simply opened as a picture or video.
 
+## Score: the sound as a moving picture
+
+**score** (music panel, in the *music in the paint* row) animates the sound the way producers' audio-reactive visuals do:
+a dark spine down the middle swells with the sound (the swells run out from its centre). On every hit, lines shoot out
+of the spine with nodes along them; rings pulse on the low hits, curves join things up, fans of short sprigs fly off on
+the high ones, rows of dots drift away to the right, and soft clouds of colour bloom and smear behind it all.
+Everything is drawn in your ticked styles, so spray gives sprayed lines and rings, ink gives inked ones, and so on.
+
+- **score · paper**: on its own, on paper, in the picture's colours.
+- **score · painting**: over the painting as it's made. The lines run from the spine to the strokes that are landing,
+  the rings and sprigs sit on them in each stroke's own style and colour, and the painting smears and blooms with the bass.
+- **score · motion only**: none of the score is drawn. The strokes that land swell out on the hits, colour blooms under
+  them, and the painting smears and glows with the bass.
+
+It shows on the stage and in recordings (live and rendered).
+
+## Text bar
+
+**text** (out panel) adds your own words between the picture and the code: one or more sentences, set in one of ten
+fonts (Archivo Black, Bebas Neue, Playfair, Marker, Caveat, Space Mono, Abril Fatface, Rubik Mono, Pacifico, Rock Salt)
+and painted out stroke by stroke in your ticked styles as the painting goes, finishing just before it does. Colour:
+*light*, *picture* (the words take the picture's colours) or *accent*. It works in the studio, simple, +code and editor
+displays, shows in recordings, and the words travel with presets. The fonts are carried with the app, so they work offline.
+
 ## Recording and export
 
 - **⏺ render** (the default): the run starts again and is rendered frame by frame, perfectly smooth, at **720p, 1080p, 1440p or 4K**. The message line shows how long is left.
