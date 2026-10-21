@@ -109,29 +109,43 @@ Every PNG, MP4 (⏺ render or ⏺ live), SVG and ⬇ code page you save carries 
 - To paint a file that carries settings (instead of loading them), **hold Alt (Option on a Mac) while you drop it**.
 - Only files saved from version 4.25.0 on carry settings; an older file is simply opened as a picture or video.
 
-## Score: the sound as a moving picture
+## Score: the sound as a moving score
 
-**score** (music panel, in the *music in the paint* row) animates the sound the way producers' audio-reactive visuals do:
-a dark spine down the middle swells with the sound (the swells run out from its centre). On every hit, lines shoot out
-of the spine with nodes along them; rings pulse on the low hits, curves join things up, fans of short sprigs fly off on
-the high ones, rows of dots drift away to the right, and soft clouds of colour bloom and smear behind it all.
-Everything is drawn in your ticked styles, so spray gives sprayed lines and rings, ink gives inked ones, and so on.
+**score** (music panel, in the *music in the paint* row) shows the song the way producers' audio-reactive visuals do.
+A spine down the middle is *now*. The notes still to come (every onset the song analysis finds, hats and ghost notes
+included) drift in from the right as small dots. When one reaches the spine it fires: a ring flares on the low hits,
+stems drop to the axis on the mids, sprigs and bundles of strands fly off on the highs. Then it scrolls away to the
+left with the rest, glowing and smearing. Low notes sit near the middle line, high ones out at the edges. The spine
+swells with the sound, and the colours change with the song's sections.
 
-- **score · paper**: on its own, on paper, in the picture's colours.
-- **score · painting**: over the painting as it's made. The lines run from the spine to the strokes that are landing,
-  the rings and sprigs sit on them in each stroke's own style and colour, and the painting smears and blooms with the bass.
-- **score · motion only**: none of the score is drawn. The strokes that land swell out on the hits, colour blooms under
-  them, and the painting smears and glows with the bass.
+- **score · clean**: crisp lines, rings and dots, like the videos.
+- **score · brush**: the same score drawn loose in your ticked styles and brush: gestures that swell and taper, loose loops, dabs. No clean circles or bars.
+- **score · organic**: the same score as liquid. Blobs run together, the lanes are wobbling chains of drops, stems are drips, sprigs are splats and the spine is a column of molten drops, with a grain over it.
+- **score · motion only**: none of the score drawn. The painting's strokes swell out on the hits, and the painting smears and glows with the bass.
 
-It shows on the stage and in recordings (live and rendered).
+**shape** (the button beside the score menu) reshapes it:
+
+- **path**: *line* (as above), *ring* (a circle in the middle: what's coming arrives from outside, the past sinks inwards) or *frame* (a loop round the whole canvas).
+- **flows**: which way a line score runs (←, →, ↑, ↓).
+- **line position**, **line width**, **line wave** (the line snakes, moving) and **line beads** (smooth or beaded).
+- **spread** (how far the lanes reach), **size** (every figure), **speed**, **glow** and **tilt** (turns the whole score).
+
+Double-click a slider to put it back; *reset* puts them all back.
+
+The score modes take the layout's frame (9:16, 4:5, 1:1, 16:9) in the *paint* display. Without a song a quiet score
+keeps time on its own; with live sound the notes appear as they're heard. It shows on the stage and in recordings.
 
 ## Text bar
 
-**text** (out panel) adds your own words between the picture and the code: one or more sentences, set in one of ten
-fonts (Archivo Black, Bebas Neue, Playfair, Marker, Caveat, Space Mono, Abril Fatface, Rubik Mono, Pacifico, Rock Salt)
-and painted out stroke by stroke in your ticked styles as the painting goes, finishing just before it does. Colour:
-*light*, *picture* (the words take the picture's colours) or *accent*. It works in the studio, simple, +code and editor
-displays, shows in recordings, and the words travel with presets. The fonts are carried with the app, so they work offline.
+**text** (out panel) adds your own words between the picture and the code, **one line at a time**. Write one text per
+line in the box: each line gets an equal share of the video. Three lines over nine seconds means a new one every three
+seconds, and the last one stays to the end. A line comes up whole, with a quick pop, like the text in a reel.
+
+- **font**: ten choices (Archivo Black, Bebas Neue, Playfair, Marker, Caveat, Space Mono, Abril Fatface, Rubik Mono, Pacifico, Rock Salt), carried with the app so they work offline.
+- **style**: classic, box (white box), colour box, outline, neon, typewriter, shadow.
+- **colour**: white, black, accent or the picture's main colour.
+
+It works in the studio, simple, +code and editor displays, shows in recordings, and the words travel with presets.
 
 ## Recording and export
 
