@@ -125,12 +125,15 @@ swells with the sound, and the colours change with the song's sections.
 
 **shape** (the button beside the score menu) reshapes it:
 
+- **dots paint the picture** (on by default): every note that fires throws a burst of dots from where it fired to places across the frame, each in the picture's colour there, so over the song the picture builds up out of them. Low hits throw big dots, high ones fine dots, in your styles. *score only* turns it off.
 - **path**: *line* (as above), *ring* (a circle in the middle: what's coming arrives from outside, the past sinks inwards) or *frame* (a loop round the whole canvas).
 - **flows**: which way a line score runs (←, →, ↑, ↓).
 - **line position**, **line width**, **line wave** (the line snakes, moving) and **line beads** (smooth or beaded).
 - **spread** (how far the lanes reach), **size** (every figure), **speed**, **glow** and **tilt** (turns the whole score).
 
 Double-click a slider to put it back; *reset* puts them all back.
+
+The score's colours come from the picture (its strongest colours, its darkest tone for the ink, its lightest for the paper), or from the locked palette when there is one.
 
 The score modes take the layout's frame (9:16, 4:5, 1:1, 16:9) in the *paint* display. Without a song a quiet score
 keeps time on its own; with live sound the notes appear as they're heard. It shows on the stage and in recordings.
