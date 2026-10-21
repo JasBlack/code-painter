@@ -174,7 +174,7 @@ It works in the studio, simple, +code and editor displays, shows in recordings, 
 
 ## Vector base
 
-**vector** (beside *under*, next to the live input menu) puts the picture, traced into flat colour shapes, under a normal painting. The shapes pop in on the notes like *score · vector*, and the painter paints only what they miss: the edges, lines and details, in small strokes in your ticked styles. So graffiti, oil, ink or any style gets a vector base with its own marks on top, using the same caps, wall and piece order as usual. It uses fewer strokes than a normal painting. The colours, detail and fill of the shapes come from *score → shape* (*vector colours*, *vector detail*, *fill*). Saved PNGs and stills have the shapes under the strokes.
+**vector** (beside *under*, next to the live input menu) puts the picture, traced into flat colour shapes, under a normal painting. The shapes pop in on the notes like *score · vector*, and the painter paints only what they miss: the edges, lines and details, in small strokes in your ticked styles. So graffiti, oil, ink or any style gets a vector base with its own marks on top, using the same caps, wall and piece order as usual. *score → shape → paint over* sets how much it paints over them: low gives only the sharpest edges in fine strokes, so the vector shows most; high gives more and bigger strokes, further out, so the paint shows most. It takes effect on the next painting. The colours, detail and fill of the shapes come from the same panel (*vector colours*, *vector detail*, *fill*). Saved PNGs and stills have the shapes under the strokes.
 
 ## Signal
 
@@ -191,6 +191,8 @@ It works in the studio, simple, +code and editor displays, shows in recordings, 
 It works on every score mode too, and shows in recordings and the saved PNGs and stills. The **on** switch at the top turns it off and keeps every setting for later. Double-click or right-click a slider for 0; *reset* clears it.
 
 Right-click any slider in the studio to put it back to its default.
+
+The pop-up panels (score shape, signal, colour grade, text bar) can be dragged anywhere by their title bar, and they stay inside the window. Each remembers where you put it; double-click its title bar to put it back.
 
 ## Presets and reset
 
