@@ -122,7 +122,7 @@ swells with the sound, and the colours change with the song's sections.
 - **score · brush**: the same score drawn loose in your ticked styles and brush: gestures that swell and taper, loose loops, dabs. No clean circles or bars.
 - **score · organic**: the same score as liquid. Blobs run together, the lanes are wobbling chains of drops, stems are drips, sprigs are splats and the spine is a column of molten drops, with a grain over it.
 - **score · nature**: the same dynamics, but the movers are living things wandering over the picture: *cells* (pulse with the bass, split on the hard hits), *plants* (growing tips leave stems in the paint and branch on the hits), *spores* (pods that puff spores on the hits) or *bones* (bone chains that crawl). Pick the form in *shape*. They crawl along the picture's dotted lines, heading for the nearest sleeping dot each time, so they trace the drawing. Each wakes the picture's dots it passes, and a hit wakes a whole patch round it; woken dots become leaves, cells, spore heads or bones in the dot's colour and your styles. Over the song the canvas gets painted where they've been.
-- **score · vector**: the picture traced into flat colour shapes, like a vector drawing. The shapes pop in on the notes, biggest first, with a little overshoot and wobble, and the small ones jump on the hits. With a video the shapes are traced again from the frame a couple of times a second. *shape → save svg* saves the shapes as an SVG, sharp at any size.
+- **score · vector**: the picture traced into flat colour shapes, like a vector drawing. The shapes pop in on the notes, biggest first, with a little overshoot and wobble, and are all in by about a third of the song (sooner with a higher *speed*). After that every note kicks a group of shapes (a third of them on the strong notes): they swell, flash and the small ones jump outwards, and the whole picture draws in before a strong note and punches out on it. With a video the shapes are traced again from the frame a couple of times a second. *shape → save svg* saves the shapes as an SVG, sharp at any size.
 - **score · motion only**: none of the score drawn. The painting's strokes swell out on the hits, and the painting smears and glows with the bass.
 
 **shape** (the button beside the score menu) reshapes it:
@@ -135,12 +135,12 @@ swells with the sound, and the colours change with the song's sections.
 - **flows**: which way a line score runs (←, →, ↑, ↓).
 - **line position**, **line width**, **line wave** (the line snakes, moving) and **line beads** (smooth or beaded).
 - **spread** (how far the lanes reach), **size** (every figure), **speed**, **glow** and **tilt** (turns the whole score).
-- **vector colours** (how many flat colours score · vector uses), **outlines** (an ink line round each shape) and **save svg**.
+- **vector colours** (how many flat colours score · vector uses), **vector detail** (how many shapes: low gives a few big ones, high many small ones; tiny specks join their neighbours, so nothing is left empty), **fill** (*flat*; *painted*: each shape filled with brushwork in your ticked styles; *mixed*: flat shapes with brush accents), **outlines** (an ink line round each shape) and **save svg**.
 - **echo**: the frames before trail behind, zooming and turning a little more on each hit. 0 is off.
 
 The movers squash and stretch: they gather in just before a strong note, stretch out on it and settle back with a wobble.
 
-Double-click a slider to put it back; *reset* puts them all back.
+Double-click or right-click a slider to put it back; *reset* puts them all back.
 
 The score's colours come from the picture (its strongest colours, its darkest tone for the ink, its lightest for the paper), or from the locked palette when there is one.
 
@@ -184,7 +184,9 @@ It works in the studio, simple, +code and editor displays, shows in recordings, 
 - **sync warp** (lines torn sideways, a tracking band rolling down) and **ripple** (edges wobble in zig-zags).
 - **scanlines**, **phosphor**, **bloom**, **snow**, **tube curve** and **screen size** (how big the scanlines and phosphor dots are, up to the close-up look of a camera pointed at a TV).
 
-It works on every score mode too, and shows in recordings and the saved PNGs and stills. Double-click a slider for 0; *reset* clears it.
+It works on every score mode too, and shows in recordings and the saved PNGs and stills. The **on** switch at the top turns it off and keeps every setting for later. Double-click or right-click a slider for 0; *reset* clears it.
+
+Right-click any slider in the studio to put it back to its default.
 
 ## Presets and reset
 
