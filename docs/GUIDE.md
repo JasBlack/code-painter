@@ -165,7 +165,7 @@ It works in the studio, simple, +code and editor displays, shows in recordings, 
 - **⏺ render** (the default): the run starts again and is rendered frame by frame, perfectly smooth, at **720p, 1080p, 1440p or 4K**. The message line shows how long is left.
 - **⏺ live**: the stage in real time. **interface** records the whole page; **from now** records the stage from this moment on.
 - **⬇ code**: a small web page that paints the picture again by itself, stroke by stroke, in the same styles (self-playing, with the song if you like).
-- **svg**, **png 1K / 4K / 8K**, **stills**, **contact sheet**, **cover**.
+- **svg**, **png 1K / 4K / 8K**, **stills**, **contact sheet**, **cover**. With a live input, a video, a zoom or a playlist (which never finish), **svg** saves the view as it is now. The canvas is traced into flat colour shapes, with the most recent strokes over them as vector strokes.
 - **window**: open the painting on its own, for a projector or a second screen.
 - **Displays** (above the stage): *studio*, *simple*, *paint*, *+code* and *editor*. *editor* puts the painting beside its code in an editor window (painting.js, window dots, big line numbers, the current line highlighted, "Code Painter by Jas Black" along the bottom). In 16:9 they sit side by side. In the tall frames the painting is as big as it fits, with a thin black trim, and the editor sits under it, lined up with its edges.
 
