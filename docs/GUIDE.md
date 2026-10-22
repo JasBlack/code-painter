@@ -179,17 +179,72 @@ It works in the studio, simple, +code and editor displays, shows in recordings, 
 
 ## Signal
 
-**signal** (in the out panel) puts the painting through old video gear, on the graphics card, after the grade. Pick a **look** to set the sliders together, then change any of them:
+**signal** (in the out panel) sends the painting down a chain of old video gear, on the graphics card, after the grade, the way a real signal would go:
 
-- **looks**: *crt tv*, *composite*, *vhs*, *video synth*, *fm lines*, *phosphor*, *dither*, *90s cel*, *cel on tv*, *thermal*.
-- **tint**: the picture's own colours, or a screen's few: *green* or *amber* phosphor, *blue*, *gameboy* (four greens), *cga* (cyan, magenta, white), *thermal*, *mono*.
-- **mask**: the phosphor pattern, *stripes* or *dots*. **on the beat**: the warp, ripple, fm lines and synth colour kick with the bass.
-- **pixels** (big square pixels), **dither** (an ordered pattern of a few levels), **cel bands** (flat tones) and **cel ink** (dark edges).
-- **colour bleed** (the colour smears along the line and rainbows crawl on the edges, like composite video), **fm lines** (horizontal lines bent and thickened by the brightness), **synth colour** (the brightness mapped round the colour wheel, like the old video synthesisers).
-- **sync warp** (lines torn sideways, a tracking band rolling down) and **ripple** (edges wobble in zig-zags).
-- **scanlines**, **phosphor**, **bloom**, **snow**, **tube curve** and **screen size** (how big the scanlines and phosphor dots are, up to the close-up look of a camera pointed at a TV).
+source → colorizer → noize enhancer → the composite wire (with a circuit bend on it) → sync → tape → RF → the TV set → feedback → the tube
 
-It works on every score mode too, and shows in recordings and the saved PNGs and stills. The **on** switch at the top turns it off and keeps every setting for later. Double-click or right-click a slider for 0; *reset* clears it.
+The composite wire is the heart of it. The colour rides a carrier wave along each line and the TV decodes it again (with a notch filter, or a comb filter that uses the line above). That is where the dot crawl, the rainbow cross-colour on fine detail and the colour bleed come from. The wire runs at broadcast resolution, one line at a time (with a scanline count, that many lines). Each frame is kept for the feedback.
+
+- **look**: sets all the knobs together, then make it your own. *clean TV*, *VHS tape*, *broadcast Trinitron*, *arcade 240p*, *worn VHS*, *filmed screen*, *rolling scan band*, *noize box*, *noize wrap*, *overdriven*, *neon colorizer*, *colour space 2*, *both boxes*, *resonant bend*, *ringing circuit*, *feedback tunnel*, *pattern synth*, *lost sync*, *crt tv*, *video synth*, *fm lines*, *phosphor*, *dither*, *90s cel*, *cel on tv*, *thermal*.
+- **tint**: the picture's own colours, or a screen's few: green or amber phosphor, blue, gameboy, cga, thermal, mono.
+- **on the beat**: the sync, the bend, the feedback zoom and the synth colour kick with the bass. **bend on hits**: each hit shorts the circuit for a moment at a random bend point.
+- **bend points**: hold one to short the circuit (*sync loss*, *roll*, *chroma short*, *feedback*, *fold*, *static*, *invert*, *freeze*). Shift-click latches one on. With the panel open, the keys 1–8 hold them too. *random bend* fires one for a moment.
+- The sections open and close; a light shows the ones in use:
+  - **colorizer**: *colour* and *deform* (the hues bent by the brightness), in *space 1*, *standard* or *space 2*.
+  - **noize enhancer**: *gain*, *noize* (*plain*, *lines* or *wrap*: overdriven brightness wraps round) and *bright warp*.
+  - **composite wire**: *composite* (how much of the picture goes through the carrier), *sharpness*, the *decoder* (notch or comb) and the *field rate* (50, 59.94 or 60 Hz: how the dot crawl moves).
+  - **circuit bend**: a resonant stage on the wire that rings: *amount*, *frequency*, *Q*, *boost*, *clip low* / *high*, *feedback*, *delay*, *motion*.
+  - **sync**: *V hold* (the picture rolls), *H jitter*, *H tear* (the top flags), *head switch* (the tear at the bottom), *sync pull* (bright parts pull the lines), *AFC ringing*, *wobulate* and *wob freq*, *sync warp*, *ripple*.
+  - **tape**: the *format* (off, VHS, worn VHS), *grain*, *chroma noise*, *chroma delay*, *dropouts*, *tracking*.
+  - **feedback**: the output patched back to the input: *amount*, *zoom*, *rotate*, *shift x* / *y*, *hue drift*, *luma key* (only where the picture is dark).
+  - **oscillator**: a raster pattern generator mixed in: *mix*, *H* / *V freq*, *rate*, *colour*.
+  - **RF**: *snow*, *specks*, *interference*, *ghost*, *hum bar*, *chaos*.
+  - **TV set**: *colour*, *tint*, *brightness*, *contrast*, *hue drift*.
+  - **tube**: *scanlines* (the screen's own, or 240p / 288p / 480 / 576 lines, each drawn by a beam that widens where it is bright), the *mask* (aperture grille, slot, shadow), *phosphor*, *bloom*, *tube curve*, *screen size*, *glass* and *camera* (as if filmed off the screen).
+  - **stylise**: *pixels*, *dither*, *cel bands*, *cel ink*, *fm lines*, *synth colour*.
+
+It works on every score mode too, and shows in recordings and the saved PNGs and stills. The **on** switch at the top turns it off and keeps every setting for later; *clean* puts every knob back to 0. Double-click or right-click a knob for 0.
+
+## Grade look: vector scope
+
+In the **grade** panel, *look: vector scope* turns the painting into an old vector display:
+
+- **The screen:** black, with the picture's edges as thin phosphor lines (a white-hot core in a glow) and its brightest parts as glowing blobs.
+- **Axes:** a grey crosshair with its 0, and dashed lines dropped from the picture's strongest points onto the axes.
+- **Settings:** the colour (*green*, *amber*, *cyan*, *white*, *magenta*), **axes** on or off, **detail** (how many edges become lines) and **blobs**.
+
+It goes on before the signal, so a CRT look can sit on top.
+
+## Voices
+
+**voices** (music in the paint) gives every instrument of the song its own visual voice, placed where the picture has structure, instead of the whole painting following the loudness. The song is split into four bands, and each band's own hits are found:
+
+- **kick → shock**: a flattened ring bursts out from the base of the picture, with a white flash and a punch.
+- **snare → disc**: a slice of the painting through the middle smears out sideways, tinted, like a spun disc.
+- **hats → spark**: a branching electric bolt flickers between two points high up the picture.
+- **tone → bloom**: a blob of the picture's strongest colour swells on the subject, and stays.
+- **ribbon**: a streak orbits the subject all the time, as fast and as broad as the melody is loud.
+
+What they leave goes into a trail that fades as slowly as you like (**persist**), so over the song the marks build up into a form. **size**, **sensitivity** (how many hits each instrument fires on) and the **colours** (from the picture, neon or white) are in the same panel. It works with a song or with live sound.
+
+## Growth
+
+*one line → growth · ink / growth · colour* draws the picture as one closed line that grows (differential growth):
+
+- **Growing:** it starts as a small loop in the picture's darkest part. Each point keeps its neighbours close and pushes every other point away, and where the line stretches a new point goes in.
+- **The picture:** the line lengthens and folds like a brain coral until it fills the picture. It folds tighter where the picture is darker and leaves the near-white empty.
+- **Video and music:** on a video the line re-forms round the picture as it plays; with music the bass makes it pulse.
+- **Settings:** the stroke count sets how long it may grow and so how fine it gets; the speed slider sets how fast. **svg** saves the line.
+
+## Pigment mixing
+
+**pigment** (in the style panel, beside *tint*) mixes the paint styles' colours as real paint does, after spectral.js (Kubelka–Munk theory, by Ronald van Wijnen, MIT licence):
+
+- **Mixing:** blue into yellow makes green, not grey, and a colour thinned with white keeps its hue.
+- **Wet pickup:** each stroke takes up a little of the wet colour already under it, more by its end, as a brush does.
+- **Styles:** it applies to oil, acrylic, knife, gouache, watercolour, wet, soft, painterly and the inks. Graffiti stays as it is.
+
+Off, colours mix as light on a screen.
 
 Right-click any slider in the studio to put it back to its default.
 
