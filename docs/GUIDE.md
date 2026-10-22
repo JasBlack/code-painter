@@ -89,6 +89,7 @@ Load a song, pick one of the 10 **demo ♪** songs (house, boom bap, drum & bass
 
 - **hits**: strokes land on the song's hits.
 - **flow**: the painting follows the song's energy.
+- With **hits** and **flow** (and with *one line*), the **speed** slider sets how much of the song the painting takes. At its default (×3) the last stroke lands at the song's end; faster finishes sooner, with more strokes on each hit; slower leaves the rest to be painted after the song, at that pace.
 - **free**: hits throw bursts of strokes.
 - **sections**: drops paint bolder, breaks paint calmer.
 - **music in the paint** (*amount*): how much the song changes the painting itself. At 0 the music only sets the pace.
