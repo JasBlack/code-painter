@@ -207,34 +207,37 @@ It works on every score mode too, and shows in recordings and the saved PNGs and
 
 ## Grade look: vector scope
 
-In the **grade** panel, *look: vector scope* turns the painting into an old vector display:
+In the **grade** panel, *look: vector scope* turns the painting into a vector display seen through good glass:
 
-- **The screen:** black, with the picture's edges as thin phosphor lines (a white-hot core in a glow) and its brightest parts as glowing blobs.
-- **Axes:** a grey crosshair with its 0, and dashed lines dropped from the picture's strongest points onto the axes.
-- **Settings:** the colour (*green*, *amber*, *cyan*, *white*, *magenta*), **axes** on or off, **detail** (how many edges become lines) and **blobs**.
+- **The lines:** the picture's edges, traced thin and sharp at full resolution, with a hot core.
+- **The light:** each line blooms at three sizes, from a tight glow to a wide soft haze, with a warm halation round the brightest parts and a little film grain. It is meant to feel nostalgic but expensive, not like an old effect.
+- **Axes:** quiet hairline axes with ticks, and a few faint glowing dashes dropped from the picture's strongest points.
+- **Settings:** the colour (*green*, *amber*, *cyan*, *white*, *magenta*, or *picture*, which keeps the picture's own colours in the glow), **axes** on or off, **detail** (how many edges become lines) and **blobs**.
 
 It goes on before the signal, so a CRT look can sit on top.
 
-## Voices
+## Bolts
 
-**voices** (music in the paint) gives every instrument of the song its own visual voice, placed where the picture has structure, instead of the whole painting following the loudness. The song is split into four bands, and each band's own hits are found:
-
-- **kick → shock**: a flattened ring bursts out from the base of the picture, with a white flash and a punch.
-- **snare → disc**: a slice of the painting through the middle smears out sideways, tinted, like a spun disc.
-- **hats → spark**: a branching electric bolt flickers between two points high up the picture.
-- **tone → bloom**: a blob of the picture's strongest colour swells on the subject, and stays.
-- **ribbon**: a streak orbits the subject all the time, as fast and as broad as the melody is loud.
-
-What they leave goes into a trail that fades as slowly as you like (**persist**), so over the song the marks build up into a form. **size**, **sensitivity** (how many hits each instrument fires on) and the **colours** (from the picture, neon or white) are in the same panel. It works with a song or with live sound.
+**bolts** (one of the beat keys) makes the brush itself strike like lightning on the hits. On each hit the painter picks one of the picture's lines and runs the ticked style along it: a fast stroke that follows the edge, jumps small gaps and forks, so the bolt is painted in graffiti, gold, oil or whatever is ticked, and stays as part of the painting. Harder hits make longer, wider bolts with more forks.
 
 ## Growth
 
-*one line → growth · ink / growth · colour* draws the picture as one closed line that grows (differential growth):
+*one line → growth · ink / growth · colour* makes the picture out of one closed line that grows (differential growth), then paints it:
 
-- **Growing:** it starts as a small loop in the picture's darkest part. Each point keeps its neighbours close and pushes every other point away, and where the line stretches a new point goes in.
+- **Growing:** it starts as a small loop in the picture's darkest part. Each point keeps its neighbours close and pushes every other point away, and where the line stretches a new point goes in. While it grows it shows as a steady pencil line.
 - **The picture:** the line lengthens and folds like a brain coral until it fills the picture. It folds tighter where the picture is darker and leaves the near-white empty.
+- **Painting:** once grown, the brush paints along the whole line in the ticked styles (graffiti, gold, oil…), in the picture's colours with *growth · colour*.
 - **Video and music:** on a video the line re-forms round the picture as it plays; with music the bass makes it pulse.
 - **Settings:** the stroke count sets how long it may grow and so how fine it gets; the speed slider sets how fast. **svg** saves the line.
+
+## Real paint
+
+**real paint** (in the style panel, beside *pigment*; on by default) paints some styles with a simulation of the paint itself instead of drawing them:
+
+- **Watercolour** (*water*, *wet*, *wash*): Maksim Surguy's Watercolor Playground engine (MIT licence). Water and pigment flow on paper: the paint bleeds into damp paper, pools into a darker tide line as it dries, settles into the paper's grain and glazes where strokes cross. Each layer is let dry before the next, as a watercolourist waits. It is painted on white watercolour paper and lies over the other styles as a transparent glaze.
+- **Oil and acrylic**: David Li's Fluid Paint (MIT licence). A brush of up to a hundred bristles, each bending against the canvas, drags wet paint that smears into the paint already there and keeps the bristles' ridges, lit as a real surface: glossy for oil, matte for acrylic.
+- **Where it shows:** on the painting, in the saved pictures and in recordings. The saved code and SVG keep the drawn look, since they are code.
+- **What it needs:** a graphics card with float textures (WebGL 2 for watercolour). Without it, or with real paint off, the drawn styles are used. Real paint is heavier than drawing: on a slow computer the engine catches up after the painter.
 
 ## Pigment mixing
 
@@ -244,7 +247,7 @@ What they leave goes into a trail that fades as slowly as you like (**persist**)
 - **Wet pickup:** each stroke takes up a little of the wet colour already under it, more by its end, as a brush does.
 - **Styles:** it applies to oil, acrylic, knife, gouache, watercolour, wet, soft, painterly and the inks. Graffiti stays as it is.
 
-Off, colours mix as light on a screen.
+Off, colours mix as light on a screen. The difference shows most where two different colours meet or cross: with pigment on, a blue stroke over wet yellow turns green at its tail; with it off, it turns grey.
 
 Right-click any slider in the studio to put it back to its default.
 
