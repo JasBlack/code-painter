@@ -755,6 +755,7 @@
       <label class="key" title="splash: on the beat, the brushes being drawn flick drops of their paint off the tip"><input type="checkbox" id="beat_splash" value="splash"><span class="led"></span>splash</label>
       <label class="key" title="branch: with one line, every beat splits the line into a new branch that draws on beside it (up to four)"><input type="checkbox" id="beat_branch" value="branch"><span class="led"></span>branch</label>
       <label class="key" title="glow: on the beat, the tip of each brush being drawn lights up in its own shape and colour, and fades as it moves on"><input type="checkbox" id="beat_glow" value="glow"><span class="led"></span>glow</label>
+      <label class="key" title="bolts: on the hits, the brush strikes like lightning along the picture's own lines — a bolt runs along a line, jumps the gaps and forks, painted in a fraction of a second in your styles and the picture's colours, and stays"><input type="checkbox" id="beat_bolts" value="bolts"><span class="led"></span>bolts</label>
       <select id="score" class="sel" aria-label="Score" title="score: the song as a moving score, like producers' visuals. The spine down the middle is now: the notes still to come drift in from the right as small dots, fire as they reach it (rings flare on the low hits, stems drop on the mids, sprigs and strands fly off on the highs) and scroll away to the left, glowing. clean: crisp lines, rings and dots · brush: the same score drawn loose in your ticked styles and brush, no clean shapes · organic: the same score as liquid blobs that run together, drips and splats, with a grain · nature: living things — cells, plants, spores or bones — wander over the picture's dots, waking them into painted marks on the beats · motion only: none of it drawn — the strokes of the painting swell out on the hits and the painting smears with the bass" style="flex: none; width: 92px"><option value="off" selected>score: off</option><option value="paper">score · clean</option><option value="brush">score · brush</option><option value="organic">score · organic</option><option value="nature">score · nature</option><option value="vector">score · vector</option><option value="motion">score · motion only</option></select>
     </div>
   </div>
@@ -1498,7 +1499,7 @@ function setButtons() {
   const active = S.mode !== 'idle';
   $('play').disabled = !active || (S.done && !audioActive()); $('restart').disabled = !active; $('rec').disabled = !active;
   // while zooming endlessly there is no finished program to save (⬇ png saves the current view)
-  $('savecode').disabled = S.mode !== 'auto' || !S.count || S.endless.on || !!S.dg; $('savepng').disabled = !active;
+  $('savecode').disabled = S.mode !== 'auto' || !S.count || S.endless.on || !!(S.dg && S.dg.phase !== 'paint'); $('savepng').disabled = !active;
   $('savesvg').disabled = S.mode !== 'auto' || !S.count;      // (live / zoom / video: the view as it is now, see liveSvg)
   $('savestills').disabled = $('savesheet').disabled = !stillsOk(); $('savecover').disabled = !active;
   $('embedmusic').disabled = !AU.el;
@@ -1797,6 +1798,7 @@ function onBeat(h) {
     if (S.running && !S.pen && !S.endless.on && !S.workerDone && !S.accWant && S.count < S.total - 2) { S.accWant = { t: clock(), s: st }; worker.postMessage({ type: 'accent', k: 1.8 + 2.6 * st * amt }); }
   }
   if (bt.has('splash') && S.mode === 'auto' && S.running) beatSplash(st);
+  if (bt.has('bolts') && S.mode === 'auto' && S.running && !VZ.on && !(S.endless.on && S.endless.travel)) boltFire(st);
   if (bt.has('glow') && S.mode === 'auto') S.tipGlow = { t: clock(), s: Math.min(1, 0.45 + 0.7 * h.s) };
   if (bt.has('branch') && S.mode === 'auto' && S.pen && S.running) worker.postMessage({ type: 'branch', n: h.s > 0.75 ? 2 : 1 });
   if (S.wantNext && S.endless && S.endless.on) advancePlaylist();       // playlist: change picture on the beat
@@ -2454,7 +2456,8 @@ function pace(dt) {
     if (!painterReady() && clock() - S.waitSince < 4000) return;
     S.waitAudio = false; playAudioFromStart(); if (S.fr && S.fr.ready) S.fr.t0 = clock();
   }
-  if (S.fr && !S.fr.done) { frStep(); if (!S.fr.done) return; }      // (once the circles are done: the usual end of a run)
+  if (S.fr && !S.fr.done) { frStep(); if (!S.fr.done) return; }
+  if (S.dg && S.dg.phase === 'paint' && !S.dg.pdone) { dgPaintStep(); return; }      // (once the circles are done: the usual end of a run)
   if (S.endless.on) return paceEndless(dt);
   if (!OFF.on) musicHold(Math.max(0, demand(dt)));
   musicSize(dt);
@@ -2947,7 +2950,7 @@ async function autoProgram(opts = {}) {
 }
 // render the finished picture big (auto: redraw the recorded calls at scale; replay: re-run the piece at scale)
 async function renderBig(longSide) {
-  if (S.dg && S.dg.on && S.mode === 'auto') return dgCanvas(longSide);
+  if (S.dg && S.dg.on && S.mode === 'auto' && S.dg.phase !== 'paint') return dgCanvas(longSide);
   if (S.mode === 'auto' && S.endless.on) return endlessView(longSide / Math.max(S.out.width, S.out.height));
   if (S.mode === 'auto' && RLF.on) { const cv = reliefBig(longSide / Math.max(S.out.width, S.out.height)); if (cv) return cv; }
   if (S.mode === 'auto') {
@@ -5767,8 +5770,7 @@ const frameReact = () => $('framereact').checked && musicOn() ? AU.bass : 0;
 function paintPanel(b, now, r) {
   const P = frameShape(b, now);
   X.save(); tracePts(X, P); X.clip();
-  if (VZ.mode === 'motion') vizDraw(b, now, r); else if (VZ.on) scorePost(b, now, () => VZ.mode === 'nature' ? natureDraw(b, now) : VZ.mode === 'vector' ? vectorDraw(b, now) : scoreDraw(b, now, VZ.mode === 'organic' ? 'organic' : VZ.mode === 'brush')); else if (S.dg && S.dg.on && S.mode === 'auto') dgDraw(b, now); else paintContent(b, now, r);
-  if (VO.on && (S.out || VZ.on)) voicesDraw(b, now);
+  if (VZ.mode === 'motion') vizDraw(b, now, r); else if (VZ.on) scorePost(b, now, () => VZ.mode === 'nature' ? natureDraw(b, now) : VZ.mode === 'vector' ? vectorDraw(b, now) : scoreDraw(b, now, VZ.mode === 'organic' ? 'organic' : VZ.mode === 'brush')); else if (S.dg && S.dg.on && S.mode === 'auto' && S.dg.phase !== 'paint') dgDraw(b, now); else paintContent(b, now, r);
   if (SPRAY.wall !== 'none' && S.out && !VZ.on) wallOver(X, b.x, b.y, b.w, b.h);
   if ((GRADE.on || SIGNAL.on || SCOPE.on) && (S.out || VZ.on)) { const m = X.getTransform(), r4 = [Math.round(m.a * b.x + m.e), Math.round(m.d * b.y + m.f), Math.round(m.a * b.w), Math.round(m.d * b.h)]; if (S.out) gradeApply(X, ...r4); scopeApply(X, ...r4); signalApply(X, ...r4); }
   X.restore();
@@ -7118,17 +7120,10 @@ function signalApply(x, dx, dy, dw, dh) {
 }
 const signalBuild = () => { SIGNAL.on = SIGNAL.enabled && (SIGNAL.tint !== 'none' || SG_DEF.some(([k]) => SIGNAL.v[k]) || SIGNAL.s.tfmt !== 'off' || Object.values(SIGNAL.latch).some(Boolean)); };
 // ═════════════════════════════════════════════════════════════
-//  Voices: every instrument of the song gets its own visual voice, placed where the picture has structure, instead
-//  of the whole painting following the loudness. The song is split into four bands and each band's own hits are
-//  found (spectral flux, peaks over their neighbourhood): kick (35–120 Hz) · snare (body and crack, 180 Hz–5 kHz) ·
-//  hats (7–11 kHz) · tone (the pitched middle, 250–1200 Hz, away from the snares). On a hit its voice fires:
-//    kick  → shock: a flattened ring bursts out from the base of the picture, a white flash, a zoom-smear punch
-//    snare → disc: a slice of the painting through the middle smears out sideways, tinted, like a spun disc
-//    hats  → spark: a branching electric bolt between two points high up the picture, flickering
-//    tone  → bloom: an organic blob of the picture's strongest colour swells on the subject, and stays
-//    ribbon (the tone's loudness, all the time): a streak orbiting the subject, wrapping round it
-//  What they leave goes into a trail layer that fades as slowly as you like (persist), so the marks build up into a
-//  form over the song. Live sound gets the same bands, found as it plays.
+//  The song's instruments: its spectrum split into four bands, each band's own hits found (spectral flux, peaks over
+//  their neighbourhood): kick (35–120 Hz) · snare (body and crack, 180 Hz–5 kHz) · hats (7–11 kHz) · tone (the pitched
+//  middle, 250–1200 Hz). Live sound gets the same bands as it plays. And the picture's structure (its edge points),
+//  where things go.
 // ═════════════════════════════════════════════════════════════
 const VO = { v: {}, on: false, ev: [], i: 0, lastT: null, fx: [], anch: null, anchKey: '', trail: null, snap: null, tmp: null, rib: null, live: null, lastNow: 0 };
 const VO_DEF = { kick: true, snare: true, hat: true, tone: true, ribbon: true, size: 100, persist: 55, sens: 50, col: 'picture' };
@@ -7215,193 +7210,106 @@ function voicesAnchors() {
   VO.anchKey = key; return (VO.anch = { P, cx: sw ? sx / sw : 0.5, cy: sw ? sy / sw : 0.5, y0: P.length > 1 ? y0 : 0.2, y1: P.length > 1 ? y1 : 0.8 });
 }
 // a point for a voice: one of the picture's edge points in its zone (0..1 down the picture's own height)
-function voPoint(A, R, z0, z1) {
-  const ya = A.y0 + (A.y1 - A.y0) * z0, yb = A.y0 + (A.y1 - A.y0) * z1;
-  for (let t = 0; t < 30; t++) { const p = A.P[Math.floor(Math.pow(R(), 1.6) * A.P.length)]; if (p.y >= ya && p.y <= yb) return p; }
-  return { x: A.cx + (R() - 0.5) * 0.3, y: (ya + yb) / 2, c: [220, 220, 220], g: 1 };
-}
-function voColours() {
-  const P = vizPalette(), m = VO.v.col || 'picture';
-  if (m === 'white') return { a: '#ffffff', b: '#dfe8ff', c: '#ffffff', d: '#f2f2f2' };
-  if (m === 'neon') return { a: '#ffffff', b: '#39e6c8', c: '#a9c9ff', d: '#ff2d55' };
-  const acc = P.acc || ['#39e6c8', '#ff2d55', '#a9c9ff'];
-  const sat = h => { const n = parseInt(h.slice(1), 16), r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255; return (Math.max(r, g, b) - Math.min(r, g, b)) / 255; };
-  const bySat = acc.slice().sort((p, q) => sat(q) - sat(p));
-  return { a: '#ffffff', b: bySat[1] || bySat[0], c: '#cfe3ff', d: bySat[0] };
-}
 // a bolt: midpoint displacement between two points, with side branches
-function voBolt(R, x0, y0, x1, y1, depth, out) {
-  if (depth === 0) { out.push([x0, y0, x1, y1]); return; }
-  const mx = (x0 + x1) / 2, my = (y0 + y1) / 2, l = Math.hypot(x1 - x0, y1 - y0), o = (R() - 0.5) * l * 0.45, nx = -(y1 - y0) / (l || 1), ny = (x1 - x0) / (l || 1);
-  const px = mx + nx * o, py = my + ny * o;
-  voBolt(R, x0, y0, px, py, depth - 1, out); voBolt(R, px, py, x1, y1, depth - 1, out);
-  if (depth >= 3 && R() < 0.35) { const a = Math.atan2(y1 - y0, x1 - x0) + (R() - 0.5) * 1.6, bl = l * (0.25 + R() * 0.3); voBolt(R, px, py, px + Math.cos(a) * bl, py + Math.sin(a) * bl, depth - 2, out); }
-}
-function voBlob(x, cx, cy, r, R) {
-  const n = 14, pts = []; for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2, rr = r * (0.72 + R() * 0.5); pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * 0.85]); }
-  x.beginPath(); for (let i = 0; i < n; i++) { const p = pts[i], q = pts[(i + 1) % n], m = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]; if (!i) x.moveTo(m[0], m[1]); else x.quadraticCurveTo(p[0], p[1], m[0], m[1]); } const p = pts[0], q = pts[1]; x.quadraticCurveTo(p[0], p[1], (p[0] + q[0]) / 2, (p[1] + q[1]) / 2); x.closePath();
-}
-function voicesDraw(b, now) {
-  const A = voicesAnchors(); if (!A) return;
-  const t = clock(), dt = Math.min(0.1, Math.max(0, (t - (VO.lastNow || t)) / 1000)); VO.lastNow = t;
-  const song = AU.el && !AU.live && AU.voEv, playing = (song && !aPaused() && !AU.ended) || !!AU.live, sz = (VO.v.size ?? 100) / 100, m = Math.min(b.w, b.h);
-  // the hits that playback has passed since the last frame (a seek / loop back starts the count again)
-  const fire = [];
-  if (song) {
-    const T = aTime(), E = AU.voEv;
-    if (VO.lastT == null || T < VO.lastT - 0.3 || T > VO.lastT + 1) { VO.i = 0; while (VO.i < E.length && E[VO.i].t < T) VO.i++; }
-    else if (playing) while (VO.i < E.length && E[VO.i].t <= T) fire.push(E[VO.i++]);
-    VO.lastT = T;
-  } else if (AU.live) fire.push(...voicesLive(t));
-  const C = voColours();
-  for (const e of fire) {
-    if (!VO.v[e.k]) continue;
-    const R = scRng(Math.floor(t * 7.3) + VO.fx.length * 13 + 1), s = e.s;
-    if (e.k === 'kick') { const p = voPoint(A, R, 0.62, 1); VO.fx.push({ k: 'kick', t0: t, dur: 520 + 300 * s, x: p.x, y: p.y, s }); }
-    else if (e.k === 'snare') { const p = voPoint(A, R, 0.2, 0.75); VO.fx.push({ k: 'snare', t0: t, dur: 380 + 200 * s, x: p.x, y: p.y, s, c: C.b }); }
-    else if (e.k === 'hat') { const p = voPoint(A, R, 0, 0.55), a = R() * Math.PI * 2, l = 0.08 + 0.16 * s; VO.fx.push({ k: 'hat', t0: t, dur: 140 + 120 * s, x: p.x, y: p.y, x1: p.x + Math.cos(a) * l, y1: p.y + Math.sin(a) * l, s, seed: R() * 1e6 }); }
-    else if (e.k === 'tone') { const p = voPoint(A, R, 0, 1); VO.fx.push({ k: 'tone', t0: t, dur: 900, x: p.x, y: p.y, s, c: R() < 0.7 ? C.d : 'rgb(' + p.c.map(v => Math.round(v)).join(',') + ')', seed: R() * 1e6 }); }
-  }
-  if (VO.fx.length > 80) VO.fx.splice(0, VO.fx.length - 80);
-  // the trail: the layer the voices leave their marks in, in the stage's own pixels, fading at the persist rate
-  const M = X.getTransform(), dx = Math.round(M.a * b.x + M.e), dy = Math.round(M.d * b.y + M.f), dw = Math.max(2, Math.round(M.a * b.w)), dh = Math.max(2, Math.round(M.d * b.h));
-  const tr = VO.trail || (VO.trail = document.createElement('canvas')); if (tr.width !== dw || tr.height !== dh) { tr.width = dw; tr.height = dh; }
-  const tx = tr.getContext('2d'), per = (VO.v.persist ?? 55) / 100, tau = per >= 0.99 ? Infinity : 0.4 * Math.pow(150, per);
-  tx.setTransform(1, 0, 0, 1, 0, 0);
-  if (tau !== Infinity && dt > 0) { tx.globalCompositeOperation = 'destination-out'; tx.fillStyle = `rgba(0,0,0,${(1 - Math.exp(-dt / tau)).toFixed(4)})`; tx.fillRect(0, 0, dw, dh); tx.globalCompositeOperation = 'source-over'; }
-  tx.setTransform(M.a, 0, 0, M.d, M.e - dx, M.f - dy);        // (marks into it in stage coordinates, like X)
-  // the ribbon: a streak orbiting the subject, as fast and as broad as the tone is loud
-  if (VO.v.ribbon && playing) {
-    const env = song ? (() => { const f = Math.floor(aTime() / AU.voRaw.hop); return AU.voRaw.env[Math.max(0, Math.min(AU.voRaw.env.length - 1, f))] || 0; })() : (VO.live && VO.live.env) || 0;
-    const rb = VO.rib || (VO.rib = { a: 0, prev: null }); rb.a += dt * (0.7 + 3.2 * env);
-    // (it wanders: the orbit breathes, tilts and spirals up and down the subject; a few bristles, not one clean line)
-    const cx = b.x + A.cx * b.w, cy = b.y + A.cy * b.h, rx = (0.16 + 0.07 * Math.sin(rb.a * 0.37) + 0.04 * Math.sin(rb.a * 1.13)) * m * sz, ry = rx * (0.22 + 0.12 * Math.sin(rb.a * 0.19)), yy = cy + Math.sin(rb.a * 0.11) * (A.y1 - A.y0) * 0.45 * b.h;
-    const tilt = 0.25 * Math.sin(rb.a * 0.07), ca = Math.cos(rb.a), sa = Math.sin(rb.a), p = [cx + ca * rx - sa * ry * tilt, yy + sa * ry + ca * rx * tilt], front = sa > 0;
-    if (rb.prev && env > 0.14) {
-      const w = m * (0.0016 + 0.006 * env) * sz, nx = -(p[1] - rb.prev[1]), ny = p[0] - rb.prev[0], nl = Math.hypot(nx, ny) || 1;
-      tx.lineCap = 'round'; tx.strokeStyle = front ? C.d : C.b;
-      for (let k = -2; k <= 2; k++) { const o = k * w * 1.6; tx.globalAlpha = Math.min(0.7, (0.12 + env * 0.5) * (1 - Math.abs(k) * 0.28)); tx.lineWidth = w * (1 - Math.abs(k) * 0.25); tx.beginPath(); tx.moveTo(rb.prev[0] + nx / nl * o, rb.prev[1] + ny / nl * o); tx.lineTo(p[0] + nx / nl * o, p[1] + ny / nl * o); tx.stroke(); }
-      tx.globalAlpha = 1;
-    }
-    rb.prev = p;
-  } else if (VO.rib) VO.rib.prev = null;
-  X.save(); X.beginPath(); X.rect(b.x, b.y, b.w, b.h); X.clip();
-  X.save(); X.setTransform(1, 0, 0, 1, 0, 0); X.drawImage(tr, dx, dy); X.restore();
-  // a copy of the picture as it stands, for the smears (taken once, only when one is running)
-  let snapped = false; const snap = () => { if (snapped) return VO.snap; snapped = true; const c = VO.snap || (VO.snap = document.createElement('canvas')); if (c.width !== dw || c.height !== dh) { c.width = dw; c.height = dh; } const cx = c.getContext('2d'); cx.globalCompositeOperation = 'copy'; cx.drawImage(X.canvas, dx, dy, dw, dh, 0, 0, dw, dh); return c; };
-  const keep = [];
-  for (const f of VO.fx) {
-    const age = t - f.t0, u = age / f.dur; if (u >= 1) { if (f.k === 'tone') { tx.save(); tx.globalAlpha = 0.85; voToneDraw(tx, f, b, m, sz, 1); tx.restore(); } continue; }
-    keep.push(f); const px = b.x + f.x * b.w, py = b.y + f.y * b.h;
-    if (f.k === 'kick') {
-      const e = 1 - Math.pow(1 - u, 3), R0 = m * (0.1 + 0.16 * f.s) * sz, r = R0 * (0.15 + 1.1 * e), fade = Math.pow(1 - u, 1.6);
-      if (u < 0.35) { const sc = 1 + 0.06 * f.s * (1 - u / 0.35), c = snap(); X.save(); X.globalAlpha = 0.28 * (1 - u / 0.35); X.translate(px, py); X.scale(sc, sc); X.translate(-px, -py); X.drawImage(c, b.x, b.y, b.w, b.h); X.restore(); }
-      X.save(); X.globalCompositeOperation = 'lighter';
-      for (const [lw, al, col] of [[m * 0.03 * sz * (1 - u), 0.22, C.b], [m * 0.006 * sz, 0.9, C.a]]) { X.globalAlpha = al * fade; X.strokeStyle = col; X.lineWidth = Math.max(0.6, lw); X.beginPath(); X.ellipse(px, py, r, r * 0.26, 0, 0, Math.PI * 2); X.stroke(); }
-      const fl = Math.exp(-age / 90) * (0.4 + 0.6 * f.s); if (fl > 0.02) { const g = X.createRadialGradient(px, py, 0, px, py, m * 0.16 * sz); g.addColorStop(0, `rgba(255,255,255,${fl})`); g.addColorStop(0.35, `rgba(220,230,255,${fl * 0.45})`); g.addColorStop(1, 'rgba(255,255,255,0)'); X.globalAlpha = 1; X.fillStyle = g; X.fillRect(px - m * 0.2, py - m * 0.2, m * 0.4, m * 0.4); }
-      X.restore();
-      if (u > 0.9 && !f.left) { f.left = true; tx.save(); tx.globalAlpha = 0.25; tx.strokeStyle = C.b; tx.lineWidth = Math.max(0.6, m * 0.003); tx.beginPath(); tx.ellipse(px, py, r, r * 0.26, 0, 0, Math.PI * 2); tx.stroke(); tx.restore(); }
-    } else if (f.k === 'snare') {
-      const c = snap(), hh = m * (0.03 + 0.035 * f.s) * sz, e = 1 - Math.pow(1 - u, 2.2), sx = 1 + (0.8 + 1.0 * f.s) * e, fade = Math.pow(1 - u, 1.4);
-      const tmp = VO.tmp || (VO.tmp = document.createElement('canvas')), sh = Math.max(2, Math.round(hh * 2 * M.d)), sw = Math.max(2, Math.round(m * 0.34 * sz * M.a));
-      if (tmp.width !== sw || tmp.height !== sh) { tmp.width = sw; tmp.height = sh; }
-      const q = tmp.getContext('2d'); q.globalCompositeOperation = 'copy'; q.filter = CAN_BLUR ? `blur(${Math.max(1, sh * 0.08).toFixed(1)}px)` : 'none';
-      q.drawImage(c, Math.max(0, (px - b.x) * M.a - sw / 2), Math.max(0, (py - b.y) * M.d - sh / 2), sw, sh, 0, 0, sw, sh); q.filter = 'none';
-      q.globalCompositeOperation = 'source-atop'; q.globalAlpha = 0.55; q.fillStyle = f.c; q.fillRect(0, 0, sw, sh); q.globalAlpha = 1;
-      q.globalCompositeOperation = 'destination-in'; const g = q.createRadialGradient(sw / 2, sh / 2, 0, sw / 2, sh / 2, sw / 2); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.7, 'rgba(0,0,0,0.6)'); g.addColorStop(1, 'rgba(0,0,0,0)'); q.save(); q.scale(1, sh / sw); q.fillStyle = g; q.fillRect(0, 0, sw, sw); q.restore(); q.globalCompositeOperation = 'source-over';
-      const w2 = m * 0.34 * sz * sx, h2 = hh * 2 * (1 - 0.35 * e);
-      X.save(); X.globalCompositeOperation = 'screen'; X.globalAlpha = 0.95 * fade; X.drawImage(tmp, px - w2 / 2, py - h2 / 2, w2, h2);
-      X.globalCompositeOperation = 'lighter'; X.globalAlpha = 0.5 * fade; X.strokeStyle = C.a; X.lineWidth = Math.max(0.5, m * 0.0025); X.beginPath(); X.moveTo(px - w2 * 0.42, py); X.lineTo(px + w2 * 0.42, py); X.stroke(); X.restore();
-      if (u > 0.85 && !f.left) { f.left = true; tx.save(); tx.globalAlpha = 0.18; tx.drawImage(tmp, px - w2 * 0.35, py - h2 / 5, w2 * 0.7, h2 * 0.4); tx.restore(); }
-    } else if (f.k === 'hat') {
-      const R = scRng(Math.floor(f.seed + age / 45)), segs = [], ax = px, ay = py, bx = b.x + Math.min(1, Math.max(0, f.x1)) * b.w, by = b.y + Math.min(1, Math.max(0, f.y1)) * b.h;
-      voBolt(R, ax, ay, bx, by, 5, segs); const fade = u < 0.15 ? 1 : Math.pow(1 - u, 0.7) * (0.6 + 0.4 * (R() > 0.3));
-      X.save(); X.globalCompositeOperation = 'lighter'; X.lineCap = 'round'; X.lineJoin = 'round';
-      for (const [lw, al, col] of [[m * 0.012 * sz, 0.18, C.c], [m * 0.005 * sz, 0.35, C.c], [Math.max(0.8, m * 0.0016), 0.95, '#ffffff']]) { X.globalAlpha = al * fade; X.strokeStyle = col; X.lineWidth = lw; X.beginPath(); for (const [a1, a2, a3, a4] of segs) { X.moveTo(a1, a2); X.lineTo(a3, a4); } X.stroke(); }
-      for (const [qx, qy, r0] of [[ax, ay, 0.03], [bx, by, 0.018]]) { const g = X.createRadialGradient(qx, qy, 0, qx, qy, m * r0 * sz); g.addColorStop(0, `rgba(255,255,255,${0.9 * fade})`); g.addColorStop(1, 'rgba(255,255,255,0)'); X.globalAlpha = 1; X.fillStyle = g; X.fillRect(qx - m * r0 * sz, qy - m * r0 * sz, m * r0 * 2 * sz, m * r0 * 2 * sz); }
-      X.restore();
-      if (!f.left) { f.left = true; tx.save(); tx.globalAlpha = 0.3; tx.strokeStyle = C.c; tx.lineWidth = Math.max(0.5, m * 0.0012); tx.beginPath(); for (const [a1, a2, a3, a4] of segs) { tx.moveTo(a1, a2); tx.lineTo(a3, a4); } tx.stroke(); tx.restore(); }
-    } else if (f.k === 'tone') voToneDraw(X, f, b, m, sz, u);
-  }
-  VO.fx = keep;
-  X.restore();
-}
 // a tone's bloom: swells past its size and settles (then it is left in the trail)
-function voToneDraw(x, f, b, m, sz, u) {
-  const R = scRng(Math.floor(f.seed)), e = u >= 1 ? 1 : (() => { const c1 = 2.0, c3 = c1 + 1, v = Math.min(1, u / 0.45) - 1; return 1 + c3 * v * v * v + c1 * v * v; })();
-  const r = m * (0.018 + 0.045 * f.s) * sz * Math.max(0, e), px = b.x + f.x * b.w, py = b.y + f.y * b.h; if (r < 0.5) return;
-  x.save(); voBlob(x, px, py, r, R);
-  const g = x.createRadialGradient(px - r * 0.3, py - r * 0.35, r * 0.05, px, py, r * 1.1); g.addColorStop(0, 'rgba(255,255,255,0.7)'); g.addColorStop(0.25, f.c); g.addColorStop(1, f.c);
-  x.fillStyle = g; x.globalAlpha *= 0.92; x.fill(); x.restore();
-}
 // ═════════════════════════════════════════════════════════════
-//  Grade look · vector scope: the picture as an old vector display draws it — black, its edges as thin phosphor
-//  lines (a white-hot core in a green glow), the brightest parts as glowing blobs, a grey crosshair through the
-//  middle with its 0, and dashed lines dropped from the picture's strongest points onto the axes, like a plot.
-//  Two passes on the GPU (the edges at half size, then the glow round them); the axes and dashes drawn over.
+//  Grade look · vector scope: the picture as a vector display drawn on good film — black, its edges as fine lines of
+//  light with white-hot cores, a deep bloom round them (three sizes of blur added up), a warm halation where the light
+//  spills (the red-orange ring film gets round bright things), a filmic roll-off instead of clipping, fine moving grain
+//  and a soft vignette. A thin crosshair with its 0 and faint dashed drops from the strongest points, if wanted.
 // ═════════════════════════════════════════════════════════════
 const SCOPE = { on: false, col: 'green', axes: true, fill: 35, det: 50, gl: null, fail: false, nodes: null, nkey: '' };
-const SCOPE_COLS = { green: [0.25, 1, 0.35], amber: [1, 0.66, 0.15], cyan: [0.3, 0.9, 1], white: [0.92, 0.95, 1], magenta: [1, 0.3, 0.9] };
-const SC_E = `precision highp float; uniform sampler2D u; uniform vec2 R; uniform float TH; varying vec2 v;
-float L(vec2 q) { return dot(texture2D(u, q).rgb, vec3(.299, .587, .114)); }
-void main() { vec2 e = 1.2 / R; float gx = L(v + vec2(e.x, 0.)) * 2. + L(v + vec2(e.x, e.y)) + L(v + vec2(e.x, -e.y)) - L(v - vec2(e.x, 0.)) * 2. - L(v - vec2(e.x, -e.y)) - L(v - vec2(e.x, e.y));
-  float gy = L(v + vec2(0., e.y)) * 2. + L(v + vec2(e.x, e.y)) + L(v + vec2(-e.x, e.y)) - L(v - vec2(0., e.y)) * 2. - L(v - vec2(-e.x, e.y)) - L(v - vec2(e.x, e.y));
-  float g = length(vec2(gx, gy)), l = L(v); gl_FragColor = vec4(smoothstep(TH, TH + .3, g), smoothstep(.72, .93, l), 0., 1.); }`;
-const SC_G = `precision highp float; uniform sampler2D u; uniform vec2 R; uniform vec3 C; uniform float FL, T; varying vec2 v;
-void main() { vec2 q = vec2(v.x, 1. - v.y), px = 1. / R; vec2 e0 = texture2D(u, q).rg; float core = e0.r, blob = e0.g * FL, halo = 0., wide = 0.;
-  for (int i = 0; i < 12; i++) { float a = float(i) * .5236; vec2 o = vec2(cos(a), sin(a)); halo += texture2D(u, q + o * px * 2.5).r + texture2D(u, q + o * px * 5.).r * .7; wide += texture2D(u, q + o * px * 11.).r + texture2D(u, q + o * px * 11.).g * FL; }
-  halo /= 20.4; wide /= 12.;
-  vec3 col = C * (halo * 1.5 + wide * .55) + mix(C, vec3(1.), .55) * core * .9 + mix(C, vec3(1.), .8) * blob * .95;
-  col += C * .02 * (fract(sin(dot(gl_FragCoord.xy, vec2(12.98, 78.23)) + T) * 43758.5) - .5);
+const SCOPE_COLS = { green: [0.32, 1, 0.5], amber: [1, 0.62, 0.22], cyan: [0.35, 0.85, 1], white: [0.95, 0.94, 0.9], magenta: [1, 0.35, 0.85], picture: [-1, 0, 0] };
+const SC_VS = 'attribute vec2 a; varying vec2 v; void main() { v = a * .5 + .5; gl_Position = vec4(a, 0., 1.); }';
+// the lines: the gradient, thinned to its ridge (only where it is stronger than across it), and the bright parts
+const SC_E = `precision highp float; uniform sampler2D u; uniform vec2 R; uniform float TH, FL; varying vec2 v;
+float L(vec2 q) { return dot(texture2D(u, vec2(q.x, 1. - q.y)).rgb, vec3(.299, .587, .114)); }
+vec2 G(vec2 q) { vec2 e = 1. / R; float a = L(q + vec2(-e.x, e.y)), b = L(q + vec2(0., e.y)), c = L(q + e), d = L(q - vec2(e.x, 0.)), f = L(q + vec2(e.x, 0.)), g = L(q - e), h = L(q - vec2(0., e.y)), i = L(q + vec2(e.x, -e.y));
+  return vec2(c + 2. * f + i - a - 2. * d - g, a + 2. * b + c - g - 2. * h - i); }
+void main() { vec2 g = G(v); float m = length(g); vec2 n = m > 1e-4 ? g / m : vec2(0.), e = n / R;
+  float ridge = step(length(G(v + e)) * .92, m) * step(length(G(v - e)) * .92, m);
+  float line = smoothstep(TH, TH + .25, m) * mix(.35, 1., ridge), l = L(v);
+  gl_FragColor = vec4(line, smoothstep(.75, .95, l) * FL, l, 1.); }`;
+// a gaussian blur along one direction (9 taps, linear-sampled)
+const SC_B = `precision highp float; uniform sampler2D u; uniform vec2 D; varying vec2 v;
+void main() { vec4 c = texture2D(u, v) * .227; c += (texture2D(u, v + D * 1.385) + texture2D(u, v - D * 1.385)) * .316; c += (texture2D(u, v + D * 3.231) + texture2D(u, v - D * 3.231)) * .07; gl_FragColor = c; }`;
+// the film: core + the three blooms + halation, rolled off, grain, vignette
+const SC_C = `precision highp float; uniform sampler2D e, b1, b2, b3, src; uniform vec3 C; uniform float T, PIC; uniform vec2 R; varying vec2 v;
+float h1(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+void main() {
+  vec4 E = texture2D(e, v), B1 = texture2D(b1, v), B2 = texture2D(b2, v), B3 = texture2D(b3, v);
+  vec3 sc = texture2D(src, vec2(v.x, 1. - v.y)).rgb, sm = vec3(dot(sc, vec3(.333))); vec3 tint = PIC > .5 ? clamp(mix(sm, sc, 1.8) / max(.25, max(sc.r, max(sc.g, sc.b))), 0., 1.4) : C;
+  float core = E.r + E.g * .8, glow = B1.r * 1.1 + B2.r * .9 + B3.r * .75 + (B1.g + B2.g * .8 + B3.g * .6) * .9;
+  vec3 col = mix(tint, vec3(1.), .55) * core * 1.6 + tint * glow * 2.6;
+  col += vec3(1., .3, .1) * (B2.r * .8 + B3.r * 1.6 + (B2.g + B3.g) * .8) * .45 * (1. - clamp(core, 0., 1.));      // halation
+  col = 1. - exp(-col * 1.25); col = pow(col, vec3(.95, .97, 1.));                                                 // filmic roll-off
+  vec2 c = v - .5; col *= 1. - .5 * smoothstep(.25, .85, length(c * vec2(R.x / R.y, 1.)) * 1.05);
+  col += (h1(v * R + fract(T * 7.13) * 31.) - .5) * .035; col = max(col, vec3(.012, .012, .016));
   gl_FragColor = vec4(clamp(col, 0., 1.), 1.); }`;
 function scopeGL() {
   if (SCOPE.gl || SCOPE.fail) return SCOPE.gl;
   try {
     const cv = document.createElement('canvas'), gl = cv.getContext('webgl', { alpha: false, premultipliedAlpha: false, antialias: false }); if (!gl) throw new Error('no webgl');
     const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
-    const VS = 'attribute vec2 a; varying vec2 v; void main() { v = vec2(a.x * .5 + .5, .5 - a.y * .5); gl_Position = vec4(a, 0., 1.); }';
-    const prog = (fs, names) => { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); const L = { p, a: gl.getAttribLocation(p, 'a') }; for (const n of names) L[n] = gl.getUniformLocation(p, n); return L; };
-    SCOPE.E = prog(SC_E, ['u', 'R', 'TH']); SCOPE.G = prog(SC_G, ['u', 'R', 'C', 'FL', 'T']);
+    const prog = (fs, names) => { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, SC_VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); const L = { p, a: gl.getAttribLocation(p, 'a') }; for (const n of names) L[n] = gl.getUniformLocation(p, n); return L; };
+    SCOPE.E = prog(SC_E, ['u', 'R', 'TH', 'FL']); SCOPE.B = prog(SC_B, ['u', 'D']); SCOPE.C = prog(SC_C, ['e', 'b1', 'b2', 'b3', 'src', 'C', 'T', 'PIC', 'R']);
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const tex = () => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); for (const [p, q] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, p, q); return t; };
-    SCOPE.tin = tex(); SCOPE.te = tex(); SCOPE.fb = gl.createFramebuffer(); SCOPE.cv = cv; SCOPE.gl = gl;
+    SCOPE.tex = tex; SCOPE.tin = tex(); SCOPE.T = {}; SCOPE.cv = cv; SCOPE.gl = gl;
   } catch (e) { SCOPE.fail = true; console.warn('scope: no WebGL', e); }
   return SCOPE.gl;
+}
+// a render target of a size (kept and reused by name)
+function scopeRT(name, w, h) {
+  const gl = SCOPE.gl; let r = SCOPE.T[name];
+  if (!r) r = SCOPE.T[name] = { t: SCOPE.tex(), f: gl.createFramebuffer(), w: 0, h: 0 };
+  if (r.w !== w || r.h !== h) { gl.bindTexture(gl.TEXTURE_2D, r.t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); gl.bindFramebuffer(gl.FRAMEBUFFER, r.f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, r.t, 0); r.w = w; r.h = h; }
+  return r;
 }
 // the plot's points: the picture's strongest edge points, spread apart (they drift to the new ones on a video)
 function scopeNodes() {
   const A = voicesAnchors(); if (!A) return [];
   if (SCOPE.nkey !== VO.anchKey || !SCOPE.target) {
     SCOPE.nkey = VO.anchKey; const out = [];
-    for (const p of A.P) { if (out.length >= 9) break; if (out.every(o => Math.hypot(o.x - p.x, o.y - p.y) > 0.11)) out.push({ x: p.x, y: p.y }); }
+    for (const p of A.P) { if (out.length >= 7) break; if (out.every(o => Math.hypot(o.x - p.x, o.y - p.y) > 0.13)) out.push({ x: p.x, y: p.y }); }
     SCOPE.target = out; if (!SCOPE.nodes || SCOPE.nodes.length !== out.length) SCOPE.nodes = out.map(o => ({ ...o }));
   }
   for (let i = 0; i < SCOPE.nodes.length; i++) { const n = SCOPE.nodes[i], t = SCOPE.target[i]; n.x += (t.x - n.x) * 0.15; n.y += (t.y - n.y) * 0.15; }
   return SCOPE.nodes;
 }
 function scopeApply(x, dx, dy, dw, dh) {
-  if (!SCOPE.on || dw < 4 || dh < 4) return;
+  if (!SCOPE.on || dw < 8 || dh < 8) return;
   const gl = scopeGL(); if (!gl) return;
   const t = SCOPE.tmp || (SCOPE.tmp = document.createElement('canvas')); if (t.width !== dw || t.height !== dh) { t.width = dw; t.height = dh; }
   const tx = t.getContext('2d'); tx.globalCompositeOperation = 'copy'; tx.drawImage(x.canvas, dx, dy, dw, dh, 0, 0, dw, dh);
-  const ew = Math.max(2, Math.round(dw / 2)), eh = Math.max(2, Math.round(dh / 2)), cv = SCOPE.cv;
-  if (SCOPE.ew !== ew || SCOPE.eh !== eh) { gl.bindTexture(gl.TEXTURE_2D, SCOPE.te); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, ew, eh, 0, gl.RGB, gl.UNSIGNED_BYTE, null); gl.bindFramebuffer(gl.FRAMEBUFFER, SCOPE.fb); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, SCOPE.te, 0); SCOPE.ew = ew; SCOPE.eh = eh; }
-  if (cv.width !== dw || cv.height !== dh) { cv.width = dw; cv.height = dh; }
-  const run = (P, w, h, fbo) => { gl.useProgram(P.p); gl.bindFramebuffer(gl.FRAMEBUFFER, fbo); gl.viewport(0, 0, w, h); gl.enableVertexAttribArray(P.a); gl.vertexAttribPointer(P.a, 2, gl.FLOAT, false, 0, 0); gl.uniform1i(P.u, 0); gl.uniform2f(P.R, w, h); };
+  const cv = SCOPE.cv; if (cv.width !== dw || cv.height !== dh) { cv.width = dw; cv.height = dh; }
+  const run = (P, rt, w, h) => { gl.useProgram(P.p); gl.bindFramebuffer(gl.FRAMEBUFFER, rt ? rt.f : null); gl.viewport(0, 0, w, h); gl.enableVertexAttribArray(P.a); gl.vertexAttribPointer(P.a, 2, gl.FLOAT, false, 0, 0); };
+  const bind = (unit, tex, loc) => { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(loc, unit); };
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, SCOPE.tin); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, t);
-  run(SCOPE.E, ew, eh, SCOPE.fb); gl.uniform1f(SCOPE.E.TH, 0.42 - 0.36 * (SCOPE.det ?? 50) / 100); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  gl.bindTexture(gl.TEXTURE_2D, SCOPE.te); run(SCOPE.G, dw, dh, null);
-  const C = SCOPE_COLS[SCOPE.col] || SCOPE_COLS.green; gl.uniform3f(SCOPE.G.C, C[0], C[1], C[2]); gl.uniform1f(SCOPE.G.FL, SCOPE.fill / 100); gl.uniform1f(SCOPE.G.T, (clock() / 1000) % 100);
+  // the lines, at full size
+  const E = scopeRT('e', dw, dh); run(SCOPE.E, E, dw, dh); bind(0, SCOPE.tin, SCOPE.E.u); gl.uniform2f(SCOPE.E.R, dw, dh); gl.uniform1f(SCOPE.E.TH, 0.5 - 0.42 * (SCOPE.det ?? 50) / 100); gl.uniform1f(SCOPE.E.FL, SCOPE.fill / 100); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  // the blooms: each level half the size of the last, blurred both ways
+  let src = E; const lv = [];
+  for (let i = 0; i < 3; i++) {
+    const w = Math.max(2, Math.round(dw / (2 << i))), h = Math.max(2, Math.round(dh / (2 << i))), A = scopeRT('a' + i, w, h), B = scopeRT('b' + i, w, h), sp = 1 + i * 0.6;
+    run(SCOPE.B, A, w, h); bind(0, src.t, SCOPE.B.u); gl.uniform2f(SCOPE.B.D, sp / w, 0); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    run(SCOPE.B, B, w, h); bind(0, A.t, SCOPE.B.u); gl.uniform2f(SCOPE.B.D, 0, sp / h); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    lv.push(B); src = B;
+  }
+  const C = SCOPE.C, col = SCOPE_COLS[SCOPE.col] || SCOPE_COLS.green; run(C, null, dw, dh);
+  bind(0, E.t, C.e); bind(1, lv[0].t, C.b1); bind(2, lv[1].t, C.b2); bind(3, lv[2].t, C.b3); bind(4, SCOPE.tin, C.src);
+  gl.uniform3f(C.C, Math.max(0, col[0]), col[1], col[2]); gl.uniform1f(C.PIC, col[0] < 0 ? 1 : 0); gl.uniform1f(C.T, (clock() / 1000) % 100); gl.uniform2f(C.R, dw, dh);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'copy'; x.beginPath(); x.rect(dx, dy, dw, dh); x.clip(); x.drawImage(cv, dx, dy); x.globalCompositeOperation = 'source-over';
+  x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.beginPath(); x.rect(dx, dy, dw, dh); x.clip(); x.globalCompositeOperation = 'copy'; x.drawImage(cv, dx, dy); x.globalCompositeOperation = 'source-over';
   if (SCOPE.axes) {
-    // the crosshair through the middle, its 0, and dashed drops from the strongest points onto the axes
-    const m = Math.min(dw, dh), ax = dx + dw * 0.5, ay = dy + dh * 0.62, col = `rgb(${C.map(v => Math.round(v * 255)).join(',')})`, lw = Math.max(1, m / 700);
-    x.strokeStyle = 'rgba(185,185,185,0.55)'; x.lineWidth = lw; x.beginPath(); x.moveTo(dx, ay); x.lineTo(dx + dw, ay); x.moveTo(ax, dy + dh * 0.08); x.lineTo(ax, dy + dh * 0.92); x.stroke();
-    x.fillStyle = 'rgba(200,200,200,0.7)'; x.font = `${Math.round(m * 0.028)}px "IBM Plex Mono", monospace`; x.fillText('0', ax - m * 0.03, ay + m * 0.05);
-    x.strokeStyle = col; x.globalAlpha = 1; x.lineWidth = Math.max(1, m / 420); x.setLineDash([m * 0.012, m * 0.01]); x.shadowColor = col; x.shadowBlur = m * 0.008;
+    // the crosshair (fine, quiet), its 0, and faint dashed drops from the strongest points, glowing a little
+    const m = Math.min(dw, dh), ax = dx + dw * 0.5, ay = dy + dh * 0.62, cc = col[0] < 0 ? [0.85, 0.9, 1] : col, rgb = `${Math.round(cc[0] * 255)},${Math.round(cc[1] * 255)},${Math.round(cc[2] * 255)}`, lw = Math.max(0.75, m / 1100);
+    x.lineWidth = lw; x.strokeStyle = 'rgba(200,200,205,0.22)'; x.beginPath(); x.moveTo(dx + dw * 0.04, ay); x.lineTo(dx + dw * 0.96, ay); x.moveTo(ax, dy + dh * 0.06); x.lineTo(ax, dy + dh * 0.94); x.stroke();
+    for (let i = -8; i <= 8; i++) { const tk = m * 0.006; x.beginPath(); x.moveTo(ax + i * dw * 0.05, ay - tk); x.lineTo(ax + i * dw * 0.05, ay + tk); x.moveTo(ax - tk, ay + i * dh * 0.05); x.lineTo(ax + tk, ay + i * dh * 0.05); x.stroke(); }
+    x.fillStyle = 'rgba(210,210,215,0.45)'; x.font = `300 ${Math.round(m * 0.022)}px "IBM Plex Mono", monospace`; x.fillText('0', ax - m * 0.026, ay + m * 0.038);
+    x.strokeStyle = `rgba(${rgb},0.38)`; x.lineWidth = lw; x.setLineDash([m * 0.007, m * 0.008]); x.shadowColor = `rgba(${rgb},0.8)`; x.shadowBlur = m * 0.006;
     for (const n of scopeNodes()) { const px = dx + n.x * dw, py = dy + n.y * dh; x.beginPath(); x.moveTo(px, py); x.lineTo(px, ay); x.moveTo(px, py); x.lineTo(ax, py); x.stroke(); }
-    x.setLineDash([]); x.shadowBlur = 0; x.globalAlpha = 1;
+    x.setLineDash([]); x.shadowBlur = 0;
   }
   x.restore();
 }
@@ -8133,7 +8041,7 @@ const DG = { n: 0 };
 function dgStart(data, w, h) {
   const colour = S.line.colour, cap = Math.max(6000, Math.min(48000, Math.round(S.total * 36)));
   S.bgHex = S.loopBg = colour ? '#101013' : '#f6f4ef'; paintBg(S.outX); S.bgSet = true;
-  Object.assign(DG, { on: true, colour, cap, x: new Float32Array(cap), y: new Float32Array(cap), nx: new Int32Array(cap), pv: new Int32Array(cap), n: 0, head: 0, t0: clock(), last: clock(), field: null, fkey: '', gen: S.gen, full: 0 });
+  Object.assign(DG, { phase: 'grow', pdone: false, on: true, colour, cap, x: new Float32Array(cap), y: new Float32Array(cap), nx: new Int32Array(cap), pv: new Int32Array(cap), n: 0, head: 0, t0: clock(), last: clock(), field: null, fkey: '', gen: S.gen, full: 0 });
   dgField({ d: data, w, h, id: 's' + S.gen });
   // the seed: a small loop at the darkest part (weighted by how dark), in work pixels
   const F = DG.field; let sx = 0, sy = 0, sw = 0;
@@ -8183,7 +8091,7 @@ function dgStep(dt) {
   for (let i = 0; i < n; i++) { let ax = fx[i], ay = fy[i]; const l = Math.hypot(ax, ay), lim = R[i] * 0.14; if (l > lim) { ax *= lim / l; ay *= lim / l; } D.x[i] = Math.min(W - 1, Math.max(1, D.x[i] + ax)); D.y[i] = Math.min(H - 1, Math.max(1, D.y[i] + ay)); }
   // grow: a point into every edge that stretched past its spacing (while there is room)
   // (at a pace: a share of the points a step — the line fills in over ten seconds or so; the speed slider changes it)
-  let grown = 0; it = D.head; const budget = Math.max(1, Math.floor((n * 0.003 + 1) * Math.max(0.15, Math.min(4, speedFactor() / 3)) * (1 + kick)));
+  let grown = 0; it = D.head; const budget = Math.max(1, Math.floor((n * 0.0045 + 1) * Math.max(0.15, Math.min(4, speedFactor() / 3)) * (1 + kick)));
   const start = Math.floor(Math.random() * n); for (let c = 0; c < start; c++) it = D.nx[it];
   for (let c = 0; c < n && D.n < D.cap && grown < budget; c++) {
     const j = D.nx[it], l = Math.hypot(D.x[j] - D.x[it], D.y[j] - D.y[it]), sp = Math.min(R[it], R[j]) * 0.62;
@@ -8210,16 +8118,44 @@ function dgPath(x, k, ox, oy, from, upto) {
 function dgDraw(b, now) {
   const D = DG; if (!D.on || D.gen !== S.gen) return;
   const t = clock(), dt = Math.min(0.1, Math.max(0, (t - D.last) / 1000)); D.last = t;
-  if (S.running || S.video) { dgField(); const steps = D.n < 3000 ? 6 : D.n < 12000 ? 4 : 3; for (let i = 0; i < steps; i++) dgStep(dt); }
+  if (S.running || S.video) {
+    dgField(); const steps = D.n < 3000 ? 6 : D.n < 12000 ? 4 : 3; for (let i = 0; i < steps; i++) dgStep(dt);
+    // grown (full for a moment, or long enough): the line holds still and is painted in the styles (not on a video, which keeps moving)
+    if (!S.video && (D.full > 1.2 || (t - D.t0) / 1000 > 45 / Math.max(0.3, Math.min(3, speedFactor() / 3)))) { dgFreeze(); return; }
+  }
   const k = b.w / D.w;
   X.save(); X.beginPath(); X.rect(b.x, b.y, b.w, b.h); X.clip(); X.fillStyle = S.bgHex; X.fillRect(b.x, b.y, b.w, b.h);
-  X.lineWidth = Math.max(0.7, Math.min(b.w, b.h) * 0.0017); X.lineJoin = X.lineCap = 'round';
-  if (!D.colour) { X.strokeStyle = '#2a2a2e'; X.beginPath(); dgPath(X, k, b.x, b.y, D.head, D.n); X.closePath(); X.stroke(); }
-  else {
-    const F = D.field; let it = D.head, done = 0;
-    while (done < D.n) { const run = Math.min(60, D.n - done); const fxx = Math.min(F.w - 1, Math.floor(D.x[it] / D.w * F.w)), fyy = Math.min(F.h - 1, Math.floor(D.y[it] / D.h * F.h)), o = (fyy * F.w + fxx) * 3; X.strokeStyle = `rgb(${Math.min(255, F.c[o] * 1.2 + 30)},${Math.min(255, F.c[o + 1] * 1.2 + 30)},${Math.min(255, F.c[o + 2] * 1.2 + 30)})`; X.beginPath(); const nx = dgPath(X, k, b.x, b.y, it, run); X.stroke(); it = nx; done += run; }
-  }
+  // (while it grows: one steady pencil line, in one colour — no colours shifting along it as points go in)
+  X.lineWidth = Math.max(0.7, Math.min(b.w, b.h) * 0.0015); X.lineJoin = X.lineCap = 'round'; X.strokeStyle = D.colour ? 'rgba(232,230,224,0.75)' : 'rgba(42,42,46,0.8)';
+  X.beginPath(); dgPath(X, k, b.x, b.y, D.head, D.n); X.closePath(); X.stroke();
   X.restore();
+}
+// the grown line, frozen: its points in order round the loop, then painted out along it in the ticked styles (strokes
+// like any other: the code, the svg and the big pictures have them), as fast as the speed says or over the rest of the song
+function dgFreeze() {
+  const D = DG; if (D.phase === 'paint') return;
+  const P = new Float32Array(D.n * 2); let it = D.head; for (let c = 0; c < D.n; c++) { P[c * 2] = D.x[it]; P[c * 2 + 1] = D.y[it]; it = D.nx[it]; }
+  Object.assign(D, { phase: 'paint', P, pn: D.n, pi: 0, pt0: clock(), pf0: audioActive() && !AU.ended ? audioProgress(aTime()) : 0, styles: stylePick.values(), runSt: null });
+  S.total = Math.ceil(D.n / 5) + 1; S.count = 0; S.workerDone = false; paintBg(S.outX); S.drawn = []; S.lines = []; S.items = [];
+  $('hint').textContent = `Growth: grown to ${D.n.toLocaleString()} points — now painting the line in ${D.styles.join(', ')}.`;
+}
+function dgPaintStep() {
+  const D = DG; if (D.phase !== 'paint' || D.pdone) return;
+  const N = D.pn, G = 5;
+  let f;
+  if (audioActive() && !AU.ended) f = Math.min(1, (audioProgress(aTime()) - D.pf0) / Math.max(0.05, 0.97 - D.pf0));
+  else f = Math.min(1, (clock() - D.pt0) / 1000 / Math.max(5, N / 1500 / Math.min(speedFactor(), 400) * 3));
+  const upto = Math.floor(f * N), F = D.field, m = Math.min(D.w, D.h), w = Math.max(1.4, m * 0.0033), P = D.P;
+  while (D.pi + G <= upto || (upto >= N && D.pi < N - 1)) {
+    const a0 = D.pi, b0 = Math.min(N - 1, D.pi + G), a = Math.max(0, a0 - 1), b = Math.min(N - 1, b0 + 1), mm = (a + b) >> 1;      // (each overlaps its neighbours a little: one unbroken line)
+    if (!D.runSt || a0 % (G * 30) < G) D.runSt = D.styles[Math.floor(Math.random() * D.styles.length)] || 'painterly';
+    let col = [36, 36, 40];
+    if (D.colour && F) { const fx = Math.min(F.w - 1, Math.floor(P[mm * 2] / D.w * F.w)), fy = Math.min(F.h - 1, Math.floor(P[mm * 2 + 1] / D.h * F.h)), o = (fy * F.w + fx) * 3; col = [F.c[o], F.c[o + 1], F.c[o + 2]].map(v => Math.min(255, v * 1.12 + 14)); }
+    const sh = { t: 'S', p: [P[a * 2], P[a * 2 + 1], 2 * P[mm * 2] - (P[a * 2] + P[b * 2]) / 2, 2 * P[mm * 2 + 1] - (P[a * 2 + 1] + P[b * 2 + 1]) / 2, P[b * 2], P[b * 2 + 1], w, 0], c0: col, c1: col, a: 0.95, st: D.runSt };
+    reveal({ s: sh, sim: S.sim });
+    D.pi = b0; if (b0 >= N - 1) break;
+  }
+  if (D.pi >= N - 1) { D.pdone = true; S.workerDone = true; S.total = S.count; S.finalSim = S.sim = 0; }
 }
 function dgSvg() {
   const D = DG, w = Math.round(D.w), h = Math.round(D.h); let d = '', it = D.head;
@@ -8231,6 +8167,61 @@ function dgCanvas(long) {
   const D = DG, k = long / Math.max(D.w, D.h), c = document.createElement('canvas'); c.width = Math.round(D.w * k); c.height = Math.round(D.h * k);
   const keep = X; X = c.getContext('2d'); try { const was = D.last; D.last = clock(); const run = S.running; S.running = false; dgDraw({ x: 0, y: 0, w: c.width, h: c.height }, 0); S.running = run; D.last = was; } finally { X = keep; }
   return c;
+}
+// ═════════════════════════════════════════════════════════════
+//  Bolts (music in the paint → bolts): on the hits, the brush itself strikes like lightning along the picture's own
+//  lines. The picture's lines are traced once into chains (a second painter worker, so the painting isn't held up);
+//  a hit picks a strong line, the bolt runs along it from a point (as far as the hit is strong), jumps the gaps to the
+//  nearest line where one ends, and forks onto nearby lines; then it is painted — short strokes in a ticked style, in
+//  the picture's colours, landing one after another from the start in a fraction of a second. They stay: over the
+//  song the music draws the picture's lines in.
+// ═════════════════════════════════════════════════════════════
+const BOLT = { chains: null, gen: -1, w: null, pending: false, grid: null, cell: 1 };
+function boltChains() {
+  if (BOLT.gen === S.gen && (BOLT.chains || BOLT.pending)) return BOLT.chains;
+  if (!S.target || !S.ww) return null;
+  BOLT.gen = S.gen; BOLT.chains = null; BOLT.pending = true;
+  if (!BOLT.w) { BOLT.w = new Worker(WORKER_URL); BOLT.w.onmessage = e => { const m = e.data; if (m.type !== 'chains' || m.gen !== BOLT.gen) return; BOLT.pending = false; boltIndex(m.chains); }; }
+  BOLT.w.postMessage({ type: 'chains', gen: S.gen, w: S.ww, h: S.wh, data: S.target.slice(), dense: true });
+  return null;
+}
+function boltIndex(chains) {
+  const C = chains.filter(c => c.length >= 16), cell = Math.max(S.ww, S.wh) / 40, grid = new Map();
+  C.forEach((c, ci) => { for (let k = 0; k < c.length; k += 6) { const key = Math.floor(c[k] / cell) + ',' + Math.floor(c[k + 1] / cell); let a = grid.get(key); if (!a) grid.set(key, a = []); a.push(ci, k); } });
+  BOLT.chains = C; BOLT.grid = grid; BOLT.cell = cell;
+}
+// the nearest point on another line (where a bolt jumps or forks)
+function boltNear(x, y, notCi) {
+  const g = BOLT.grid, cell = BOLT.cell, gx = Math.floor(x / cell), gy = Math.floor(y / cell); let best = null, bd = Infinity;
+  for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const a = g.get((gx + i) + ',' + (gy + j)); if (!a) continue; for (let n = 0; n < a.length; n += 2) { const ci = a[n], k = a[n + 1]; if (ci === notCi) continue; const c = BOLT.chains[ci], d = (c[k] - x) ** 2 + (c[k + 1] - y) ** 2; if (d < bd) { bd = d; best = [ci, k]; } } }
+  return best;
+}
+function boltFire(s) {
+  const C = boltChains(); if (!C || !C.length || !S.out || !S.target) return;
+  const styles = stylePick.values(), st = styles[Math.floor(Math.random() * styles.length)] || 'painterly';
+  const m = Math.min(S.ww, S.wh), len = m * (0.25 + 0.6 * s), w = Math.max(1.5, m * (0.005 + 0.009 * s));
+  const walk = (ci, k, dir, maxLen, out) => {
+    let c = C[ci], L = 0, px = c[k], py = c[k + 1], jumps = 0; out.push([px, py]);
+    while (L < maxLen) {
+      k += dir * 2;
+      if (k < 0 || k >= c.length - 1) { if (jumps++ > 3) break; const nb = boltNear(px, py, ci); if (!nb) break; ci = nb[0]; c = C[ci]; k = nb[1]; dir = Math.random() < 0.5 ? 1 : -1; }
+      const x = c[k], y = c[k + 1]; L += Math.hypot(x - px, y - py); px = x; py = y; out.push([x, y]);
+    }
+    return out;
+  };
+  // from a strong line (the longer the likelier), at a random point along it
+  let ci = Math.floor(Math.random() * C.length); for (let t = 0; t < 4; t++) { const c2 = Math.floor(Math.random() * C.length); if (C[c2].length > C[ci].length) ci = c2; }
+  const main = walk(ci, Math.floor(Math.random() * (C[ci].length / 2)) * 2, Math.random() < 0.5 ? 1 : -1, len, []), paths = [main];
+  const forks = 1 + Math.round(Math.random() * 3 * s);
+  for (let f = 0; f < forks; f++) { const p = main[Math.floor(main.length * (0.3 + 0.5 * Math.random()))]; const nb = boltNear(p[0] + (Math.random() - 0.5) * m * 0.03, p[1] + (Math.random() - 0.5) * m * 0.03, ci); if (nb) paths.push(walk(nb[0], nb[1], Math.random() < 0.5 ? 1 : -1, len * 0.45, [[p[0], p[1]]])); }
+  const D = S.target, W = S.ww, H = S.wh; let n = 0;
+  for (const P of paths) for (let i = 0; i + 1 < P.length; i += 3) {
+    const a = P[i], mm = P[Math.min(P.length - 1, i + 1)], bb = P[Math.min(P.length - 1, i + 3)];
+    const xi = Math.min(W - 1, Math.max(0, Math.round(mm[0]))), yi = Math.min(H - 1, Math.max(0, Math.round(mm[1]))), o = (yi * W + xi) * 4;
+    const col = [D[o], D[o + 1], D[o + 2]].map(v => Math.min(255, v * 1.08 + 10));
+    reveal({ s: { t: 'S', p: [a[0], a[1], mm[0], mm[1], bb[0], bb[1], w * (1 - 0.55 * i / P.length), 0], c0: col, c1: col, a: 0.95, st }, sim: S.sim }, { k: 0.12, delay: n * 6, max: 160 });
+    n++;
+  }
 }
 // ═════════════════════════════════════════════════════════════
 //  Editor display: the painting beside its program in an editor window — painting.js with its three dots, big line
@@ -9678,34 +9669,6 @@ const stylePick = stylePicker();
   const show = () => $('pigmentbtn').classList.toggle('on', PIGMENT.on); show();
   $('pigmentbtn').onclick = () => { PIGMENT.on = !PIGMENT.on; store('cp-pigment', PIGMENT.on ? '1' : '0'); show(); $('hint').textContent = PIGMENT.on ? 'Pigment mixing on: the paint styles mix as paint (blue + yellow = green) and pick up the wet colour under them. From the next strokes.' : 'Pigment mixing off: colours mix as light on a screen.'; };
 }
-// the voices panel (music in the paint → voices)
-{ const g = $('beat_glow').closest('label'), panel = g.closest('.panel'); panel.style.position = 'relative';
-  g.insertAdjacentHTML('afterend', '<button type="button" class="mini" id="voicesbtn" title="Voices: each instrument of the song gets its own visual voice — the kick a ring bursting from the base, the snare a disc smeared sideways, the hats electric sparks, the melody blobs that stay — and what they leave builds up over the song">voices</button>');
-  const key = (id, t, tip) => `<label class="key" title="${tip}"><input id="${id}" type="checkbox"><span class="led"></span>${t}</label>`;
-  const sl = (id, t, mn, mx, v, tip) => `<label title="${tip} (right-click: ${v})"><span>${t}</span><input id="${id}" type="range" min="${mn}" max="${mx}" value="${v}" aria-label="${t}"><output>${v}</output></label>`;
-  panel.insertAdjacentHTML('beforeend', `<div id="voicespop" class="gradepop" hidden><div class="gp-h"><b>voices</b>${key('vo_on', 'on', 'Voices on or off (off keeps the settings)')}<button type="button" class="mini" id="voicesx" title="Close">✕</button></div>` +
-    `<div class="gp-row" style="flex-wrap:wrap">${key('vo_kick', 'kick', 'kick → shock: a flattened ring bursts out from the base of the picture, with a white flash and a punch')}${key('vo_snare', 'snare', 'snare → disc: a slice of the painting through the middle smears out sideways, tinted, like a spun disc')}${key('vo_hat', 'hats', 'hats → spark: a branching electric bolt flickers between two points high up the picture')}${key('vo_tone', 'tone', 'tone (the melody, the pitched middle) → bloom: a blob of the picture’s strongest colour swells on the subject, and stays')}${key('vo_ribbon', 'ribbon', 'ribbon: a streak orbits the subject all the time, as fast and as broad as the melody is loud, wrapping round it')}</div>` +
-    `<div class="gp-row"><select id="vo_col" class="sel" aria-label="Voice colours" title="The voices' colours: from the picture · neon · white"><option value="picture">colours: picture</option><option value="neon">colours: neon</option><option value="white">colours: white</option></select></div>` +
-    sl('vo_size', 'size', 20, 200, 100, 'How big the voices are') + sl('vo_persist', 'persist', 0, 100, 55, 'How long what the voices leave stays: 0 gone at once, 100 stays for good — it builds up into a form over the song') + sl('vo_sens', 'sensitivity', 0, 100, 50, 'How many hits each instrument fires on: higher catches quieter ones') +
-    `<div id="vo_info" style="color:var(--dim);margin-top:6px;line-height:1.4"></div></div>`);
-  let saved = {}; try { saved = JSON.parse(store('cp-voices') || '{}') || {}; } catch (e) { /* none */ }
-  const V = Object.assign({}, VO_DEF, saved), info = () => { const c = AU.voCount; $('vo_info').textContent = c ? `This song: ${c.kick} kicks · ${c.snare} snares · ${c.hat} hats · ${c.tone} tones.` : AU.live ? 'Live sound: the instruments are found as it plays.' : 'Load a song (or live sound) to hear the voices.'; };
-  for (const k of ['kick', 'snare', 'hat', 'tone', 'ribbon']) $('vo_' + k).checked = !!V[k];
-  $('vo_on').checked = !!V.on; $('vo_col').value = V.col; for (const k of ['size', 'persist', 'sens']) $('vo_' + k).value = V[k];
-  const sync = (keep, repick) => {
-    for (const k of ['kick', 'snare', 'hat', 'tone', 'ribbon']) VO.v[k] = $('vo_' + k).checked;
-    for (const k of ['size', 'persist', 'sens']) { VO.v[k] = +$('vo_' + k).value; $('vo_' + k).nextElementSibling.textContent = $('vo_' + k).value; }
-    VO.v.col = $('vo_col').value; VO.on = VO.v.on = $('vo_on').checked; $('voicesbtn').classList.toggle('on', VO.on);
-    if (!VO.on && VO.trail) VO.trail.getContext('2d').clearRect(0, 0, VO.trail.width, VO.trail.height);
-    if (repick) { voicesPick(); info(); }
-    if (keep) store('cp-voices', JSON.stringify(VO.v));
-  };
-  for (const id of ['vo_kick', 'vo_snare', 'vo_hat', 'vo_tone', 'vo_ribbon', 'vo_on', 'vo_col']) $(id).onchange = () => { if (id !== 'vo_on' && !$('vo_on').checked) $('vo_on').checked = true; sync(true); };
-  for (const k of ['size', 'persist']) $('vo_' + k).addEventListener('input', () => sync(true));
-  $('vo_sens').addEventListener('input', () => sync(true)); $('vo_sens').addEventListener('change', () => sync(true, true));
-  $('voicesx').onclick = () => { $('voicespop').hidden = true; };
-  $('voicesbtn').onclick = () => { $('voicespop').hidden = !$('voicespop').hidden; info(); };
-  sync(false); }
 // the signal panel (kept in this browser; double-click or right-click a knob for its default)
 { const pw = $('perfwin'), panel = pw.closest('.panel');
   pw.insertAdjacentHTML('beforebegin', `<button type="button" class="mini" id="signalbtn" title="Signal: the painting sent down a chain of old video gear — colorizer, noize box, the composite wire (dot crawl, colour bleed), a circuit bend, sync, VHS tape, RF, the TV set, feedback, an oscillator, the tube — with looks and bend points. On the painting as it shows, in recordings and in the saved PNGs and stills">signal</button>`);
@@ -9787,7 +9750,7 @@ const stylePick = stylePicker();
   $('gradebtn').onclick = () => { $('gradepop').hidden = !$('gradepop').hidden; $('wordspop').hidden = $('signalpop').hidden = true; };
 // the grade's looks (beside the colour sliders): vector scope
 { const h = document.querySelector('#gradepop .gp-h');
-  h.insertAdjacentHTML('afterend', `<div class="gp-row"><select id="glook" class="sel" aria-label="Grade look" title="A whole look: vector scope — black, the picture's edges as thin glowing phosphor lines with white-hot cores, its brightest parts as glowing blobs, a crosshair and dashed drops to the axes, like an old vector display"><option value="none">look: normal</option><option value="scope">look: vector scope</option></select><select id="gscol" class="sel" aria-label="Scope colour" title="The phosphor's colour"><option value="green">green</option><option value="amber">amber</option><option value="cyan">cyan</option><option value="white">white</option><option value="magenta">magenta</option></select></div><div class="gp-row" id="gscoperow"><label class="key" title="The crosshair, its 0 and the dashed drops to the axes"><input id="gsaxes" type="checkbox" checked><span class="led"></span>axes</label></div><label id="gsdetrow" title="How many of the picture's edges become lines: low, only the strongest (right-click: 50)"><span>detail</span><input id="gsdet" type="range" min="0" max="100" value="50" aria-label="detail"><output>50</output></label><label id="gsfillrow" title="How much the brightest parts glow as blobs (right-click: 35)"><span>blobs</span><input id="gsfill" type="range" min="0" max="100" value="35" aria-label="blobs"><output>35</output></label>`);
+  h.insertAdjacentHTML('afterend', `<div class="gp-row"><select id="glook" class="sel" aria-label="Grade look" title="A whole look: vector scope — black, the picture's edges as thin glowing phosphor lines with white-hot cores, its brightest parts as glowing blobs, a crosshair and dashed drops to the axes, like an old vector display"><option value="none">look: normal</option><option value="scope">look: vector scope</option></select><select id="gscol" class="sel" aria-label="Scope colour" title="The phosphor's colour"><option value="green">green</option><option value="amber">amber</option><option value="cyan">cyan</option><option value="white">white</option><option value="magenta">magenta</option><option value="picture">picture</option></select></div><div class="gp-row" id="gscoperow"><label class="key" title="The crosshair, its 0 and the dashed drops to the axes"><input id="gsaxes" type="checkbox" checked><span class="led"></span>axes</label></div><label id="gsdetrow" title="How many of the picture's edges become lines: low, only the strongest (right-click: 50)"><span>detail</span><input id="gsdet" type="range" min="0" max="100" value="50" aria-label="detail"><output>50</output></label><label id="gsfillrow" title="How much the brightest parts glow as blobs (right-click: 35)"><span>blobs</span><input id="gsfill" type="range" min="0" max="100" value="35" aria-label="blobs"><output>35</output></label>`);
   let sv = {}; try { sv = JSON.parse(store('cp-scope') || '{}') || {}; } catch (e) { /* none */ }
   if (sv.look) $('glook').value = sv.look; if (sv.col) $('gscol').value = sv.col; if (sv.axes === false) $('gsaxes').checked = false; if (sv.fill != null) $('gsfill').value = sv.fill; if (sv.det != null) $('gsdet').value = sv.det;
   const sync = keep => { SCOPE.on = $('glook').value === 'scope'; SCOPE.col = $('gscol').value; SCOPE.axes = $('gsaxes').checked; SCOPE.fill = +$('gsfill').value; $('gsfill').nextElementSibling.textContent = $('gsfill').value; SCOPE.det = +$('gsdet').value; $('gsdet').nextElementSibling.textContent = $('gsdet').value;
@@ -10273,7 +10236,7 @@ $('savecode').onclick = async () => {
   download(new Blob([html], { type: 'text/html' }), `${safeName()}-${animate ? 'self-painting' : 'painted-in-code'}.html`);
   $('hint').textContent = `Saved ${animate ? 'self-painting ' : ''}program: ${(html.length / 1024).toFixed(1)} KB${music ? ' (song included)' : ''}.`;
 };
-$('savesvg').onclick = () => download(new Blob([S.dg ? dgSvg() : S.endless.on ? liveSvg() : SHP.svg(S.drawn, S.out.width, S.out.height, S.bgHex)], { type: 'image/svg+xml' }), `${safeName()}-painted.svg`);
+$('savesvg').onclick = () => download(new Blob([S.dg && S.dg.phase !== 'paint' ? dgSvg() : S.endless.on ? liveSvg() : SHP.svg(S.drawn, S.out.width, S.out.height, S.bgHex)], { type: 'image/svg+xml' }), `${safeName()}-painted.svg`);
 // a live input / video / zoom never finishes, and its strokes aren't all kept: its svg is the view as it is now — the
 // canvas traced into flat colour shapes (as score · vector does), with the recent strokes over them as they were drawn
 function liveSvg() {
@@ -10530,7 +10493,7 @@ showAutoShapes();
   h.addEventListener('mouseenter', () => { if (h.scrollWidth > h.clientWidth + 1) { f.textContent = h.textContent; f.hidden = false; } });
   h.addEventListener('mouseleave', () => { f.hidden = true; });
   new MutationObserver(() => { h.title = h.textContent; if (!f.hidden) f.textContent = h.textContent; }).observe(h, { childList: true, characterData: true, subtree: true }); }
-window.STUDIO = { S, AU, OFF, VEC, LDANCE, tagFile, readMeta, presetGet, TIPG, startAuto, startReplay, loadAudio, setLiveAudio, startLive, autoProgram, codeSize, renderBig, RLF, LAG, _relief: { makeRelief, reliefAdd, reliefRender }, _draw: { drawQ, strokeAt, fillParts }, relief: () => ({ on: RLF.on, gl: !!reliefGL() }), relight, LIGHT, SHP_svg: () => SHP.svg(S.drawn, S.out.width, S.out.height, S.bgHex) };
+window.STUDIO = { S, AU, OFF, VEC, boltFire, BOLT, LDANCE, tagFile, readMeta, presetGet, TIPG, startAuto, startReplay, loadAudio, setLiveAudio, startLive, autoProgram, codeSize, renderBig, RLF, LAG, _relief: { makeRelief, reliefAdd, reliefRender }, _draw: { drawQ, strokeAt, fillParts }, relief: () => ({ on: RLF.on, gl: !!reliefGL() }), relight, LIGHT, SHP_svg: () => SHP.svg(S.drawn, S.out.width, S.out.height, S.bgHex) };
 })();
 
 </script>
