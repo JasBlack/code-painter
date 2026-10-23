@@ -366,7 +366,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.38.1">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.39.0">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -625,7 +625,7 @@
       <div class="pseg" id="phframe"><button type="button" data-v="portrait">4:5</button><button type="button" data-v="vertical">9:16</button></div>
       <select id="phshapes" class="psel" aria-label="Shapes" style="flex: none; width: 76px"></select>
     </div>
-    <div class="prow"><span class="plbl">speed</span><input id="phspeed" type="range" min="1" max="99" aria-label="Painting speed"><output id="phspeedval"></output></div>
+    <div class="prow"><span class="plbl">speed</span><input id="phspeed" type="range" min="1" max="100" aria-label="Painting speed"><output id="phspeedval"></output></div>
     <div class="prow">
       <button type="button" class="pkey pgo" id="phgo" title="Paint it again from the start">⟲ restart</button>
       <button type="button" class="pkey prec" id="phrec"><i class="dot"></i>record</button>
@@ -713,7 +713,8 @@
       <input id="mousecol" class="swatch" type="color" value="#39ff88" title="Pointer glow colour" aria-label="Pointer glow colour">
       <label class="key" title="A fading trail behind the pointer"><input id="mousetrail" type="checkbox" checked><span class="led"></span>trail</label></div>
     <div class="row" style="flex-wrap: nowrap"><select id="recfps" class="sel" style="flex: none; width: 78px" aria-label="Recording frame rate" title="Frames per second of the recording"><option value="30" selected>30 fps</option><option value="60">60 fps</option></select>
-      <select id="reellen" data-seg data-tight aria-label="Video length" title="free: the run takes as long as it takes · 15 / 30 / 60 s: the painting is timed to fit (a song's part is trimmed to it) and the recording is exactly that long"><option value="0" selected>free</option><option value="15" data-s="15">15 s</option><option value="30" data-s="30">30 s</option><option value="60" data-s="60">60 s</option></select></div>
+      <select id="reellen" data-seg data-tight aria-label="Video length" title="free: the run takes as long as it takes · 15 / 30 / 60 s: the painting is timed to fit (a song's part is trimmed to it) and the recording is exactly that long"><option value="0">free</option><option value="15" data-s="15">15 s</option><option value="30" data-s="30">30 s</option><option value="60" data-s="60">60 s</option></select></div>
+    <div class="row" style="flex-wrap: nowrap"><span class="lbl">length</span><input id="reelsec" type="range" min="0" max="100" value="12" style="flex: 1" aria-label="Video length in seconds" title="How long the run (and a recording) is, 0–100 s: the painting is timed to fit and a song's part is trimmed to it. 0 = free: it takes as long as it takes. Right-click: back to 12 s."><output id="reelsecv" style="min-width: 34px; text-align: right">12 s</output></div>
     <div class="row" style="flex-wrap: nowrap"><span class="lbl">loop</span><select id="loop" data-seg aria-label="Loop" title="The painting builds, holds, then goes back to empty, so the video loops cleanly (without recording it keeps looping). fade: dissolves away · rewind: un-paints itself"><option value="off" selected>off</option><option value="fade">fade</option><option value="rewind">rewind</option></select></div>
   </div>
   <div class="panel" style="width: 216px">
@@ -1299,7 +1300,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.38.1 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.39.0 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1317,7 +1318,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.38.1', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.39.0', FOOTER = `Code Painter by Jas Black`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -1344,7 +1345,7 @@ const FIRST_VISIT = (() => { try { return !Object.keys(localStorage).some(k => k
 const OFF = { on: false, t: 0, t0: 0, frame: 0, fps: 30, aT: 0, aPlaying: false, aStarted: false, aStart: 0, aEnd: -1, timers: [], parked: 0, endAt: Infinity, vCur: null, vStart: 0, vOnce: false, pcm: null };
 const clock = () => OFF.on ? OFF.t : performance.now();
 // the reel: a set length (0 = free), and whether a finished painting loops back to empty
-const reelLen = () => +$('reellen').value;
+const reelLen = () => +$('reelsec').value;      // (0 = free; the free / 15 / 30 / 60 buttons set the slider)
 const loopOn = () => $('loop').value !== 'off';
 const holdOpen = () => reelLen() > 0 || loopOn();     // (the run's clock keeps going after the painting is done)
 
@@ -1499,7 +1500,7 @@ function setButtons() {
   const active = S.mode !== 'idle';
   $('play').disabled = !active || (S.done && !audioActive()); $('restart').disabled = !active; $('rec').disabled = !active;
   // while zooming endlessly there is no finished program to save (⬇ png saves the current view)
-  $('savecode').disabled = S.mode !== 'auto' || !S.count || S.endless.on || !!(S.dg && S.dg.phase !== 'paint'); $('savepng').disabled = !active;
+  $('savecode').disabled = S.mode !== 'auto' || !S.count || S.endless.on || !!(S.dg && S.dg.phase !== 'paint') || !!S.sa; $('savepng').disabled = !active;
   $('savesvg').disabled = S.mode !== 'auto' || !S.count;      // (live / zoom / video: the view as it is now, see liveSvg)
   $('savestills').disabled = $('savesheet').disabled = !stillsOk(); $('savecover').disabled = !active;
   $('embedmusic').disabled = !AU.el;
@@ -2043,7 +2044,7 @@ async function startAuto(src, name, fileName = '', opts = {}) {
   S.startArgs = [src, name, fileName, opts];
   S.mode = 'auto'; S.name = name; S.orig = img; S.done = false; S.lines = []; S.items = []; S.drawn = []; S.liveDrawn = []; S.bits = 0; S.count = 0; S.sim = null; S.recent = [];
   S.queue = []; S.acc = 0; S.workerDone = false; const pk = !liveRun() || (!zoomWanted() && !S.video); S.line = pk ? lineSpec() : null; S.order = pk ? $('order').value : 'free'; S.picN = 0;     // (an order / one line: a still picture, or a playlist without zoom) S.lineSeed = 1 + Math.floor(Math.random() * 1e6); if (S.line) S.line.seed = S.lineSeed;
-  S.pen = !!S.line && S.line.kind === 'pen'; S.fr = null; S.dg = null; DG.on = false; S.penCut = false; S.penEnd = 0; S.penEnds = {}; S.hit = null; S.tipGlow = null; S.accWant = null; S.held = false; S.until = null; S.wCount = 0; S.hurry = 1; S.wr = null; S.loud = 0; S.loudLo = S.loudHi = null; S.penLen = 0; S.fmt = $('export').value; S.codeBytes = 0; S.landing = []; S.big = null; S.debt = 0; S.brush = null;
+  S.pen = !!S.line && S.line.kind === 'pen'; S.fr = null; S.dg = null; DG.on = false; if (DG.wk) DG.wk.postMessage({ type: 'stop' }); S.sa = null; if (SA.wk) SA.wk.postMessage({ type: 'stop' }); S.penCut = false; S.penEnd = 0; S.penEnds = {}; S.hit = null; S.tipGlow = null; S.accWant = null; S.held = false; S.until = null; S.wCount = 0; S.hurry = 1; S.wr = null; S.loud = 0; S.loudLo = S.loudHi = null; S.penLen = 0; S.fmt = $('export').value; S.codeBytes = 0; S.landing = []; S.big = null; S.debt = 0; S.brush = null;
   S.endless = newEndless();
   S.total = shapesWanted();
   // a video's own soundtrack only starts once the video does (after the first frame has emerged)
@@ -2065,6 +2066,7 @@ async function startAuto(src, name, fileName = '', opts = {}) {
   S.bgHex = SHP.hex(pal ? nearest(meanOf(data), pal) : meanOf(data)); S.loopBg = S.bgHex; S.bgSet = false;
   wcBegin(); paintBg(S.outX); snapMaybe(0);
   if (S.line && S.line.kind === 'circles') { frStart(data, ww, wh); S.waitAudio = audioActive() && !vidSound; S.waitSince = clock(); setButtons(); return; }
+  if (S.line && S.line.kind === 'string') { saStart(data, ww, wh); S.waitAudio = audioActive() && !vidSound; S.waitSince = clock(); setButtons(); return; }
   if (S.line && S.line.kind === 'growth') { dgStart(data, ww, wh); S.waitAudio = audioActive() && !vidSound; S.waitSince = clock(); setButtons(); return; }
   const FM = await faceMsgAsync(data, ww, wh);
   if (vbaseOn() && !S.video) S.total = Math.max(60, Math.round(S.total * (0.2 + 0.8 * (SCP.vpaint ?? 0.6))));       // (over a vector base: fewer strokes, the details — more of them with paint over)
@@ -2104,6 +2106,9 @@ function paintBg(x) {
       x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 0.16; x.fillStyle = patternFor('canvas', '#000'); x.fillRect(0, 0, x.canvas.width, x.canvas.height);
       x.globalAlpha = 0.07; x.fillStyle = patternFor('canvas', '#fff'); x.translate(2, 2); x.fillRect(-2, -2, x.canvas.width, x.canvas.height); x.restore();
     }
+    // dry media: the paper they are drawn on, its tooth faintly lit (the same paper that breaks up their strokes)
+    const dry = stylePick.values().map(s => TOOTH_ST[s]).find(Boolean);
+    if (dry) { const p = toothShade(dry.kind), k = toothScale(); p.setTransform(new DOMMatrix(x.getTransform()).scaleSelf(k, k)); x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'soft-light'; x.globalAlpha = 0.3; x.fillStyle = p; x.fillRect(0, 0, x.canvas.width, x.canvas.height); x.restore(); }
   }
   if (x === S.outX && WC.live) wcBg();
 }
@@ -2167,7 +2172,7 @@ worker.onmessage = (e) => {
   if (m.gen !== S.gen || S.mode !== 'auto') return;
   wake();
   if (m.type === 'mask') { S.mask = m; S.maskCv = null; return; }
-  if (m.type === 'bg') { S.bgHex = S.loopBg = WC.wc ? WC.paper : SHP.hex(m.c);      // (real watercolour: on white watercolour paper)
+  if (m.type === 'bg') { S.bgHex = S.loopBg = WC.wc ? WC.paper : dryPaper() || SHP.hex(m.c);      // (real watercolour: on white watercolour paper)
     if (!S.count) { paintBg(S.outX); S.snaps = []; snapMaybe(0); } S.sim = m.sim; S.bgSet = true; }
   else if (m.type === 'shape' && m.acc) { S.accWant = null; S.wCount = m.count; if (S.running && styleOkFor(m)) S.accN = (S.accN || 0) + 1, reveal(m, { k: 1, max: 130 + 40 * (1 - musicAmt()) }); }   // the beat's stroke: down at once, snapped on in a flash
   else if (m.type === 'accent-none') S.accWant = null;
@@ -2462,8 +2467,9 @@ function pace(dt) {
   }
   if (S.fr && !S.fr.done) { frStep(); if (!S.fr.done) return; }
   if (S.dg && S.dg.phase === 'paint' && !S.dg.pdone) { dgPaintStep(); return; }      // (once the circles are done: the usual end of a run)
-  // real paint behind the painter (a slow graphics card): the painter waits for it rather than piling strokes up (not with a song: that keeps time)
-  if (WC.live && !(audioActive() && !AU.ended) && !AU.live && WC.q.length + OIL.q.length > 24) return;
+  if (S.sa && !S.sa.done) { saStep(); return; }
+  // real paint behind the painter (a slow graphics card): the painter waits for it rather than piling strokes up (not with a song or a set length: those keep time)
+  if (WC.live && !WC.vid && !reelLen() && !(audioActive() && !AU.ended) && !AU.live && WC.q.length + OIL.q.length > 24) return;      // (a set length keeps time too)
   if (S.endless.on) return paceEndless(dt);
   if (!OFF.on) musicHold(Math.max(0, demand(dt)));
   musicSize(dt);
@@ -4625,6 +4631,19 @@ const MEDIA = new Set(['calligraphy', 'watercolour', 'gouache', 'sumi', 'marker'
 const CAN_BLUR = (() => { try { const t = document.createElement('canvas').getContext('2d'); t.filter = 'blur(1px)'; return t.filter === 'blur(1px)'; } catch (e) { return false; } })();
 const RISO_INKS = ['#ff48b0', '#0078bf', '#ffe800', '#00a95c', '#ff6c2f', '#765ba7', '#f15060', '#3d5588', '#00838a', '#000000'];    // fluorescent pink, blue, yellow, green, orange, violet, red, federal blue, teal, black
 let RISO_GRAIN = null;
+// the riso's drums: the inks of the print, and how far each sits off register (device px), the same for every stroke
+const RISO_PAPER = '#f4efe4', RISO_DRUMS = ['#0078bf', '#ff48b0', '#ffe800'], RISO_REG = [[0, 0], [1.6, -0.9], [-1.1, 1.3]], RISO_SPLIT = new Map();
+// a colour as densities of the three inks over white paper: the multiply of what they let through comes nearest it
+function risoSplit(hex) {
+  let r = RISO_SPLIT.get(hex); if (r) return r;
+  const T = hexRgb(hex).map(v => v / 255), I = RISO_DRUMS.map(h => hexRgb(h).map(v => v / 255));
+  const mixOf = d => [0, 1, 2].map(c => (1 - d[0] * (1 - I[0][c])) * (1 - d[1] * (1 - I[1][c])) * (1 - d[2] * (1 - I[2][c])));
+  const err = d => { const m = mixOf(d); return (m[0] - T[0]) ** 2 * 0.3 + (m[1] - T[1]) ** 2 * 0.59 + (m[2] - T[2]) ** 2 * 0.11; };
+  let best = [0, 0, 0], be = err(best);
+  for (let a = 0; a <= 1.001; a += 0.125) for (let b = 0; b <= 1.001; b += 0.125) for (let c = 0; c <= 1.001; c += 0.125) { const e = err([a, b, c]); if (e < be) { be = e; best = [a, b, c]; } }
+  for (let s = 0.0625; s > 0.005; s /= 2) for (let it = 0; it < 3; it++) for (let i = 0; i < 3; i++) for (const dd of [-s, s]) { const t = best.slice(); t[i] = Math.min(1, Math.max(0, t[i] + dd)); const e = err(t); if (e < be) { be = e; best = t; } }
+  if (RISO_SPLIT.size > 4000) RISO_SPLIT.clear(); RISO_SPLIT.set(hex, best); return best;
+}
 function risoGrain(x) {          // the riso's speckle: a tile of fine white grain (where the stencil let less ink through)
   if (!RISO_GRAIN) { const c = document.createElement('canvas'); c.width = c.height = 96; const t = c.getContext('2d'), d = t.createImageData(96, 96), R = rngFor([7, 3, 1]);
     for (let i = 0; i < 96 * 96; i++) { const v = R(); d.data[i * 4] = d.data[i * 4 + 1] = d.data[i * 4 + 2] = 255; d.data[i * 4 + 3] = v < 0.18 ? 120 + v * 700 : 0; }
@@ -4719,20 +4738,20 @@ const STYLE_DRAW = {
     for (let k = 0, n = Math.min(160, Math.round(size * size / 500)); k < n; k++) { const px = b.x0 + R() * b.w, py = b.y0 + R() * b.h, r2 = 0.3 + R() * Math.max(0.6, size * 0.006); x.beginPath(); x.arc(px, py, r2, 0, 7); x.fill(); }
     x.restore(); return endOf(q);
   },
-  riso(x, q) {            // risograph: two spot inks printed one over the other (they multiply), each grainy, the second a little off register
-    const [c0, c1, o] = colsOf(q), a = q.args, P = SHP.poly({ t: q.t, p: a }), b = boxOf(P), R = rngFor(a), size = Math.max(b.w, b.h, 2), path = outlineOf(q);
-    const dist = (h, k) => { const A = hexRgb(h), B = hexRgb(k); return (A[0] - B[0]) ** 2 * 0.3 + (A[1] - B[1]) ** 2 * 0.59 + (A[2] - B[2]) ** 2 * 0.11; };
-    const near = (h, not) => RISO_INKS.filter(k => k !== not).reduce((m, k) => dist(h, k) < dist(h, m) ? k : m, RISO_INKS.find(k => k !== not));
-    const A = near(c0), B = near(c1, A), grain = risoGrain(x);
-    x.save(); x.globalAlpha = 0.9 * o; x.fillStyle = A;          // (the first ink covers what was there; only the second overprints it, so a dense picture doesn't sink to black)
-    if (q.t === 'S') fillShape(x, q, A); else x.fill(path);
+  riso(x, q) {            // risograph (after p5.riso's way of thinking about it): the whole print from three drums of real riso ink — blue, fluorescent pink, yellow — each colour built
+    // by overprinting them at the right densities (they multiply, as the inks do), each drum's grain, and each drum a fixed little way off register for the whole sheet
+    const [c0, c1, o] = colsOf(q), path = outlineOf(q), grain = risoGrain(x), k = Math.max(0.6, devK(x));
+    const d = risoSplit(mixHex(c0, c1, 0.5));
+    x.save(); x.globalAlpha = 0.92 * o; x.fillStyle = RISO_PAPER; if (q.t === 'S') fillShape(x, q, RISO_PAPER); else x.fill(path);      // (the sheet there, then its inks: overlapping strokes don't sink to black)
     x.globalCompositeOperation = 'multiply';
-    const dx = (R() - 0.5) * size * 0.05 + (R() < 0.5 ? -1.5 : 1.5), dy = (R() - 0.5) * size * 0.05 + 1;
-    x.translate(dx, dy);                            // the second drum, off register: only where the picture goes towards its second colour
-    x.fillStyle = gradOf(x, q, [[0, rgbaOf(B, 0)], [0.45, rgbaOf(B, 0.25)], [1, rgbaOf(B, 0.95)]]);
-    if (q.t === 'S') fillShape(x, q, x.fillStyle); else x.fill(path);
-    x.translate(-dx, -dy);
-    if (grain) { x.globalCompositeOperation = 'screen'; x.globalAlpha = 0.5 * o; if (q.t === 'S') fillShape(x, q, grain); else { x.fillStyle = grain; x.fill(path); } }
+    RISO_DRUMS.forEach((ink, i) => {
+      if (d[i] < 0.03) return;
+      const [ox, oy] = RISO_REG[i]; x.save(); x.translate(ox / k, oy / k);
+      x.globalAlpha = Math.min(1, d[i] * o); x.fillStyle = ink;
+      if (q.t === 'S') fillShape(x, q, ink); else x.fill(path);
+      if (grain) { x.globalCompositeOperation = 'screen'; x.globalAlpha = (0.35 + 0.4 * (1 - d[i])) * o; x.fillStyle = grain; if (q.t === 'S') fillShape(x, q, grain); else x.fill(path); x.globalCompositeOperation = 'multiply'; }
+      x.restore();
+    });
     x.restore(); return endOf(q);
   },
   tape(x, q, u = 1, dir = 1) {    // strips of coloured paper tape: straight, a little see-through, torn zigzag ends, a soft sheen and a shadow
@@ -5228,10 +5247,10 @@ const STYLE_DRAW = {
     x.save(); x.lineCap = x.lineJoin = 'round';
     const end = shapePath(x, q, u, dir);
     if (q.t === 'S') {
-      x.globalAlpha = o * 0.1; x.strokeStyle = mixHex(c0, c1, 0.5); x.lineWidth = a[6] * 1.5; x.stroke();       // the faintest smudge
-      x.globalAlpha = Math.min(1, o * 0.7); x.strokeStyle = pat; x.lineWidth = a[6] * 0.7; x.stroke();           // the body, in the paper's grain
-      const P = quadPts(a, 1, dir, 20), ink = mixHex(c0, c1, 0.3), dust = { q, args: a, fast, upto: u, dir, fill: ink, w: Math.max(1.5, a[6] * 1.1), pmin: 0.55, pmax: 1.15, peak: 0.35, hw: 0.5, minStep: 0.55, maxSteps: 200, sharp: 0.68 };
-      stampLine(x, P, { ...dust, id: 'c', salt: 1, spacing: 0.1, scatter: 1.7, grain: 0.55, alpha: Math.min(1, o * 1.1) });      // the thick, rough, pressed line
+      x.globalAlpha = o * 0.16; x.strokeStyle = mixHex(c0, c1, 0.5); x.lineWidth = a[6] * 1.6; x.stroke();       // the smudge round it
+      x.globalAlpha = Math.min(1, o * 0.9); x.strokeStyle = pat; x.lineWidth = a[6] * 0.85; x.stroke();          // the body (the paper's tooth breaks it up)
+      const P = quadPts(a, 1, dir, 20), ink = mixHex(c0, c1, 0.3), dust = { q, args: a, fast, upto: u, dir, fill: ink, w: Math.max(1.2, Math.min(5, a[6] * 0.42)), pmin: 0.55, pmax: 1.15, peak: 0.35, hw: 0.5, minStep: 0.55, maxSteps: 200, sharp: 0.68 };
+      stampLine(x, P, { ...dust, id: 'c', salt: 1, spacing: 0.1, scatter: 2.4, grain: 0.55, alpha: Math.min(1, o * 0.8) });      // crumbs pressed into the line
       stampLine(x, P, { ...dust, id: 'd', salt: 2, spacing: 0.2, scatter: 2.6, grain: 0.8, w: dust.w * 0.8, alpha: o * 0.7 });    // ragged crumbs along its edges
     } else {
       const size = Math.max(a[2] || 0, a[3] || 0, 4);
@@ -5257,6 +5276,73 @@ const STYLE_DRAW = {
     x.restore();
   }
 };
+// ─────────────────────────────────────────────────────────────
+//  The paper's tooth (after PigmentLab's grain gate and p5.brush / graphite's studies of pencil on paper): dry media only
+//  catch the peaks of the paper, and the harder they press the deeper they reach. Each dry style is drawn into a scratch
+//  layer and cut by one fixed paper — the same paper under every stroke, in the painting's own coordinates — so the white
+//  valleys of the grain show through the graphite, the charcoal and the pastel, and layers of strokes fill them in slowly.
+//    fine: drawing paper (a fine, fibrous tooth) · laid: charcoal paper (ribbed laid lines and chain lines, plus grain)
+//    honey: pastel paper (the honeycomb of Mi-Teintes-like paper)
+// ─────────────────────────────────────────────────────────────
+const TOOTH = { cv: null, x: null, pats: new Map(), tiles: new Map() };
+const TOOTH_ST = { pen: { kind: 'fine', floor: 0.5, gain: 1.4, mid: 0.36 }, pencil: { kind: 'fine', floor: 0.16, gain: 2.1, mid: 0.42 }, charcoal: { kind: 'laid', floor: 0.12, gain: 2.2, mid: 0.46 }, pastel: { kind: 'honey', floor: 0.2, gain: 1.8, mid: 0.45 } };
+// a tileable height field 0..1, 256 px
+function toothHeight(kind) {
+  let H = TOOTH.tiles.get(kind); if (H) return H;
+  const N = 256; H = new Float32Array(N * N); const R = rngFor([kind.length * 31.7, 9.1, 4.4]);
+  // periodic value noise: lattice of g cells, wrapped, smooth-stepped
+  const octave = (g, amp, sx = 1, sy = 1) => { const L = new Float32Array(g * g); for (let i = 0; i < L.length; i++) L[i] = R();
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const fx = x / N * g * sx, fy = y / N * g * sy, ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy, u = tx * tx * (3 - 2 * tx), v = ty * ty * (3 - 2 * ty);
+      const a = L[(iy % g) * g + ix % g], b = L[(iy % g) * g + (ix + 1) % g], c = L[((iy + 1) % g) * g + ix % g], d = L[((iy + 1) % g) * g + (ix + 1) % g];
+      H[y * N + x] += amp * (a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v); } };
+  if (kind === 'fine') { octave(128, 0.5); octave(64, 0.3); octave(32, 0.15); octave(16, 0.08); octave(128, 0.22, 1, 0.25); }      // (fibres: a stretched octave)
+  else if (kind === 'laid') { octave(64, 0.35); octave(32, 0.22); octave(128, 0.18);
+    const W_ = new Float32Array(N); for (let x = 0; x < N; x++) W_[x] = Math.sin(x / N * 2 * Math.PI * 3) * 1.4 + Math.sin(x / N * 2 * Math.PI * 7 + 1.3) * 0.6;      // (the laid lines wander a little)
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) H[y * N + x] += 0.16 * Math.pow(0.5 + 0.5 * Math.cos((y + W_[x]) / N * 2 * Math.PI * 40), 1.6) * (0.6 + 0.8 * H[y * N + x]) + 0.05 * Math.pow(0.5 + 0.5 * Math.cos(x / N * 2 * Math.PI * 4), 30); }
+  else {      // honeycomb: distance to the nearest of a hexagonal grid of cell centres, a little jittered
+    octave(64, 0.3); octave(128, 0.2); octave(32, 0.15); const s = N / 15, pts = [];
+    for (let j = -1; j <= 26; j++) for (let i = -1; i <= 23; i++) pts.push([(i + (j % 2) * 0.5) * s + (R() - 0.5) * s * 0.55, j * s * 0.866 + (R() - 0.5) * s * 0.55]);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { let d = 1e9; for (const [px, py] of pts) { const dx = Math.abs(x - px), dy = Math.abs(y - py), ddx = Math.min(dx, N - dx), ddy = Math.min(dy, N - dy), dd = ddx * ddx + ddy * ddy; if (dd < d) d = dd; } H[y * N + x] += 0.32 * Math.min(1, Math.sqrt(d) / (s * 0.55)); }
+  }
+  let lo = 1e9, hi = -1e9; for (const v of H) { if (v < lo) lo = v; if (v > hi) hi = v; } for (let i = 0; i < H.length; i++) H[i] = (H[i] - lo) / (hi - lo || 1);
+  TOOTH.tiles.set(kind, H); return H;
+}
+// the tooth as an alpha pattern: how much of a stroke a point of the paper takes (peaks all of it, valleys only the floor)
+function toothPattern(spec) {
+  const key = spec.kind + spec.floor + spec.gain + spec.mid; let p = TOOTH.pats.get(key); if (p) return p;
+  const H = toothHeight(spec.kind), N = 256, c = document.createElement('canvas'); c.width = c.height = N; const x = c.getContext('2d'), im = x.createImageData(N, N);
+  for (let i = 0; i < N * N; i++) { const a = spec.floor + (1 - spec.floor) * Math.min(1, Math.max(0, (H[i] - spec.mid) * spec.gain + 0.5)); im.data[i * 4 + 3] = Math.round(a * 255); }
+  x.putImageData(im, 0, 0); p = x.createPattern(c, 'repeat'); TOOTH.pats.set(key, p); return p;
+}
+// the paper's own relief as a faint shading of the ground (so the paper reads as paper under a drawing)
+function toothShade(kind) {
+  const key = 'shade' + kind; let p = TOOTH.pats.get(key); if (p) return p;
+  const H = toothHeight(kind), N = 256, c = document.createElement('canvas'); c.width = c.height = N; const x = c.getContext('2d'), im = x.createImageData(N, N);
+  for (let y = 0; y < N; y++) for (let xx = 0; xx < N; xx++) { const i = y * N + xx, s = H[i] - H[((y + N - 1) % N) * N + (xx + N - 1) % N]; const v = Math.max(0, Math.min(255, 128 + s * 420)); im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; }
+  x.putImageData(im, 0, 0); p = x.createPattern(c, 'repeat'); TOOTH.pats.set(key, p); return p;
+}
+// pencil and charcoal go on light drawing paper (pastel keeps a toned ground, as pastel paper is)
+const dryPaper = () => { const v = stylePick.values(); return v.length && v.every(s => s === 'pencil' || s === 'charcoal' || s === 'pen') ? '#f1eee6' : v.length && v.every(s => s === 'riso') ? RISO_PAPER : null; };
+const toothScale = () => Math.max(0.6, Math.min(3, (typeof outLong === 'function' ? outLong() : 1600) / 1600));       // (paper features at the same size on any output)
+// draw f into a scratch layer, cut it by the paper's tooth there, then onto x (with x's own clip, alpha and blend)
+function toothed(x, q, f, spec, u, dir) {
+  const m = x.getTransform(), a = q.args, P = SHP.poly({ t: q.t, p: a }), pad = (q.t === 'S' ? a[6] * 1.6 : 4) + 6;
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (let i = 0; i < P.length; i += 2) for (const [dx, dy] of [[-pad, -pad], [pad, -pad], [-pad, pad], [pad, pad]]) { const X_ = m.a * (P[i] + dx) + m.c * (P[i + 1] + dy) + m.e, Y_ = m.b * (P[i] + dx) + m.d * (P[i + 1] + dy) + m.f; if (X_ < x0) x0 = X_; if (X_ > x1) x1 = X_; if (Y_ < y0) y0 = Y_; if (Y_ > y1) y1 = Y_; }
+  x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0)); x1 = Math.min(x.canvas.width, Math.ceil(x1)); y1 = Math.min(x.canvas.height, Math.ceil(y1));
+  const w = x1 - x0, h = y1 - y0; if (w <= 0 || h <= 0) return f(x, q, u, dir);
+  if (w * h > 4.2e6) return f(x, q, u, dir);      // (a huge shape: drawn as it is)
+  if (!TOOTH.cv) { TOOTH.cv = document.createElement('canvas'); TOOTH.x = TOOTH.cv.getContext('2d'); }
+  const c = TOOTH.cv, s = TOOTH.x; if (c.width < w || c.height < h) { c.width = Math.max(c.width, w); c.height = Math.max(c.height, h); }
+  s.setTransform(1, 0, 0, 1, 0, 0); s.globalCompositeOperation = 'source-over'; s.globalAlpha = 1; s.clearRect(0, 0, w, h);
+  s.setTransform(m.a, m.b, m.c, m.d, m.e - x0, m.f - y0);
+  const r = f(s, q, u, dir);
+  const pat = toothPattern(spec), k = toothScale(); pat.setTransform(new DOMMatrix([m.a, m.b, m.c, m.d, m.e - x0, m.f - y0]).scaleSelf(k, k));
+  s.setTransform(1, 0, 0, 1, 0, 0); s.globalCompositeOperation = 'destination-in'; s.globalAlpha = 1; s.fillStyle = pat; s.fillRect(0, 0, w, h); s.globalCompositeOperation = 'source-over';
+  x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(c, 0, 0, w, h, x0, y0, w, h); x.restore();
+  return r;
+}
+for (const [st, spec] of Object.entries(TOOTH_ST)) { const f = STYLE_DRAW[st]; if (f) STYLE_DRAW[st] = (x, q, u, dir) => toothed(x, q, f, spec, u, dir); }
 const STITCH = 7;   // the fabric grid, in painting pixels (1000 across the long side)
 // points along (the first part of) a quadratic stroke, for the media that build a stroke out of several lines
 // a layer of its own for one stroke (so parts of it can be cut away without cutting into the canvas under it): covers the
@@ -5577,7 +5663,7 @@ const mixHex = (a, b, f) => PIGMENT.k && typeof spectral !== 'undefined' && a[0]
 //  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // ─────────────────────────────────────────────────────────────
 const WC = { paper: '#f7f3ea', on: true, lib: undefined, ok: undefined, E: null, cv: null, base: null, bx: null, q: [], cur: null, live: false, keep: false, t: 0, img: null, tmp: null, tx: null, dirty: false, raf: 0, fresh: false };
-const WC_ST = new Set(['watercolour', 'wet', 'wash']);
+const WC_ST = new Set(['watercolour', 'wet', 'wash', 'ink', 'sumi']);      // (ink and sumi: the same water on paper, with ink: inkwash's model)
 const oilSt = st => OIL.live && OIL_ST.has(st);     // (real oil / acrylic: not a relief)
 const realSt = st => WC.live && !RLF.on && ((WC.wc && WC_ST.has(st)) || (OIL.live && OIL_ST.has(st)));
 // the engine's code, run the first time it is wanted (so a browser without WebGL 2 never even loads it)
@@ -6172,7 +6258,7 @@ ${ae()}
   }
 
   o = vec4(toSRGB(col), 1.0);
-}`,I={size:.5,water:.6,load:.5,flow:.45,bleed:.5,dry:.4,edge:.5,granulation:.45},L={screen:0,paper:1,transparent:2,white:3},xe=4096,R=Math.PI/180,z=-1,Se={brush:`Brush stroke`,water:`Water`,pen:`Pen`,lift:`Lift`},B={internal:WebGL2RenderingContext.RG16F,format:WebGL2RenderingContext.RG,type:WebGL2RenderingContext.HALF_FLOAT},V={internal:WebGL2RenderingContext.R16F,format:WebGL2RenderingContext.RED,type:WebGL2RenderingContext.HALF_FLOAT},H={internal:WebGL2RenderingContext.RGBA16F,format:WebGL2RenderingContext.RGBA,type:WebGL2RenderingContext.HALF_FLOAT},U={internal:WebGL2RenderingContext.RGBA8,format:WebGL2RenderingContext.RGBA,type:WebGL2RenderingContext.UNSIGNED_BYTE},Ce={internal:WebGL2RenderingContext.RG32F,format:WebGL2RenderingContext.RG,type:WebGL2RenderingContext.FLOAT},we=10,Te=24,Ee=3,W=256,De=20,Oe=2048,ke=1536,G=3072,Ae=42e5,K=.02,je=48,Me=1.2,q=.004,J=16,Ne=10,Y=24,Pe=24,Fe=[1,1,1],X=1100,Z=(e,t,n)=>Math.min(n,Math.max(t,e));function Q(e,t,n=G){e=Math.max(256,Math.round(e)||256),t=Math.max(256,Math.round(t)||256);let r=Math.min(1,Math.min(G,n)/Math.max(e,t),Math.sqrt(Ae/(e*t)));return[Math.max(256,Math.round(e*r)),Math.max(256,Math.round(t*r))]}var $=(e,t)=>e?{x0:Math.min(e.x0,t.x0),y0:Math.min(e.y0,t.y0),x1:Math.max(e.x1,t.x1),y1:Math.max(e.y1,t.y1)}:{...t},Ie=class{canvas;cursor;callbacks;params={...I};tool=`brush`;pigment=D(`#2338a8`);brush=u(l[0]);fingerIsWater=!0;interactive=!0;scriptScale=1;nav=!1;tipTextures=new Map;paperPreset=S;paperSeed=0;paperStrength=1;paperScale=1;paperOrigin=[0,0];ref=null;refRect={x:0,y:0,w:1,h:1};refOpacity=.5;refVisible=!0;lastDir=[1,0];lastAngle=0;g;gl;programs;canvasSize=[1,1];dpr=1;view={x:0,y:0,w:1,h:1};zoomLevel=1;pan=[0,0];fitMode=!0;dw=1;dh=1;velocity;pressure;divergence;curl;ink;fixed;wet;paper;wetMask;maskPixels=new Uint8Array;maskCounter=0;history;active=null;painted=null;everPainted=null;dirty=null;dirtyAll=!0;lastWet=-1/0;wetPeak=0;minAwakeUntil=0;fixTimer=0;flowSpeed=0;growCarry=0;brushNow={x:0,y:0,r:0};raf=0;lastFrame=0;seenEvictions=0;stroke=null;fill=null;queue=[];pencilSeen=!1;hover={x:0,y:0,inside:!1,type:`mouse`};force={value:0,t:-1/0};disposers=[];constructor(e,t,n={},r){this.canvas=e,this.cursor=t,this.callbacks=n;let i=e.getContext(`webgl2`,{alpha:!1,depth:!1,stencil:!1,antialias:!1,preserveDrawingBuffer:!0,powerPreference:`high-performance`});if(!i)throw Error(`WebGL2 is not available in this browser.`);if(!i.getExtension(`EXT_color_buffer_float`)&&!i.getExtension(`EXT_color_buffer_half_float`))throw Error(`This GPU cannot render to floating-point textures.`);this.gl=i,this.g=new _(i),i.disable(i.BLEND),this.programs={splat:this.g.program(oe),stamp:this.g.program(se),fill:this.g.program(ye),advectVelocity:this.g.program(ce),divergence:this.g.program(le),pressure:this.g.program(ue),gradient:this.g.program(de),curl:this.g.program(k),vorticity:this.g.program(A),scale:this.g.program(fe),advectWet:this.g.program(me),wetMask:this.g.program(pe),advectInk:this.g.program(he),settle:this.g.program(ge),bleach:this.g.program(_e),lift:this.g.program(ve),paperField:this.g.program(j),paperLight:this.g.program(M),paperSwatch:this.g.program(F),display:this.g.program(be)},this.fitCanvas(),this.createDocument(r??this.screenSize),this.attachInput(),this.schedule()}fitCanvas(){this.dpr=Math.min(window.devicePixelRatio||1,2);let e=this.canvas.getBoundingClientRect(),t=Math.max(2,Math.round(e.width*this.dpr)),n=Math.max(2,Math.round(e.height*this.dpr));this.canvas.width=t,this.canvas.height=n,this.canvasSize=[t,n],this.fitMode?this.fitZoom():this.updateView()}fitZoom(){let[e,t]=this.canvasSize,n=48*this.dpr,r=Math.min((e-n)/this.dw,(t-n)/this.dh)/this.dpr;this.zoomLevel=Z(r,K,32),this.pan=[0,0],this.fitMode=!0,this.updateView()}updateView(){let[e,t]=this.canvasSize,n=this.zoomLevel*this.dpr,r=this.dw*n,i=this.dh*n,a=je*this.dpr,o=Math.max(0,(e+r)/2-a),s=Math.max(0,(t+i)/2-a);this.pan=[Z(this.pan[0],-o,o),Z(this.pan[1],-s,s)],this.view={x:(e-r)/2+this.pan[0],y:(t-i)/2+this.pan[1],w:r,h:i},this.dirtyAll=!0,this.updateCursor(),this.callbacks.onViewChange?.(this.zoomLevel,[this.dw,this.dh])}get screenSize(){let[e,t]=this.canvasSize,n=Math.min(1,Oe/Math.max(e,t),ke/Math.min(e,t));return Q(e*n,t*n,this.maxSide)}get maxSide(){return Math.min(G,this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE))}allocateTargets(){let{gl:e,g:t}=this,n=this.dw/this.dh,r=n>1?{w:Math.round(W*n),h:W}:{w:W,h:Math.round(W/n)};this.velocity=t.double(r.w,r.h,[B],e.LINEAR),this.pressure=t.double(r.w,r.h,[V],e.NEAREST),this.divergence=t.target(r.w,r.h,[V],e.NEAREST),this.curl=t.target(r.w,r.h,[V],e.NEAREST),this.ink=t.double(this.dw,this.dh,[H,H],e.LINEAR),this.fixed=t.target(this.dw,this.dh,[H,H],e.LINEAR),this.wet=t.double(this.dw,this.dh,[V],e.LINEAR),this.paper=t.target(this.dw,this.dh,[U],e.LINEAR),this.wetMask=t.target(Math.ceil(this.dw/J),Math.ceil(this.dh/J),[U],e.NEAREST),this.maskPixels=new Uint8Array(this.wetMask.w*this.wetMask.h*4)}allocateHistory(){this.history=new b(this.g,this.dw,this.dh,[{formats:[H,H,V],documents:2},{formats:[H,H],documents:1}])}docTargets(){return[this.velocity.read,this.velocity.write,this.pressure.read,this.pressure.write,this.divergence,this.curl,this.ink.read,this.ink.write,this.fixed,this.wet.read,this.wet.write,this.paper,this.wetMask]}createDocument([e,t]){let n=this.aspect;[this.dw,this.dh]=Q(e,t,this.maxSide),this.ref&&Math.abs(this.aspect-n)>.001&&this.fitReference(),this.g.disposeTargets(),this.allocateTargets(),this.allocateHistory(),this.paperSeed=Math.random(),this.paperScale=X/this.dh,this.paperOrigin=[0,0],this.drawPaper(this.paper,this.paperOrigin,this.paperScale),this.resetPaintState(),this.fitMode?this.fitZoom():this.updateView(),this.notifyHistory()}resetPaintState(){this.active=null,this.painted=null,this.everPainted=null,this.dirty=null,this.dirtyAll=!0,this.lastWet=-1/0,this.wetPeak=0,this.fixTimer=0,this.flowSpeed=0}resizeDocument(e,t){[e,t]=Q(e,t,this.maxSide);let n=this.dw,r=this.dh;if(e===n&&t===r)return;this.stroke=null,this.dropFill(),this.queue=[];let{g:i}=this,a=Math.round((e-n)/2),o=Math.round((t-r)/2),s={...this.currentMeta(),whole:this.captureWhole(),paperOrigin:[...this.paperOrigin]},c={targets:this.docTargets(),ink:this.ink.read,fixed:this.fixed,wet:this.wet.read};this.dw=e,this.dh=t,this.allocateTargets(),this.history.beginBoundary({kind:`resize`,label:`Resize ${e} × ${t}`},s,e,t);let l=Math.max(0,-a),u=Math.max(0,-o),d=Math.max(0,a),f=Math.max(0,o),p=Math.min(n-l,e-d),m=Math.min(r-u,t-f),h=(e,t)=>{p>0&&m>0&&e.views.forEach((e,n)=>t.forEach(t=>i.blit(e,l,u,t.views[n],d,f,p,m)))};h(c.ink,[this.ink.read,this.ink.write]),h(c.wet,[this.wet.read,this.wet.write]),h(c.fixed,[this.fixed]),c.targets.forEach(e=>i.disposeTarget(e)),this.paperOrigin=[this.paperOrigin[0]-a,this.paperOrigin[1]-o],this.drawPaper(this.paper,this.paperOrigin,this.paperScale);let g=n=>{if(!n)return null;let r={x0:Math.max(0,n.x0+a),y0:Math.max(0,n.y0+o),x1:Math.min(e,n.x1+a),y1:Math.min(t,n.y1+o)};return r.x1>r.x0&&r.y1>r.y0?r:null};this.active=g(this.active),this.painted=g(this.painted),this.everPainted=g(this.everPainted),this.dirty=null;let _=this.refRect;this.refRect={x:(_.x*n+a)/e,y:(_.y*r+o)/t,w:_.w*n/e,h:_.h*r/t},this.fitMode?this.fitZoom():this.updateView(),this.notifyHistory(),this.callbacks.onDocumentChange?.(this.docState()),this.schedule()}captureWhole(){let e=this.everPainted,{g:t,dw:n,dh:r}=this,i=(i,a)=>e?t.readHalf(i,n,r,a,e):new Uint16Array;return{w:n,h:r,rect:e?{...e}:null,layers:{inkA:i(this.ink.read.views[0],4),inkB:i(this.ink.read.views[1],4),fixedA:i(this.fixed.views[0],4),fixedB:i(this.fixed.views[1],4),wet:i(this.wet.read.views[0],1)}}}uploadWhole(e){let t=e.rect;if(!t)return;let{gl:n,g:r}=this,i=t.x1-t.x0,a=t.y1-t.y0,o=(e,n,o)=>r.uploadHalf(e,t.x0,t.y0,i,a,n,o);for(let t of[this.ink.read,this.ink.write])o(t.tex[0],n.RGBA,e.layers.inkA),o(t.tex[1],n.RGBA,e.layers.inkB);o(this.fixed.tex[0],n.RGBA,e.layers.fixedA),o(this.fixed.tex[1],n.RGBA,e.layers.fixedB);for(let t of[this.wet.read,this.wet.write])o(t.tex[0],n.RED,e.layers.wet);this.everPainted={...t}}applyWhole(e,t){let n=this.docTargets();this.dw=e.w,this.dh=e.h,this.allocateTargets(),n.forEach(e=>this.g.disposeTarget(e)),this.history.resize(this.dw,this.dh),this.paperOrigin=[...t],this.drawPaper(this.paper,this.paperOrigin,this.paperScale),this.everPainted=null,this.uploadWhole(e),this.dirty=null,this.dirtyAll=!0,this.fitMode?this.fitZoom():this.updateView()}docState(){return{paperId:this.paperPreset.id,paperStrength:this.paperStrength,reference:{image:this.ref?.src??null,rect:{...this.refRect},opacity:this.refOpacity,visible:this.refVisible}}}get documentState(){return this.docState()}applyDocState(e){let t=x.find(t=>t.id===e.paperId);t&&t!==this.paperPreset&&(this.paperPreset=t,this.drawPaper(this.paper,this.paperOrigin,this.paperScale)),this.paperStrength=Z(e.paperStrength,0,1);let n=e.reference;n.image!==(this.ref?.src??null)&&this.uploadReference(n.image),this.refRect={...n.rect},this.refOpacity=n.opacity,this.refVisible=n.visible,this.dirtyAll=!0}recordChange(e,t,n){this.dropFill(),this.history.begin({kind:e,label:t},{...this.currentMeta(),doc:n}),this.notifyHistory()}snapshot(){let e=this.currentMeta();return{whole:this.captureWhole(),paper:{id:this.paperPreset.id,seed:this.paperSeed,origin:[...this.paperOrigin],scale:this.paperScale,strength:this.paperStrength},wet:{wetAgo:e.wetAgo,wetPeak:e.wetPeak,active:e.active,painted:e.painted},reference:e.doc.reference,view:{zoom:this.zoomLevel,pan:[...this.pan],fitted:this.fitMode}}}restore(e){let[t,n]=Q(e.whole.w,e.whole.h,this.maxSide);if(t!==e.whole.w||n!==e.whole.h)throw Error(`This sheet (${e.whole.w} × ${e.whole.h}) is too large for this GPU.`);this.stroke=null,this.dropFill(),this.queue=[],this.ref&&=(this.gl.deleteTexture(this.ref.tex),null),this.g.disposeTargets(),this.dw=t,this.dh=n,this.allocateTargets(),this.allocateHistory(),this.resetPaintState(),this.paperPreset=x.find(t=>t.id===e.paper.id)??S,this.paperSeed=e.paper.seed,this.paperScale=e.paper.scale||X/this.dh,this.paperOrigin=[...e.paper.origin],this.paperStrength=Z(e.paper.strength,0,1),this.drawPaper(this.paper,this.paperOrigin,this.paperScale),this.uploadWhole(e.whole);let r=performance.now();this.lastWet=Number.isFinite(e.wet.wetAgo)?r-e.wet.wetAgo:-1/0,this.wetPeak=e.wet.wetPeak,this.active=e.wet.active?{...e.wet.active}:null,this.painted=e.wet.painted?{...e.wet.painted}:null,this.active&&(this.minAwakeUntil=r+250),this.uploadReference(e.reference.image),this.refRect={...e.reference.rect},this.refOpacity=Z(e.reference.opacity,0,1),this.refVisible=e.reference.visible,this.zoomLevel=Z(e.view.zoom,K,32),this.pan=[...e.view.pan],this.fitMode=e.view.fitted,this.fitMode?this.fitZoom():this.updateView(),this.notifyHistory(),this.callbacks.onDocumentChange?.(this.docState()),this.schedule()}get zoom(){return this.zoomLevel}get fitted(){return this.fitMode}get navigating(){return this.nav}set navigating(e){this.nav=e,this.updateCursor()}zoomAt(e,t,n){let r=this.canvas.getBoundingClientRect(),[i,a]=this.canvasSize,o=Z(this.zoomLevel*n,K,32),s=o/this.zoomLevel;if(s===1)return;let c=(e-r.left)*this.dpr,l=a-(t-r.top)*this.dpr,u=i/2+this.pan[0],d=a/2+this.pan[1];this.pan=[c-(c-u)*s-i/2,l-(l-d)*s-a/2],this.zoomLevel=o,this.fitMode=!1,this.updateView(),this.schedule()}zoomTo(e){let t=this.canvas.getBoundingClientRect();this.zoomAt(t.left+t.width/2,t.top+t.height/2,e/this.zoomLevel)}zoomToFit(){this.fitZoom(),this.schedule()}panBy(e,t){(e||t)&&(this.pan=[this.pan[0]+e*this.dpr,this.pan[1]-t*this.dpr],this.fitMode=!1,this.updateView(),this.schedule())}setParams(e){Object.assign(this.params,e)}get aspect(){return this.dw/this.dh}clientToDoc(e,t){return this.toUv({clientX:e,clientY:t})}docToClient(e,t){let n=this.canvas.getBoundingClientRect();return[n.left+(this.view.x+e*this.view.w)/this.dpr,n.top+(this.canvasSize[1]-this.view.y-t*this.view.h)/this.dpr]}get docSize(){return[this.dw,this.dh]}get filling(){return this.fill!==null}get fillMargin(){return 28}readFlat(){return this.readback(!0)}fillBegin(e,t,n=`Fill`){if(this.stroke)return!1;if(e.length!==this.dw*this.dh*2)throw Error(`fill field does not match the document`);this.beginStep(`fill`,n);let r=this.g.texture(this.dw,this.dh,Ce,e,this.gl.NEAREST);return this.fill={tex:r,bbox:{...t}},!0}fillStep(e,t,n){let r=this.fill;if(!r)return!1;let{gl:i,g:a}=this,o=this.params;this.touch(r.bbox);let s=this.programs.fill;if(s.bind(),i.uniform1i(s.u.uField,a.bindTex(0,r.tex)),i.uniform1i(s.u.uPaper,a.bindTex(1,this.paper.tex[0])),i.uniform1f(s.u.uSoft,Math.max(0,n.soft)),i.uniform1f(s.u.uGrainThr,.5),i.uniform1f(s.u.uJitter,Ee),i.uniform1f(s.u.uWidth,Te),i.enable(i.BLEND),n.paint){let c=.15*Math.exp(o.load*2.8)*.84*n.strength,l=this.pigment.coeffs;i.uniform1i(s.u.uCumulative,0),i.uniform1f(s.u.uFrom,e),i.uniform1f(s.u.uTo,t),i.uniform1f(s.u.uGrain,.12),i.uniform4f(s.u.uColor0,l[0]*c,l[1]*c,l[2]*c,l[3]*c),i.uniform4f(s.u.uColor1,l[4]*c,l[5]*c,l[6]*c,this.pigment.white*c*1.6),i.blendEquation(i.FUNC_ADD),i.blendFunc(i.ONE,i.ONE),a.draw(this.ink.read,r.bbox)}let c=(.25+.75*n.water)*.9;return i.uniform1i(s.u.uCumulative,1),i.uniform1f(s.u.uTo,t+we),i.uniform1f(s.u.uGrain,0),i.uniform4f(s.u.uColor0,c,0,0,0),i.uniform4f(s.u.uColor1,0,0,0,0),i.blendEquation(i.MAX),a.draw(this.wet.read,r.bbox),i.blendEquation(i.FUNC_ADD),i.disable(i.BLEND),this.wetPeak=Math.max(this.wetPeak*this.wetDecay(),c),this.lastWet=performance.now(),this.schedule(),!0}fillEnd(){this.dropFill()}dropFill(){this.fill&&=(this.gl.deleteTexture(this.fill.tex),null)}get scripting(){return this.stroke?.pointerId===z}scriptBegin(e,t,n,r,i=`Stroke`,a){return!this.stroke&&(i!==!1&&this.beginStep(`script`,i),this.scriptScale=a?Math.min(1,a/this.radius(e,1,0)):1,this.stroke={pointerId:z,pointerType:`pen`,tool:e,started:!1,ending:!1,x:0,y:0,cx:0,cy:0,pr:0,t:performance.now(),speed:0,simPressure:.45,carry:0,travelled:0,moved:!1,dx:this.lastDir[0],dy:this.lastDir[1],angle:this.lastAngle,azimuth:null},this.queue.push({x:t,y:n,p:Z(r,.02,1),t:performance.now(),tx:0,ty:0}),this.schedule(),!0)}scriptMove(e,t,n,r){return this.scripting?(this.queue.push({x:e,y:t,p:Z(n,.02,1),t:r,tx:0,ty:0}),this.schedule(),!0):!1}scriptEnd(){this.scripting&&(this.stroke.ending=!0,this.schedule())}setPigment(e){this.pigment=e}get paperId(){return this.paperPreset.id}get paperTexture(){return this.paperStrength}set paperTexture(e){e=Z(e,0,1),e!==this.paperStrength&&(this.paperStrength=e,this.redraw())}setPaper(e){e!==this.paperPreset&&(this.paperPreset=e,this.drawPaper(this.paper,this.paperOrigin,this.paperScale),this.redraw())}paperSwatch(e,t,n){let{gl:r,g:i}=this,a=i.target(t,n,[U],r.LINEAR),o=i.target(t,n,[U],r.NEAREST);this.drawPaper(a,[t*.7,n*1.3],this.paperScale*(this.dh/this.view.h),e);let s=this.programs.paperSwatch;s.bind(),r.uniform1i(s.u.uPaper,i.bindTex(0,a.tex[0])),this.paperUniforms(s,e,1),i.draw(o);let c=new Uint8Array(t*n*4);r.bindFramebuffer(r.FRAMEBUFFER,o.fbo),r.readPixels(0,0,t,n,r.RGBA,r.UNSIGNED_BYTE,c),i.disposeTarget(a),i.disposeTarget(o);let l=document.createElement(`canvas`);l.width=t,l.height=n;let u=l.getContext(`2d`),d=u.createImageData(t,n);for(let e=0;e<n;e++)d.data.set(c.subarray((n-1-e)*t*4,(n-e)*t*4),e*t*4);return u.putImageData(d,0,0),l}drawPaper(e,t,n,r=this.paperPreset){let{gl:i,g:a}=this,o=a.target(e.w,e.h,[H],i.NEAREST),s=this.programs.paperField;s.bind(),i.uniform2f(s.u.uRes,e.w,e.h),i.uniform2f(s.u.uOffset,t[0],t[1]),i.uniform1f(s.u.uScale,n),i.uniform1f(s.u.uSeed,this.paperSeed),i.uniform1i(s.u.uKind,r.kind),a.draw(o);let c=this.programs.paperLight;c.bind(),i.uniform1i(c.u.uField,a.bindTex(0,o.tex[0])),i.uniform2f(c.u.uTexel,1/e.w,1/e.h),i.uniform1f(c.u.uBump,r.bump*1.4/n),a.draw(e),a.disposeTarget(o)}paperUniforms(e,t,n){let{gl:r}=this;r.uniform3fv(e.u.uPaperTint,C(t.tint)),r.uniform3fv(e.u.uFleckTint,C(t.fleck)),r.uniform1f(e.u.uMottle,t.mottle),r.uniform1f(e.u.uTexture,n)}setTool(e){this.tool=e,this.updateCursor()}setBrush(e){this.brush=e,this.lastAngle=e.rotation===`fixed`?e.angle*R:e.rotation===`follow`?Math.atan2(this.lastDir[1],this.lastDir[0])+e.angle*R:0,this.updateCursor()}get hasReference(){return this.ref!==null}get referenceAspect(){return this.ref?.aspect??0}setReference(e){let t=this.docState(),n=null;if(e){let t=Math.min(xe,this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE)),r=Math.min(1,t/Math.max(e.width,e.height));n=document.createElement(`canvas`),n.width=Math.max(1,Math.round(e.width*r)),n.height=Math.max(1,Math.round(e.height*r)),n.getContext(`2d`).drawImage(e,0,0,n.width,n.height)}this.uploadReference(n),n&&this.fitReference(),this.recordChange(`reference`,n?`Reference added`:`Reference removed`,t),this.redraw()}referenceImage(){return this.ref?.src??null}uploadReference(e){let{gl:t}=this;if(this.ref?.src===e||(this.ref&&=(t.deleteTexture(this.ref.tex),null),!e))return;let n=t.createTexture();t.activeTexture(t.TEXTURE0),t.bindTexture(t.TEXTURE_2D,n),t.pixelStorei(t.UNPACK_FLIP_Y_WEBGL,!0),t.texImage2D(t.TEXTURE_2D,0,t.RGBA8,t.RGBA,t.UNSIGNED_BYTE,e),t.pixelStorei(t.UNPACK_FLIP_Y_WEBGL,!1),t.texParameteri(t.TEXTURE_2D,t.TEXTURE_MIN_FILTER,t.LINEAR),t.texParameteri(t.TEXTURE_2D,t.TEXTURE_MAG_FILTER,t.LINEAR),t.texParameteri(t.TEXTURE_2D,t.TEXTURE_WRAP_S,t.CLAMP_TO_EDGE),t.texParameteri(t.TEXTURE_2D,t.TEXTURE_WRAP_T,t.CLAMP_TO_EDGE),this.ref={tex:n,aspect:e.width/e.height,src:e}}fitReference(){if(!this.ref)return;let e=this.ref.aspect/this.aspect,t=e>1?1:e,n=e>1?1/e:1;this.referenceRect={x:(1-t)/2,y:(1-n)/2,w:t,h:n}}readReferenceFlat(){if(!this.ref)return null;let{dw:e,dh:t}=this,n=this.refRect,r=document.createElement(`canvas`);r.width=e,r.height=t;let i=r.getContext(`2d`,{willReadFrequently:!0});i.fillStyle=`#fff`,i.fillRect(0,0,e,t),i.drawImage(this.ref.src,n.x*e,(1-n.y-n.h)*t,n.w*e,n.h*t);let a=i.getImageData(0,0,e,t).data,o=new Uint8Array(e*t*4),s=e*4;for(let e=0;e<t;e++)o.set(a.subarray((t-1-e)*s,(t-e)*s),e*s);for(let e=3;e<o.length;e+=4)o[e]=255;return o}get referenceRect(){return{...this.refRect}}set referenceRect(e){let t=this.refRect;(e.x!==t.x||e.y!==t.y||e.w!==t.w||e.h!==t.h)&&(this.refRect={...e},this.redraw())}get referenceOpacity(){return this.refOpacity}set referenceOpacity(e){e=Z(e,0,1),e!==this.refOpacity&&(this.refOpacity=e,this.redraw())}referenceForFill=!1;get referenceVisible(){return this.refVisible}set referenceVisible(e){e!==this.refVisible&&(this.refVisible=e,this.redraw())}redraw(){this.dirtyAll=!0,this.schedule()}forgetBrush(e){let t=this.tipTextures.get(e);t&&(this.gl.deleteTexture(t),this.tipTextures.delete(e))}tipTexture(e){let t=this.tipTextures.get(e.id);if(t)return t;let{gl:n}=this;return t=n.createTexture(),n.activeTexture(n.TEXTURE0),n.bindTexture(n.TEXTURE_2D,t),n.pixelStorei(n.UNPACK_ALIGNMENT,1),n.texImage2D(n.TEXTURE_2D,0,n.R8,e.tipSize,e.tipSize,0,n.RED,n.UNSIGNED_BYTE,e.tipData),n.texParameteri(n.TEXTURE_2D,n.TEXTURE_MIN_FILTER,n.LINEAR),n.texParameteri(n.TEXTURE_2D,n.TEXTURE_MAG_FILTER,n.LINEAR),n.texParameteri(n.TEXTURE_2D,n.TEXTURE_WRAP_S,n.CLAMP_TO_EDGE),n.texParameteri(n.TEXTURE_2D,n.TEXTURE_WRAP_T,n.CLAMP_TO_EDGE),this.tipTextures.set(e.id,t),t}fix(){!this.painted||this.fixTimer>0||(this.beginStep(`dry`,`Dry`),this.history.protect(1,this.painted,this.fixed.views),this.fixTimer=Me,this.touch(this.painted),this.schedule())}clear(){if(this.stroke=null,this.queue=[],this.everPainted||this.fill){this.beginStep(`clear`,`Clear`),this.everPainted&&(this.history.protect(0,this.everPainted,this.snapshotLayers()),this.history.protect(1,this.everPainted,this.fixed.views));for(let e of this.docTargets())e!==this.paper&&this.g.clearTarget(e);this.resetPaintState(),this.notifyHistory(),this.schedule()}}abortStroke(){let e=this.stroke;e&&(this.stroke=null,this.queue=[],e.pointerId!==z&&this.callbacks.onStrokeTool?.(null),this.history.canUndo&&(this.travel(`undo`),this.history.discardRedo(),this.notifyHistory()))}undo(){this.history.canUndo&&this.travel(`undo`)}redo(){this.history.canRedo&&this.travel(`redo`)}jumpTo(e){let{index:t,list:n}=this.history.entries();e=Z(Math.round(e),0,n.length);for(let n=t;n>e&&this.history.canUndo;n--)this.travel(`undo`,!1);for(let n=t;n<e&&this.history.canRedo;n++)this.travel(`redo`,!1);this.notifyHistory()}get canUndo(){return this.history.canUndo}get canRedo(){return this.history.canRedo}travel(e,t=!0){this.stroke=null,this.dropFill(),this.queue=[],this.fixTimer=0;let n=e===`undo`?this.history.peekUndo():this.history.peekRedo(),r=this.currentMeta();n?.boundary&&(r.whole=this.captureWhole(),r.paperOrigin=[...this.paperOrigin]),this.sleep();let i=this.ink,a=this.wet,o=[[[i.read.views[0],i.write.views[0]],[i.read.views[1],i.write.views[1]],[a.read.views[0],a.write.views[0]]],[[this.fixed.views[0]],[this.fixed.views[1]]]],s=e===`undo`?this.history.undo(o,r):this.history.redo(o,r);if(!s)return;let c=s.meta,l=performance.now();c.whole&&(this.applyWhole(c.whole,c.paperOrigin??[0,0]),this.painted=c.painted?{...c.painted}:null),s.info.kind!==`paper`&&s.info.kind!==`reference`&&(this.lastWet=l-c.wetAgo,this.wetPeak=c.wetPeak,this.active=c.active?{...c.active}:null),s.rect&&(this.dirty=$(this.dirty,s.rect),this.painted=$(this.painted,s.rect),this.everPainted=$(this.everPainted,s.rect)),this.applyDocState(c.doc),this.callbacks.onDocumentChange?.(this.docState()),t&&this.notifyHistory(),this.schedule()}notifyHistory(){this.seenEvictions=this.history.evictions;let{list:e,index:t}=this.history.entries();this.callbacks.onHistoryChange?.(e,t)}currentMeta(){return{wetAgo:performance.now()-this.lastWet,wetPeak:this.wetPeak,active:this.active?{...this.active}:null,painted:this.painted?{...this.painted}:null,doc:this.docState()}}async exportImage(e){let{dw:t,dh:n}=this,r=e.format===`jpeg`&&e.background===`transparent`?`white`:e.background,i=this.readback(!1,L[r],e.texture??!0),a=document.createElement(`canvas`);a.width=t,a.height=n;let o=a.getContext(`2d`),s=o.createImageData(t,n),c=t*4;for(let e=0;e<n;e++)s.data.set(i.subarray((n-1-e)*c,(n-e)*c),e*c);o.putImageData(s,0,0);let l=`image/${e.format}`;return new Promise((t,n)=>a.toBlob(r=>{r?r.type===l?t(r):n(Error(`This browser cannot save ${e.format.toUpperCase()}`)):n(Error(`export failed`))},l,e.quality))}readback(e,t=L.paper,n=!0){let{gl:r,g:i,dw:a,dh:o}=this,s=i.target(a,o,[U],r.NEAREST);this.drawDisplay(s,{x:0,y:0,w:a,h:o},null,e,t,n);let c=new Uint8Array(a*o*4);return r.bindFramebuffer(r.FRAMEBUFFER,s.fbo),r.readPixels(0,0,a,o,r.RGBA,r.UNSIGNED_BYTE,c),i.disposeTarget(s),c}resize(){this.fitCanvas(),this.schedule()}destroy(){cancelAnimationFrame(this.raf),this.dropFill(),this.disposers.forEach(e=>e()),this.tipTextures.forEach(e=>this.gl.deleteTexture(e)),this.tipTextures.clear(),this.ref&&this.gl.deleteTexture(this.ref.tex),this.ref=null,this.g.disposeTargets()}toUv(e){let t=this.canvas.getBoundingClientRect(),n=(e.clientX-t.left)*this.dpr,r=this.canvasSize[1]-(e.clientY-t.top)*this.dpr;return[(n-this.view.x)/this.view.w,(r-this.view.y)/this.view.h]}attachInput(){let e=this.canvas,t=(e,t,n,r)=>{e.addEventListener(t,n,r),this.disposers.push(()=>e.removeEventListener(t,n,r))};t(e,`pointerdown`,t=>{if(t.preventDefault(),!this.interactive||this.nav||t.button===1||this.stroke)return;t.pointerType===`pen`&&(this.pencilSeen=!0);try{e.setPointerCapture(t.pointerId)}catch{}let n=this.tool;t.pointerType===`touch`&&this.pencilSeen&&this.fingerIsWater&&(n=`water`),t.pointerType===`pen`&&t.buttons&32?n=`lift`:t.pointerType===`pen`&&t.buttons&2&&(n=n===`water`?`brush`:`water`),this.stroke={pointerId:t.pointerId,pointerType:t.pointerType,tool:n,started:!1,ending:!1,x:0,y:0,cx:0,cy:0,pr:0,t:t.timeStamp,speed:0,simPressure:.45,carry:0,travelled:0,moved:!1,dx:this.lastDir[0],dy:this.lastDir[1],angle:this.lastAngle,azimuth:null},n!==this.tool&&this.callbacks.onStrokeTool?.(n),this.beginStep(`stroke`,Se[n]),this.pushSample(t),this.trackHover(t),this.schedule()}),t(e,`pointermove`,e=>{if(e.pointerType===`pen`&&(this.pencilSeen=!0),this.trackHover(e),!this.stroke||e.pointerId!==this.stroke.pointerId)return;let t=e.getCoalescedEvents?.()??[];for(let n of t.length?t:[e])this.pushSample(n);this.schedule()});let n=e=>{this.stroke&&e.pointerId===this.stroke.pointerId&&(this.stroke.ending=!0,this.schedule())};t(e,`pointerup`,n),t(e,`pointercancel`,n),t(e,`pointerleave`,()=>{this.hover.inside=!1,this.updateCursor()}),t(e,`contextmenu`,e=>e.preventDefault()),t(window,`blur`,()=>{this.stroke&&(this.stroke.ending=!0)}),t(e,`webkitmouseforcechanged`,e=>{let t=e.webkitForce;typeof t==`number`&&(this.force={value:Z((t-1)/1.7,.04,1),t:performance.now()})})}pushSample(e){let[t,n]=this.toUv(e),r=-1;e.pointerType===`pen`?r=e.pressure>0?e.pressure**.8:.5:e.pointerType===`mouse`&&performance.now()-this.force.t<3e3&&(r=this.force.value),this.queue.push({x:t,y:n,p:r,t:e.timeStamp,tx:e.tiltX||0,ty:e.tiltY||0})}trackHover(e){this.hover.x=e.clientX,this.hover.y=e.clientY,this.hover.inside=!0,this.hover.type=e.pointerType,this.updateCursor()}updateCursor(){let e=this.cursor;if(!e)return;if(!this.hover.inside||this.hover.type===`touch`||!this.interactive||this.nav){e.style.opacity=`0`;return}let t=this.stroke?.tool??this.tool,n=this.radius(t,this.stroke?this.pressureOf(this.stroke,-1):.4,0),r=t===`brush`||t===`water`,i=this.brush,a=Math.max(4,2*n*this.view.h/this.dpr),o=r?Math.max(3,a*i.aspect):a,s=r&&i.rotation!==`random`?-(this.stroke?.angle??this.lastAngle):0;e.style.opacity=`1`,e.style.width=`${a}px`,e.style.height=`${o}px`,e.style.transform=`translate(${this.hover.x-a/2}px, ${this.hover.y-o/2}px) rotate(${s}rad)`,e.style.borderRadius=r&&i.aspect<.6?`${o*.4}px / 50%`:`50%`,e.dataset.tool=t}sizeMult(){return 3**((this.params.size-.5)*2)*(this.scripting?this.scriptScale:1)}radius(e,t,n){let r=this.sizeMult();switch(e){case`pen`:return(.0016+.0042*t)*Z(1.12-n*.3,.55,1.12)*r;case`brush`:return this.brushRadius(t,n);case`water`:return this.brushRadius(t,n)*1.3*(1+Math.min(n,2.5)*.12);case`lift`:return(.012+.03*t)*r}}brushRadius(e,t){let n=this.brush,r=Z(e,0,1)**+n.pressureSize;return(n.size[0]+(n.size[1]-n.size[0])*r)*Z(1-t*n.speedThin,.4,1)*this.sizeMult()*.8}brushAngle(e){let t=this.brush,n;return n=t.rotation===`random`?Math.random()*Math.PI*2:t.rotation===`follow`?Math.atan2(e.dy,e.dx)+t.angle*R:e.azimuth??t.angle*R,t.angleJitter&&(n+=(Math.random()-.5)*2*t.angleJitter*R),e.angle=n,t.rotation!==`random`&&(this.lastAngle=n),n}pressureOf(e,t){return t>=0?t:e.simPressure}processInput(e){let t=this.stroke;if(!t)return;t.moved=!1;let n=this.dw/this.dh;for(let e of this.queue){if(Math.hypot(e.tx,e.ty)>12&&(t.azimuth=Math.atan2(-e.ty,e.tx)),!t.started){t.started=!0,t.x=t.cx=e.x,t.y=t.cy=e.y,t.t=e.t,t.pr=this.pressureOf(t,e.p),this.stamp(t,e.x,e.y,t.pr,0,0,1);continue}let r=Math.max(e.t-t.t,1)/1e3;t.t=e.t;let i=t.pointerType===`mouse`?.5:.65,a=t.cx+(e.x-t.cx)*i,o=t.cy+(e.y-t.cy)*i,s=Math.hypot((a-t.cx)*n,o-t.cy);t.speed+=(s/r-t.speed)*(1-Math.exp(-r*10));let c=Z(1.18-t.speed*.95,.12,1);t.simPressure+=(c-t.simPressure)*(1-Math.exp(-r*6));let l=this.pressureOf(t,e.p),u=(a-t.cx)/r,d=(o-t.cy)/r;t.pointerId===z?this.trace(t,a,o,a,o,l,u,d):this.trace(t,t.cx,t.cy,(t.cx+a)/2,(t.cy+o)/2,l,u,d),t.cx=a,t.cy=o,s>0&&(t.moved=!0)}this.queue=[],t.started&&(!t.moved||t.ending)&&(t.x!==t.cx||t.y!==t.cy)&&this.trace(t,t.cx,t.cy,t.cx,t.cy,t.pr,0,0),!t.moved&&t.started&&!t.ending&&this.stamp(t,t.x,t.y,this.pressureOf(t,-1),0,0,0,e),t.ending&&(this.stroke=null,t.pointerId!==z&&this.callbacks.onStrokeTool?.(null))}trace(e,t,n,r,i,a,o,s){let c=this.dw/this.dh,l=e.x,u=e.y,d=e.pr,f=Math.hypot((t-l)*c,n-u)+Math.hypot((r-t)*c,i-n);if(f<1e-7)return;let p=this.radius(e.tool,Math.max(d,a),e.speed)*this.spacingFrac(e.tool),m=Z(Math.ceil(f/Math.max(p,1e-5)),1,48),h=l,g=u;for(let f=1;f<=m;f++){let p=f/m,_=1-p,v=_*_*l+2*_*p*t+p*p*r,y=_*_*u+2*_*p*n+p*p*i,b=(v-h)*c,x=y-g,S=Math.hypot(b,x),C=d+(a-d)*p;if(S>1e-5){let t=1-Math.exp(-S/(this.radius(e.tool,C,e.speed)*1.5+1e-4));e.dx+=(b/S-e.dx)*t,e.dy+=(x/S-e.dy)*t;let n=Math.hypot(e.dx,e.dy)||1;e.dx/=n,e.dy/=n,this.lastDir=[e.dx,e.dy]}let w=this.radius(e.tool,C,e.speed)*this.spacingFrac(e.tool),T=0;for(;S-T>=w-e.carry;){T+=w-e.carry,e.carry=0;let t=T/S;this.stamp(e,h+(v-h)*t,g+(y-g)*t,C,o,s,1)}e.carry+=S-T,e.travelled+=S,h=v,g=y}e.x=r,e.y=i,e.pr=a}spacingFrac(e){let t=this.brush;return e===`brush`||e===`water`?t.spacing*Math.sqrt(t.aspect):.5}stamp(e,t,n,r,i,a,o,s=0){let c=this.params,l=this.radius(e.tool,r,e.speed),u=o?1:s*8;switch(e.tool){case`brush`:{let s=this.brush,d=.25+.75*Math.exp(-e.travelled/((1.5+3*c.water)*s.capacity)),f=Z(s.grain+(1-s.grain)*Z((.5-d)*2.5,0,1)*.6,0,1),p=.74-.45*r-.05*c.water,m=.15*Math.exp(c.load*2.8)*d*(.6+.4*r)*s.load,h=Z(Math.sqrt(.5/s.tipMean),.7,2.2),g=m*Math.min(s.spacing,1)/1.8*h*u,_=(.25+.75*c.water)*(.7+.3*r)*s.water*(.4+.6*d),v=this.pigment.coeffs,y=[v[0]*g,v[1]*g,v[2]*g,v[3]*g],b=[v[4]*g,v[5]*g,v[6]*g,this.pigment.white*g*1.6];this.eachDab(e,t,n,l,(e,t,n,r)=>{this.brushInk(e,t,n,r,y,b,f,p),this.brushWet(e,t,n*(1+.12*s.wetRound),r,_,s.wetRound,f,p)}),o&&this.splatVelocity(t,n,l*1.2,i,a,(15+c.flow*95)*.25*s.flow);break}case`water`:{let s=this.brush,u=.25+.75*Math.exp(-e.travelled/((3+4*c.water)*s.capacity)),d=(.35+.65*c.water)*(.5+.5*r)*Z(s.water,.6,1.5)*(.7+.3*u),f=s.grain*.7,p=.55-.3*r;if(this.eachDab(e,t,n,l,(e,t,n,r)=>{this.brushWet(e,t,n,r,d,Math.max(s.wetRound,.3),f,p)}),this.brushNow={x:t,y:n,r:l},o)this.splatVelocity(t,n,l*1.15,i,a,(15+c.flow*95)*s.flow);else{let e=Math.random()*Math.PI*2,i=(6+26*c.flow)*r;this.splatVelocityRaw(t,n,l*.9,Math.cos(e)*i,Math.sin(e)*i)}break}case`pen`:{let i=(.9+1.6*r)*Z(1.25-e.speed*.45,.6,1.25)*(.5+c.load)*.5/1.8*u,a=this.pigment.coeffs;this.splatInk(t,n,l,[a[0]*i,a[1]*i,a[2]*i,a[3]*i],[a[4]*i,a[5]*i,a[6]*i,this.pigment.white*i*3],2),this.splatWet(t,n,l*2.6,.13,1);break}case`lift`:{let e=Math.min(.9,.22*u);this.lift(t,n,l,e);break}}}eachDab(e,t,n,r,i){let a=this.brush,o=this.dw/this.dh;for(let s=0;s<a.dabs;s++){let s=t,c=n,l=r;if(a.scatter>0){let e=Math.random()*Math.PI*2,t=Math.sqrt(Math.random())*a.scatter*r;s+=Math.cos(e)*t/o,c+=Math.sin(e)*t}a.sizeJitter>0&&(l*=Z(1+(Math.random()*2-1)*a.sizeJitter,.15,2)),i(s,c,l,this.brushAngle(e))}}drawStamp(e,t,n,r,i,a,o,s,c,l){let{gl:u,g:d}=this,f=this.brush,p=this.programs.stamp;p.bind(),u.uniform1i(p.u.uTip,d.bindTex(0,this.tipTexture(f))),u.uniform1i(p.u.uPaper,d.bindTex(1,this.paper.tex[0])),u.uniform1f(p.u.uAspect,e.w/e.h),u.uniform2f(p.u.uPoint,t,n),u.uniform1f(p.u.uRadius,r),u.uniform1f(p.u.uTipAspect,f.aspect),u.uniform2f(p.u.uAxis,Math.cos(i),Math.sin(i)),u.uniform1f(p.u.uRound,s),u.uniform1f(p.u.uGrain,c),u.uniform1f(p.u.uGrainThr,l),u.uniform4fv(p.u.uColor0,a),u.uniform4fv(p.u.uColor1,o),d.draw(e,this.stampRect(t,n,r,e.w,e.h,Math.sqrt(1+f.aspect*f.aspect)*1.02))}brushInk(e,t,n,r,i,a,o,s){let{gl:c}=this;this.touch(this.stampRect(e,t,n,this.dw,this.dh,1.5)),c.enable(c.BLEND),c.blendEquation(c.FUNC_ADD),c.blendFunc(c.ONE,c.ONE),this.drawStamp(this.ink.read,e,t,n,r,i,a,0,o,s),c.disable(c.BLEND)}brushWet(e,t,n,r,i,a,o,s){let{gl:c}=this;this.touch(this.stampRect(e,t,n,this.dw,this.dh,1.5)),c.enable(c.BLEND),c.blendEquation(c.MAX),this.drawStamp(this.wet.read,e,t,n,r,[i,0,0,0],[0,0,0,0],a,o,s),c.blendEquation(c.FUNC_ADD),c.disable(c.BLEND),this.wetPeak=Math.max(this.wetPeak*this.wetDecay(),i),this.lastWet=performance.now()}stampRect(e,t,n,r,i,a){let o=Math.ceil(n*a*i)+2,s=Math.round(e*r),c=Math.round(t*i);return{x0:Z(s-o,0,r),y0:Z(c-o,0,i),x1:Z(s+o,0,r),y1:Z(c+o,0,i)}}touch(e,t=!0,n=!0){if(e.x1<=e.x0||e.y1<=e.y0)return;let r=$(this.active,e);if(n){let t=Pe;this.history.protect(0,{x0:Math.max(0,e.x0-t),y0:Math.max(0,e.y0-t),x1:Math.min(this.dw,e.x1+t),y1:Math.min(this.dh,e.y1+t)},this.snapshotLayers())}this.active=r,this.painted=$(this.painted,e),this.everPainted=$(this.everPainted,e),this.dirty=$(this.dirty,e),t&&(this.minAwakeUntil=Math.max(this.minAwakeUntil,performance.now()+250))}snapshotLayers(){return[this.ink.read.views[0],this.ink.read.views[1],this.wet.read.views[0]]}drawSplat(e,t,n,r,i,a,o,s){let{gl:c,g:l}=this,u=this.programs.splat;u.bind(),c.uniform1f(u.u.uAspect,e.w/e.h),c.uniform2f(u.u.uPoint,t,n),c.uniform1f(u.u.uRadius,r),c.uniform1f(u.u.uHardness,o),c.uniform4fv(u.u.uColor0,i),c.uniform4fv(u.u.uColor1,a),l.draw(e,this.stampRect(t,n,r,e.w,e.h,s))}splatInk(e,t,n,r,i,a){let{gl:o}=this,s=a>1.4?2.2:3.2;this.touch(this.stampRect(e,t,n,this.dw,this.dh,s)),o.enable(o.BLEND),o.blendEquation(o.FUNC_ADD),o.blendFunc(o.ONE,o.ONE),this.drawSplat(this.ink.read,e,t,n,r,i,a,s),o.disable(o.BLEND)}splatWet(e,t,n,r,i){let{gl:a}=this,o=i>1.4?2.2:3.2;this.touch(this.stampRect(e,t,n,this.dw,this.dh,o)),a.enable(a.BLEND),a.blendEquation(a.MAX),this.drawSplat(this.wet.read,e,t,n,[r,0,0,0],[0,0,0,0],i,o),a.blendEquation(a.FUNC_ADD),a.disable(a.BLEND),this.wetPeak=Math.max(this.wetPeak*this.wetDecay(),r),this.lastWet=performance.now()}splatVelocity(e,t,n,r,i,a){let o=r*a,s=i*a,c=Math.hypot(o,s);c>240&&(o*=240/c,s*=240/c),this.flowSpeed=Math.max(this.flowSpeed,Math.min(c,240)),this.splatVelocityRaw(e,t,n,o,s)}splatVelocityRaw(e,t,n,r,i){let{gl:a}=this;a.enable(a.BLEND),a.blendEquation(a.FUNC_ADD),a.blendFunc(a.ONE,a.ONE),this.drawSplat(this.velocity.read,e,t,n,[r,i,0,0],[0,0,0,0],1,3),a.disable(a.BLEND)}lift(e,t,n,r){let{gl:i,g:a}=this,o=this.stampRect(e,t,n,this.dw,this.dh,2);this.touch(o);let s=this.programs.lift;s.bind(),i.uniform1f(s.u.uAspect,this.dw/this.dh),i.uniform2f(s.u.uPoint,e,t),i.uniform1f(s.u.uRadius,n),i.enable(i.BLEND),i.blendEquation(i.FUNC_ADD),i.blendFunc(i.ZERO,i.ONE_MINUS_SRC_COLOR),i.uniform1f(s.u.uAmount,r),a.draw(this.ink.read,o),i.uniform1f(s.u.uAmount,r*.8),a.draw(this.wet.read,o),i.disable(i.BLEND)}dryTau(){return this.fixTimer>0?.25:2+(1-this.params.dry)*16}wetDecay(){return Math.exp(-(performance.now()-this.lastWet)/1e3/this.dryTau())}wetUntil(){return this.wetPeak<=q?this.lastWet:this.lastWet+this.dryTau()*Math.log(this.wetPeak/q)*1e3}beginStep(e,t){this.dropFill(),this.history.begin({kind:e,label:t},this.currentMeta()),this.notifyHistory()}step(e){let{gl:t,g:n,programs:r}=this,i=this.fixTimer>0;i&&(this.fixTimer-=e,this.fixTimer<=0&&(this.wetPeak=0,this.minAwakeUntil=0,this.painted=null));let a=this.velocity,o=[1/a.w,1/a.h],s=[1/this.dw,1/this.dh],c=this.params.flow,l=this.active;r.advectVelocity.bind(),t.uniform1i(r.advectVelocity.u.uVelocity,n.bindTex(0,a.read.tex[0])),t.uniform1i(r.advectVelocity.u.uWet,n.bindTex(1,this.wet.read.tex[0])),t.uniform2fv(r.advectVelocity.u.uTexel,o),t.uniform1f(r.advectVelocity.u.uDt,e),t.uniform1f(r.advectVelocity.u.uDissipation,Math.exp(-e*(3-c*2.4))*(i?Math.exp(-e*7):1)),n.draw(a.write),a.swap(),r.curl.bind(),t.uniform1i(r.curl.u.uVelocity,n.bindTex(0,a.read.tex[0])),t.uniform2fv(r.curl.u.uTexel,o),n.draw(this.curl),r.vorticity.bind(),t.uniform1i(r.vorticity.u.uVelocity,n.bindTex(0,a.read.tex[0])),t.uniform1i(r.vorticity.u.uCurl,n.bindTex(1,this.curl.tex[0])),t.uniform2fv(r.vorticity.u.uTexel,o),t.uniform1f(r.vorticity.u.uCurlAmount,4+c*22),t.uniform1f(r.vorticity.u.uDt,e),n.draw(a.write),a.swap(),r.divergence.bind(),t.uniform1i(r.divergence.u.uVelocity,n.bindTex(0,a.read.tex[0])),t.uniform2fv(r.divergence.u.uTexel,o),n.draw(this.divergence),r.scale.bind(),t.uniform1i(r.scale.u.uTex,n.bindTex(0,this.pressure.read.tex[0])),t.uniform1f(r.scale.u.uValue,.8),n.draw(this.pressure.write),this.pressure.swap(),r.pressure.bind(),t.uniform1i(r.pressure.u.uDivergence,n.bindTex(1,this.divergence.tex[0])),t.uniform2fv(r.pressure.u.uTexel,o);for(let e=0;e<De;e++)t.uniform1i(r.pressure.u.uPressure,n.bindTex(0,this.pressure.read.tex[0])),n.draw(this.pressure.write),this.pressure.swap();r.gradient.bind(),t.uniform1i(r.gradient.u.uPressure,n.bindTex(0,this.pressure.read.tex[0])),t.uniform1i(r.gradient.u.uVelocity,n.bindTex(1,a.read.tex[0])),t.uniform2fv(r.gradient.u.uTexel,o),n.draw(a.write),a.swap(),r.advectWet.bind(),t.uniform1i(r.advectWet.u.uVelocity,n.bindTex(0,a.read.tex[0])),t.uniform1i(r.advectWet.u.uWet,n.bindTex(1,this.wet.read.tex[0])),t.uniform2fv(r.advectWet.u.uSimTexel,o),t.uniform2fv(r.advectWet.u.uTexel,s),t.uniform1f(r.advectWet.u.uDt,e),t.uniform1f(r.advectWet.u.uDecay,Math.exp(-e/this.dryTau())),t.uniform1f(r.advectWet.u.uSpread,.12),n.draw(this.wet.write,l),this.wet.swap();let u=i?1-Math.exp(-e*5):0;i&&(t.enable(t.BLEND),t.blendEquation(t.FUNC_ADD),t.blendFunc(t.ZERO,t.SRC_COLOR),r.bleach.bind(),t.uniform1i(r.bleach.u.uInkB,n.bindTex(0,this.ink.read.tex[1])),t.uniform1f(r.bleach.u.uSettle,u),n.draw(this.fixed,l),t.blendFunc(t.ONE,t.ONE),r.settle.bind(),t.uniform1i(r.settle.u.uInkA,n.bindTex(0,this.ink.read.tex[0])),t.uniform1i(r.settle.u.uInkB,n.bindTex(1,this.ink.read.tex[1])),t.uniform1f(r.settle.u.uSettle,u),n.draw(this.fixed,l),t.disable(t.BLEND));let d=r.advectInk;d.bind(),t.uniform1i(d.u.uVelocity,n.bindTex(0,a.read.tex[0])),t.uniform1i(d.u.uInkA,n.bindTex(1,this.ink.read.tex[0])),t.uniform1i(d.u.uInkB,n.bindTex(2,this.ink.read.tex[1])),t.uniform1i(d.u.uWet,n.bindTex(3,this.wet.read.tex[0])),t.uniform2fv(d.u.uSimTexel,o),t.uniform2fv(d.u.uTexel,s),t.uniform1f(d.u.uDt,e),t.uniform1f(d.u.uBleed,this.params.bleed),t.uniform1f(d.u.uEdge,this.params.edge*1.4),t.uniform1f(d.u.uAspect,this.dw/this.dh),t.uniform1f(d.u.uKeep,1-u),t.uniform3f(d.u.uBrush,this.brushNow.x,this.brushNow.y,this.brushNow.r),n.draw(this.ink.write,l),this.ink.swap(),this.dirty=$(this.dirty,l)}trimActive(){let e=this.active;if(!e)return;let{gl:t,g:n}=this,r=this.wetMask,i=this.programs.wetMask;i.bind(),t.uniform1i(i.u.uWet,n.bindTex(0,this.wet.read.tex[0])),t.uniform2f(i.u.uBlock,1/r.w,1/r.h),t.uniform1f(i.u.uThreshold,q),n.draw(r),t.bindFramebuffer(t.FRAMEBUFFER,r.fbo),t.readPixels(0,0,r.w,r.h,t.RGBA,t.UNSIGNED_BYTE,this.maskPixels),t.bindFramebuffer(t.FRAMEBUFFER,null);let a=r.w,o=r.h,s=-1,c=-1,l=this.maskPixels;for(let e=0;e<r.h;e++)for(let t=0;t<r.w;t++)l[(e*r.w+t)*4]&&(t<a&&(a=t),t>s&&(s=t),e<o&&(o=e),e>c&&(c=e));let u=null;if(s>=0){let t={x0:Math.max(0,a*J-Y),y0:Math.max(0,o*J-Y),x1:Math.min(this.dw,(s+1)*J+Y),y1:Math.min(this.dh,(c+1)*J+Y)},n={x0:Math.max(e.x0,t.x0),y0:Math.max(e.y0,t.y0),x1:Math.min(e.x1,t.x1),y1:Math.min(e.y1,t.y1)};n.x1>n.x0&&n.y1>n.y0&&(u=n)}if(u&&u.x0===e.x0&&u.y0===e.y0&&u.x1===e.x1&&u.y1===e.y1)return;let d=e.x1-e.x0,f=e.y1-e.y0;for(let t of[this.ink,this.wet])t.read.views.forEach((r,i)=>n.blit(r,e.x0,e.y0,t.write.views[i],e.x0,e.y0,d,f));u?this.active=u:this.sleep()}sleep(){let e=this.active;if(e){let{g:t}=this,n=e.x1-e.x0,r=e.y1-e.y0;for(let i of[this.ink,this.wet])i.read.views.forEach((a,o)=>t.blit(a,e.x0,e.y0,i.write.views[o],e.x0,e.y0,n,r))}for(let e of[this.velocity,this.pressure])this.g.clearTarget(e.read),this.g.clearTarget(e.write);this.active=null,this.wetPeak=0,this.flowSpeed=0}drawDisplay(e,t,n,r=!1,i=L.screen,a=!0){let{gl:o,g:s}=this,c=this.programs.display;c.bind(),o.uniform1i(c.u.uInkA,s.bindTex(0,this.ink.read.tex[0])),o.uniform1i(c.u.uInkB,s.bindTex(1,this.ink.read.tex[1])),o.uniform1i(c.u.uFixedA,s.bindTex(2,this.fixed.tex[0])),o.uniform1i(c.u.uFixedB,s.bindTex(3,this.fixed.tex[1])),o.uniform1i(c.u.uWet,s.bindTex(4,this.wet.read.tex[0])),o.uniform1i(c.u.uPaper,s.bindTex(5,this.paper.tex[0])),o.uniform4f(c.u.uView,t.x,t.y,t.w,t.h),o.uniform2f(c.u.uTexel,1/this.dw,1/this.dh),o.uniform1f(c.u.uGranulation,this.params.granulation*.55),o.uniform1f(c.u.uEdgeDarken,.8),o.uniform1f(c.u.uFlat,+!!r),o.uniform3fv(c.u.uDesk,Fe),o.uniform1i(c.u.uMode,i),this.paperUniforms(c,this.paperPreset,a?this.paperStrength:0);let l=i===L.screen&&!r&&this.refVisible?this.ref:null;o.uniform1f(c.u.uRefOpacity,l?this.refOpacity:0),o.uniform1i(c.u.uRef,s.bindTex(6,l?l.tex:this.paper.tex[0]));let u=this.refRect;o.uniform4f(c.u.uRefRect,u.x,u.y,u.w,u.h);let d=i===L.screen&&!e?Z(Math.min(t.w,t.h)/this.dpr*.05,14,48)*this.dpr:0;o.uniform1f(c.u.uShadow,d),o.uniform1f(c.u.uDpr,this.dpr),s.draw(e,n,this.canvasSize)}render(){if(!this.dirtyAll&&!this.dirty)return;let e=null;if(!this.dirtyAll&&this.dirty){let t=this.view,n=this.dirty;e={x0:Math.floor(t.x+n.x0/this.dw*t.w)-2,y0:Math.floor(t.y+n.y0/this.dh*t.h)-2,x1:Math.ceil(t.x+n.x1/this.dw*t.w)+2,y1:Math.ceil(t.y+n.y1/this.dh*t.h)+2}}this.drawDisplay(null,this.view,e),this.dirty=null,this.dirtyAll=!1}schedule(){this.raf||=(this.lastFrame=performance.now(),requestAnimationFrame(this.frame))}frame=e=>{this.raf=0;let t=Z((e-this.lastFrame)/1e3,1/240,1/30);this.lastFrame=e,this.brushNow.r=0,this.processInput(t);let n=this.active!==null&&(this.stroke!==null||this.fixTimer>0||e<this.minAwakeUntil||e<this.wetUntil());if(n){this.flowSpeed*=Math.exp(-t*(3-this.params.flow*2.4)),this.growCarry+=.4+Math.min(3,.15*this.flowSpeed*t*(this.dw/this.velocity.w));let e=Math.floor(this.growCarry);if(e>0){this.growCarry-=e;let t=this.active;this.touch({x0:Math.max(0,t.x0-e),y0:Math.max(0,t.y0-e),x1:Math.min(this.dw,t.x1+e),y1:Math.min(this.dh,t.y1+e)},!1,!1)}this.step(t),this.fixTimer<=0&&++this.maskCounter>=Ne&&(this.maskCounter=0,this.trimActive())}this.render(),this.history.evictions!==this.seenEvictions&&this.notifyHistory(),!n&&this.active&&this.sleep(),(n||this.stroke)&&this.schedule()}};return e.BRUSH_PRESETS=l,e.DEFAULT_PAPER=S,e.DEFAULT_PARAMS=I,e.PAPERS=x,e.WatercolorEngine=Ie,e.buildBrush=u,e.pigmentFromHex=D,e})({});
+}`,I={size:.5,water:.6,load:.5,flow:.45,bleed:.5,dry:.4,edge:.5,granulation:.45},L={screen:0,paper:1,transparent:2,white:3},xe=4096,R=Math.PI/180,z=-1,Se={brush:`Brush stroke`,water:`Water`,pen:`Pen`,lift:`Lift`},B={internal:WebGL2RenderingContext.RG16F,format:WebGL2RenderingContext.RG,type:WebGL2RenderingContext.HALF_FLOAT},V={internal:WebGL2RenderingContext.R16F,format:WebGL2RenderingContext.RED,type:WebGL2RenderingContext.HALF_FLOAT},H={internal:WebGL2RenderingContext.RGBA16F,format:WebGL2RenderingContext.RGBA,type:WebGL2RenderingContext.HALF_FLOAT},U={internal:WebGL2RenderingContext.RGBA8,format:WebGL2RenderingContext.RGBA,type:WebGL2RenderingContext.UNSIGNED_BYTE},Ce={internal:WebGL2RenderingContext.RG32F,format:WebGL2RenderingContext.RG,type:WebGL2RenderingContext.FLOAT},we=10,Te=24,Ee=3,W=256,De=20,Oe=2048,ke=1536,G=3072,Ae=42e5,K=.02,je=48,Me=1.2,q=.004,J=16,Ne=10,Y=24,Pe=24,Fe=[1,1,1],X=1100,Z=(e,t,n)=>Math.min(n,Math.max(t,e));function Q(e,t,n=G){e=Math.max(256,Math.round(e)||256),t=Math.max(256,Math.round(t)||256);let r=Math.min(1,Math.min(G,n)/Math.max(e,t),Math.sqrt(Ae/(e*t)));return[Math.max(256,Math.round(e*r)),Math.max(256,Math.round(t*r))]}var $=(e,t)=>e?{x0:Math.min(e.x0,t.x0),y0:Math.min(e.y0,t.y0),x1:Math.max(e.x1,t.x1),y1:Math.max(e.y1,t.y1)}:{...t},Ie=class{canvas;cursor;callbacks;params={...I};tool=`brush`;pigment=D(`#2338a8`);brush=u(l[0]);fingerIsWater=!0;interactive=!0;scriptScale=1;nav=!1;tipTextures=new Map;paperPreset=S;paperSeed=0;paperStrength=1;paperScale=1;paperOrigin=[0,0];ref=null;refRect={x:0,y:0,w:1,h:1};refOpacity=.5;refVisible=!0;lastDir=[1,0];lastAngle=0;g;gl;programs;canvasSize=[1,1];dpr=1;view={x:0,y:0,w:1,h:1};zoomLevel=1;pan=[0,0];fitMode=!0;dw=1;dh=1;velocity;pressure;divergence;curl;ink;fixed;wet;paper;wetMask;maskPixels=new Uint8Array;maskCounter=0;history;active=null;painted=null;everPainted=null;dirty=null;dirtyAll=!0;lastWet=-1/0;wetPeak=0;minAwakeUntil=0;fixTimer=0;flowSpeed=0;growCarry=0;brushNow={x:0,y:0,r:0};raf=0;lastFrame=0;seenEvictions=0;stroke=null;fill=null;queue=[];pencilSeen=!1;hover={x:0,y:0,inside:!1,type:`mouse`};force={value:0,t:-1/0};disposers=[];constructor(e,t,n={},r){this.canvas=e,this.cursor=t,this.callbacks=n;let i=e.getContext(`webgl2`,{alpha:!0,premultipliedAlpha:!1,depth:!1,stencil:!1,antialias:!1,preserveDrawingBuffer:!0,powerPreference:`high-performance`});if(!i)throw Error(`WebGL2 is not available in this browser.`);if(!i.getExtension(`EXT_color_buffer_float`)&&!i.getExtension(`EXT_color_buffer_half_float`))throw Error(`This GPU cannot render to floating-point textures.`);this.gl=i,this.g=new _(i),i.disable(i.BLEND),this.programs={splat:this.g.program(oe),stamp:this.g.program(se),fill:this.g.program(ye),advectVelocity:this.g.program(ce),divergence:this.g.program(le),pressure:this.g.program(ue),gradient:this.g.program(de),curl:this.g.program(k),vorticity:this.g.program(A),scale:this.g.program(fe),advectWet:this.g.program(me),wetMask:this.g.program(pe),advectInk:this.g.program(he),settle:this.g.program(ge),bleach:this.g.program(_e),lift:this.g.program(ve),paperField:this.g.program(j),paperLight:this.g.program(M),paperSwatch:this.g.program(F),display:this.g.program(be)},this.fitCanvas(),this.createDocument(r??this.screenSize),this.attachInput(),this.schedule()}fitCanvas(){this.dpr=Math.min(window.devicePixelRatio||1,2);let e=this.canvas.getBoundingClientRect(),t=Math.max(2,Math.round(e.width*this.dpr)),n=Math.max(2,Math.round(e.height*this.dpr));this.canvas.width=t,this.canvas.height=n,this.canvasSize=[t,n],this.fitMode?this.fitZoom():this.updateView()}fitZoom(){let[e,t]=this.canvasSize,n=48*this.dpr,r=Math.min((e-n)/this.dw,(t-n)/this.dh)/this.dpr;this.zoomLevel=Z(r,K,32),this.pan=[0,0],this.fitMode=!0,this.updateView()}updateView(){let[e,t]=this.canvasSize,n=this.zoomLevel*this.dpr,r=this.dw*n,i=this.dh*n,a=je*this.dpr,o=Math.max(0,(e+r)/2-a),s=Math.max(0,(t+i)/2-a);this.pan=[Z(this.pan[0],-o,o),Z(this.pan[1],-s,s)],this.view={x:(e-r)/2+this.pan[0],y:(t-i)/2+this.pan[1],w:r,h:i},this.dirtyAll=!0,this.updateCursor(),this.callbacks.onViewChange?.(this.zoomLevel,[this.dw,this.dh])}get screenSize(){let[e,t]=this.canvasSize,n=Math.min(1,Oe/Math.max(e,t),ke/Math.min(e,t));return Q(e*n,t*n,this.maxSide)}get maxSide(){return Math.min(G,this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE))}allocateTargets(){let{gl:e,g:t}=this,n=this.dw/this.dh,r=n>1?{w:Math.round(W*n),h:W}:{w:W,h:Math.round(W/n)};this.velocity=t.double(r.w,r.h,[B],e.LINEAR),this.pressure=t.double(r.w,r.h,[V],e.NEAREST),this.divergence=t.target(r.w,r.h,[V],e.NEAREST),this.curl=t.target(r.w,r.h,[V],e.NEAREST),this.ink=t.double(this.dw,this.dh,[H,H],e.LINEAR),this.fixed=t.target(this.dw,this.dh,[H,H],e.LINEAR),this.wet=t.double(this.dw,this.dh,[V],e.LINEAR),this.paper=t.target(this.dw,this.dh,[U],e.LINEAR),this.wetMask=t.target(Math.ceil(this.dw/J),Math.ceil(this.dh/J),[U],e.NEAREST),this.maskPixels=new Uint8Array(this.wetMask.w*this.wetMask.h*4)}allocateHistory(){this.history=new b(this.g,this.dw,this.dh,[{formats:[H,H,V],documents:2},{formats:[H,H],documents:1}])}docTargets(){return[this.velocity.read,this.velocity.write,this.pressure.read,this.pressure.write,this.divergence,this.curl,this.ink.read,this.ink.write,this.fixed,this.wet.read,this.wet.write,this.paper,this.wetMask]}createDocument([e,t]){let n=this.aspect;[this.dw,this.dh]=Q(e,t,this.maxSide),this.ref&&Math.abs(this.aspect-n)>.001&&this.fitReference(),this.g.disposeTargets(),this.allocateTargets(),this.allocateHistory(),this.paperSeed=Math.random(),this.paperScale=X/this.dh,this.paperOrigin=[0,0],this.drawPaper(this.paper,this.paperOrigin,this.paperScale),this.resetPaintState(),this.fitMode?this.fitZoom():this.updateView(),this.notifyHistory()}resetPaintState(){this.active=null,this.painted=null,this.everPainted=null,this.dirty=null,this.dirtyAll=!0,this.lastWet=-1/0,this.wetPeak=0,this.fixTimer=0,this.flowSpeed=0}resizeDocument(e,t){[e,t]=Q(e,t,this.maxSide);let n=this.dw,r=this.dh;if(e===n&&t===r)return;this.stroke=null,this.dropFill(),this.queue=[];let{g:i}=this,a=Math.round((e-n)/2),o=Math.round((t-r)/2),s={...this.currentMeta(),whole:this.captureWhole(),paperOrigin:[...this.paperOrigin]},c={targets:this.docTargets(),ink:this.ink.read,fixed:this.fixed,wet:this.wet.read};this.dw=e,this.dh=t,this.allocateTargets(),this.history.beginBoundary({kind:`resize`,label:`Resize ${e} × ${t}`},s,e,t);let l=Math.max(0,-a),u=Math.max(0,-o),d=Math.max(0,a),f=Math.max(0,o),p=Math.min(n-l,e-d),m=Math.min(r-u,t-f),h=(e,t)=>{p>0&&m>0&&e.views.forEach((e,n)=>t.forEach(t=>i.blit(e,l,u,t.views[n],d,f,p,m)))};h(c.ink,[this.ink.read,this.ink.write]),h(c.wet,[this.wet.read,this.wet.write]),h(c.fixed,[this.fixed]),c.targets.forEach(e=>i.disposeTarget(e)),this.paperOrigin=[this.paperOrigin[0]-a,this.paperOrigin[1]-o],this.drawPaper(this.paper,this.paperOrigin,this.paperScale);let g=n=>{if(!n)return null;let r={x0:Math.max(0,n.x0+a),y0:Math.max(0,n.y0+o),x1:Math.min(e,n.x1+a),y1:Math.min(t,n.y1+o)};return r.x1>r.x0&&r.y1>r.y0?r:null};this.active=g(this.active),this.painted=g(this.painted),this.everPainted=g(this.everPainted),this.dirty=null;let _=this.refRect;this.refRect={x:(_.x*n+a)/e,y:(_.y*r+o)/t,w:_.w*n/e,h:_.h*r/t},this.fitMode?this.fitZoom():this.updateView(),this.notifyHistory(),this.callbacks.onDocumentChange?.(this.docState()),this.schedule()}captureWhole(){let e=this.everPainted,{g:t,dw:n,dh:r}=this,i=(i,a)=>e?t.readHalf(i,n,r,a,e):new Uint16Array;return{w:n,h:r,rect:e?{...e}:null,layers:{inkA:i(this.ink.read.views[0],4),inkB:i(this.ink.read.views[1],4),fixedA:i(this.fixed.views[0],4),fixedB:i(this.fixed.views[1],4),wet:i(this.wet.read.views[0],1)}}}uploadWhole(e){let t=e.rect;if(!t)return;let{gl:n,g:r}=this,i=t.x1-t.x0,a=t.y1-t.y0,o=(e,n,o)=>r.uploadHalf(e,t.x0,t.y0,i,a,n,o);for(let t of[this.ink.read,this.ink.write])o(t.tex[0],n.RGBA,e.layers.inkA),o(t.tex[1],n.RGBA,e.layers.inkB);o(this.fixed.tex[0],n.RGBA,e.layers.fixedA),o(this.fixed.tex[1],n.RGBA,e.layers.fixedB);for(let t of[this.wet.read,this.wet.write])o(t.tex[0],n.RED,e.layers.wet);this.everPainted={...t}}applyWhole(e,t){let n=this.docTargets();this.dw=e.w,this.dh=e.h,this.allocateTargets(),n.forEach(e=>this.g.disposeTarget(e)),this.history.resize(this.dw,this.dh),this.paperOrigin=[...t],this.drawPaper(this.paper,this.paperOrigin,this.paperScale),this.everPainted=null,this.uploadWhole(e),this.dirty=null,this.dirtyAll=!0,this.fitMode?this.fitZoom():this.updateView()}docState(){return{paperId:this.paperPreset.id,paperStrength:this.paperStrength,reference:{image:this.ref?.src??null,rect:{...this.refRect},opacity:this.refOpacity,visible:this.refVisible}}}get documentState(){return this.docState()}applyDocState(e){let t=x.find(t=>t.id===e.paperId);t&&t!==this.paperPreset&&(this.paperPreset=t,this.drawPaper(this.paper,this.paperOrigin,this.paperScale)),this.paperStrength=Z(e.paperStrength,0,1);let n=e.reference;n.image!==(this.ref?.src??null)&&this.uploadReference(n.image),this.refRect={...n.rect},this.refOpacity=n.opacity,this.refVisible=n.visible,this.dirtyAll=!0}recordChange(e,t,n){this.dropFill(),this.history.begin({kind:e,label:t},{...this.currentMeta(),doc:n}),this.notifyHistory()}snapshot(){let e=this.currentMeta();return{whole:this.captureWhole(),paper:{id:this.paperPreset.id,seed:this.paperSeed,origin:[...this.paperOrigin],scale:this.paperScale,strength:this.paperStrength},wet:{wetAgo:e.wetAgo,wetPeak:e.wetPeak,active:e.active,painted:e.painted},reference:e.doc.reference,view:{zoom:this.zoomLevel,pan:[...this.pan],fitted:this.fitMode}}}restore(e){let[t,n]=Q(e.whole.w,e.whole.h,this.maxSide);if(t!==e.whole.w||n!==e.whole.h)throw Error(`This sheet (${e.whole.w} × ${e.whole.h}) is too large for this GPU.`);this.stroke=null,this.dropFill(),this.queue=[],this.ref&&=(this.gl.deleteTexture(this.ref.tex),null),this.g.disposeTargets(),this.dw=t,this.dh=n,this.allocateTargets(),this.allocateHistory(),this.resetPaintState(),this.paperPreset=x.find(t=>t.id===e.paper.id)??S,this.paperSeed=e.paper.seed,this.paperScale=e.paper.scale||X/this.dh,this.paperOrigin=[...e.paper.origin],this.paperStrength=Z(e.paper.strength,0,1),this.drawPaper(this.paper,this.paperOrigin,this.paperScale),this.uploadWhole(e.whole);let r=performance.now();this.lastWet=Number.isFinite(e.wet.wetAgo)?r-e.wet.wetAgo:-1/0,this.wetPeak=e.wet.wetPeak,this.active=e.wet.active?{...e.wet.active}:null,this.painted=e.wet.painted?{...e.wet.painted}:null,this.active&&(this.minAwakeUntil=r+250),this.uploadReference(e.reference.image),this.refRect={...e.reference.rect},this.refOpacity=Z(e.reference.opacity,0,1),this.refVisible=e.reference.visible,this.zoomLevel=Z(e.view.zoom,K,32),this.pan=[...e.view.pan],this.fitMode=e.view.fitted,this.fitMode?this.fitZoom():this.updateView(),this.notifyHistory(),this.callbacks.onDocumentChange?.(this.docState()),this.schedule()}get zoom(){return this.zoomLevel}get fitted(){return this.fitMode}get navigating(){return this.nav}set navigating(e){this.nav=e,this.updateCursor()}zoomAt(e,t,n){let r=this.canvas.getBoundingClientRect(),[i,a]=this.canvasSize,o=Z(this.zoomLevel*n,K,32),s=o/this.zoomLevel;if(s===1)return;let c=(e-r.left)*this.dpr,l=a-(t-r.top)*this.dpr,u=i/2+this.pan[0],d=a/2+this.pan[1];this.pan=[c-(c-u)*s-i/2,l-(l-d)*s-a/2],this.zoomLevel=o,this.fitMode=!1,this.updateView(),this.schedule()}zoomTo(e){let t=this.canvas.getBoundingClientRect();this.zoomAt(t.left+t.width/2,t.top+t.height/2,e/this.zoomLevel)}zoomToFit(){this.fitZoom(),this.schedule()}panBy(e,t){(e||t)&&(this.pan=[this.pan[0]+e*this.dpr,this.pan[1]-t*this.dpr],this.fitMode=!1,this.updateView(),this.schedule())}setParams(e){Object.assign(this.params,e)}get aspect(){return this.dw/this.dh}clientToDoc(e,t){return this.toUv({clientX:e,clientY:t})}docToClient(e,t){let n=this.canvas.getBoundingClientRect();return[n.left+(this.view.x+e*this.view.w)/this.dpr,n.top+(this.canvasSize[1]-this.view.y-t*this.view.h)/this.dpr]}get docSize(){return[this.dw,this.dh]}get filling(){return this.fill!==null}get fillMargin(){return 28}readFlat(){return this.readback(!0)}fillBegin(e,t,n=`Fill`){if(this.stroke)return!1;if(e.length!==this.dw*this.dh*2)throw Error(`fill field does not match the document`);this.beginStep(`fill`,n);let r=this.g.texture(this.dw,this.dh,Ce,e,this.gl.NEAREST);return this.fill={tex:r,bbox:{...t}},!0}fillStep(e,t,n){let r=this.fill;if(!r)return!1;let{gl:i,g:a}=this,o=this.params;this.touch(r.bbox);let s=this.programs.fill;if(s.bind(),i.uniform1i(s.u.uField,a.bindTex(0,r.tex)),i.uniform1i(s.u.uPaper,a.bindTex(1,this.paper.tex[0])),i.uniform1f(s.u.uSoft,Math.max(0,n.soft)),i.uniform1f(s.u.uGrainThr,.5),i.uniform1f(s.u.uJitter,Ee),i.uniform1f(s.u.uWidth,Te),i.enable(i.BLEND),n.paint){let c=.15*Math.exp(o.load*2.8)*.84*n.strength,l=this.pigment.coeffs;i.uniform1i(s.u.uCumulative,0),i.uniform1f(s.u.uFrom,e),i.uniform1f(s.u.uTo,t),i.uniform1f(s.u.uGrain,.12),i.uniform4f(s.u.uColor0,l[0]*c,l[1]*c,l[2]*c,l[3]*c),i.uniform4f(s.u.uColor1,l[4]*c,l[5]*c,l[6]*c,this.pigment.white*c*1.6),i.blendEquation(i.FUNC_ADD),i.blendFunc(i.ONE,i.ONE),a.draw(this.ink.read,r.bbox)}let c=(.25+.75*n.water)*.9;return i.uniform1i(s.u.uCumulative,1),i.uniform1f(s.u.uTo,t+we),i.uniform1f(s.u.uGrain,0),i.uniform4f(s.u.uColor0,c,0,0,0),i.uniform4f(s.u.uColor1,0,0,0,0),i.blendEquation(i.MAX),a.draw(this.wet.read,r.bbox),i.blendEquation(i.FUNC_ADD),i.disable(i.BLEND),this.wetPeak=Math.max(this.wetPeak*this.wetDecay(),c),this.lastWet=performance.now(),this.schedule(),!0}fillEnd(){this.dropFill()}dropFill(){this.fill&&=(this.gl.deleteTexture(this.fill.tex),null)}get scripting(){return this.stroke?.pointerId===z}scriptBegin(e,t,n,r,i=`Stroke`,a){return!this.stroke&&(i!==!1&&this.beginStep(`script`,i),this.scriptScale=a?Math.min(1,a/this.radius(e,1,0)):1,this.stroke={pointerId:z,pointerType:`pen`,tool:e,started:!1,ending:!1,x:0,y:0,cx:0,cy:0,pr:0,t:performance.now(),speed:0,simPressure:.45,carry:0,travelled:0,moved:!1,dx:this.lastDir[0],dy:this.lastDir[1],angle:this.lastAngle,azimuth:null},this.queue.push({x:t,y:n,p:Z(r,.02,1),t:performance.now(),tx:0,ty:0}),this.schedule(),!0)}scriptMove(e,t,n,r){return this.scripting?(this.queue.push({x:e,y:t,p:Z(n,.02,1),t:r,tx:0,ty:0}),this.schedule(),!0):!1}scriptEnd(){this.scripting&&(this.stroke.ending=!0,this.schedule())}setPigment(e){this.pigment=e}get paperId(){return this.paperPreset.id}get paperTexture(){return this.paperStrength}set paperTexture(e){e=Z(e,0,1),e!==this.paperStrength&&(this.paperStrength=e,this.redraw())}setPaper(e){e!==this.paperPreset&&(this.paperPreset=e,this.drawPaper(this.paper,this.paperOrigin,this.paperScale),this.redraw())}paperSwatch(e,t,n){let{gl:r,g:i}=this,a=i.target(t,n,[U],r.LINEAR),o=i.target(t,n,[U],r.NEAREST);this.drawPaper(a,[t*.7,n*1.3],this.paperScale*(this.dh/this.view.h),e);let s=this.programs.paperSwatch;s.bind(),r.uniform1i(s.u.uPaper,i.bindTex(0,a.tex[0])),this.paperUniforms(s,e,1),i.draw(o);let c=new Uint8Array(t*n*4);r.bindFramebuffer(r.FRAMEBUFFER,o.fbo),r.readPixels(0,0,t,n,r.RGBA,r.UNSIGNED_BYTE,c),i.disposeTarget(a),i.disposeTarget(o);let l=document.createElement(`canvas`);l.width=t,l.height=n;let u=l.getContext(`2d`),d=u.createImageData(t,n);for(let e=0;e<n;e++)d.data.set(c.subarray((n-1-e)*t*4,(n-e)*t*4),e*t*4);return u.putImageData(d,0,0),l}drawPaper(e,t,n,r=this.paperPreset){let{gl:i,g:a}=this,o=a.target(e.w,e.h,[H],i.NEAREST),s=this.programs.paperField;s.bind(),i.uniform2f(s.u.uRes,e.w,e.h),i.uniform2f(s.u.uOffset,t[0],t[1]),i.uniform1f(s.u.uScale,n),i.uniform1f(s.u.uSeed,this.paperSeed),i.uniform1i(s.u.uKind,r.kind),a.draw(o);let c=this.programs.paperLight;c.bind(),i.uniform1i(c.u.uField,a.bindTex(0,o.tex[0])),i.uniform2f(c.u.uTexel,1/e.w,1/e.h),i.uniform1f(c.u.uBump,r.bump*1.4/n),a.draw(e),a.disposeTarget(o)}paperUniforms(e,t,n){let{gl:r}=this;r.uniform3fv(e.u.uPaperTint,C(t.tint)),r.uniform3fv(e.u.uFleckTint,C(t.fleck)),r.uniform1f(e.u.uMottle,t.mottle),r.uniform1f(e.u.uTexture,n)}setTool(e){this.tool=e,this.updateCursor()}setBrush(e){this.brush=e,this.lastAngle=e.rotation===`fixed`?e.angle*R:e.rotation===`follow`?Math.atan2(this.lastDir[1],this.lastDir[0])+e.angle*R:0,this.updateCursor()}get hasReference(){return this.ref!==null}get referenceAspect(){return this.ref?.aspect??0}setReference(e){let t=this.docState(),n=null;if(e){let t=Math.min(xe,this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE)),r=Math.min(1,t/Math.max(e.width,e.height));n=document.createElement(`canvas`),n.width=Math.max(1,Math.round(e.width*r)),n.height=Math.max(1,Math.round(e.height*r)),n.getContext(`2d`).drawImage(e,0,0,n.width,n.height)}this.uploadReference(n),n&&this.fitReference(),this.recordChange(`reference`,n?`Reference added`:`Reference removed`,t),this.redraw()}referenceImage(){return this.ref?.src??null}uploadReference(e){let{gl:t}=this;if(this.ref?.src===e||(this.ref&&=(t.deleteTexture(this.ref.tex),null),!e))return;let n=t.createTexture();t.activeTexture(t.TEXTURE0),t.bindTexture(t.TEXTURE_2D,n),t.pixelStorei(t.UNPACK_FLIP_Y_WEBGL,!0),t.texImage2D(t.TEXTURE_2D,0,t.RGBA8,t.RGBA,t.UNSIGNED_BYTE,e),t.pixelStorei(t.UNPACK_FLIP_Y_WEBGL,!1),t.texParameteri(t.TEXTURE_2D,t.TEXTURE_MIN_FILTER,t.LINEAR),t.texParameteri(t.TEXTURE_2D,t.TEXTURE_MAG_FILTER,t.LINEAR),t.texParameteri(t.TEXTURE_2D,t.TEXTURE_WRAP_S,t.CLAMP_TO_EDGE),t.texParameteri(t.TEXTURE_2D,t.TEXTURE_WRAP_T,t.CLAMP_TO_EDGE),this.ref={tex:n,aspect:e.width/e.height,src:e}}fitReference(){if(!this.ref)return;let e=this.ref.aspect/this.aspect,t=e>1?1:e,n=e>1?1/e:1;this.referenceRect={x:(1-t)/2,y:(1-n)/2,w:t,h:n}}readReferenceFlat(){if(!this.ref)return null;let{dw:e,dh:t}=this,n=this.refRect,r=document.createElement(`canvas`);r.width=e,r.height=t;let i=r.getContext(`2d`,{willReadFrequently:!0});i.fillStyle=`#fff`,i.fillRect(0,0,e,t),i.drawImage(this.ref.src,n.x*e,(1-n.y-n.h)*t,n.w*e,n.h*t);let a=i.getImageData(0,0,e,t).data,o=new Uint8Array(e*t*4),s=e*4;for(let e=0;e<t;e++)o.set(a.subarray((t-1-e)*s,(t-e)*s),e*s);for(let e=3;e<o.length;e+=4)o[e]=255;return o}get referenceRect(){return{...this.refRect}}set referenceRect(e){let t=this.refRect;(e.x!==t.x||e.y!==t.y||e.w!==t.w||e.h!==t.h)&&(this.refRect={...e},this.redraw())}get referenceOpacity(){return this.refOpacity}set referenceOpacity(e){e=Z(e,0,1),e!==this.refOpacity&&(this.refOpacity=e,this.redraw())}referenceForFill=!1;get referenceVisible(){return this.refVisible}set referenceVisible(e){e!==this.refVisible&&(this.refVisible=e,this.redraw())}redraw(){this.dirtyAll=!0,this.schedule()}forgetBrush(e){let t=this.tipTextures.get(e);t&&(this.gl.deleteTexture(t),this.tipTextures.delete(e))}tipTexture(e){let t=this.tipTextures.get(e.id);if(t)return t;let{gl:n}=this;return t=n.createTexture(),n.activeTexture(n.TEXTURE0),n.bindTexture(n.TEXTURE_2D,t),n.pixelStorei(n.UNPACK_ALIGNMENT,1),n.texImage2D(n.TEXTURE_2D,0,n.R8,e.tipSize,e.tipSize,0,n.RED,n.UNSIGNED_BYTE,e.tipData),n.texParameteri(n.TEXTURE_2D,n.TEXTURE_MIN_FILTER,n.LINEAR),n.texParameteri(n.TEXTURE_2D,n.TEXTURE_MAG_FILTER,n.LINEAR),n.texParameteri(n.TEXTURE_2D,n.TEXTURE_WRAP_S,n.CLAMP_TO_EDGE),n.texParameteri(n.TEXTURE_2D,n.TEXTURE_WRAP_T,n.CLAMP_TO_EDGE),this.tipTextures.set(e.id,t),t}fix(){!this.painted||this.fixTimer>0||(this.beginStep(`dry`,`Dry`),this.history.protect(1,this.painted,this.fixed.views),this.fixTimer=Me,this.touch(this.painted),this.schedule())}clear(){if(this.stroke=null,this.queue=[],this.everPainted||this.fill){this.beginStep(`clear`,`Clear`),this.everPainted&&(this.history.protect(0,this.everPainted,this.snapshotLayers()),this.history.protect(1,this.everPainted,this.fixed.views));for(let e of this.docTargets())e!==this.paper&&this.g.clearTarget(e);this.resetPaintState(),this.notifyHistory(),this.schedule()}}abortStroke(){let e=this.stroke;e&&(this.stroke=null,this.queue=[],e.pointerId!==z&&this.callbacks.onStrokeTool?.(null),this.history.canUndo&&(this.travel(`undo`),this.history.discardRedo(),this.notifyHistory()))}undo(){this.history.canUndo&&this.travel(`undo`)}redo(){this.history.canRedo&&this.travel(`redo`)}jumpTo(e){let{index:t,list:n}=this.history.entries();e=Z(Math.round(e),0,n.length);for(let n=t;n>e&&this.history.canUndo;n--)this.travel(`undo`,!1);for(let n=t;n<e&&this.history.canRedo;n++)this.travel(`redo`,!1);this.notifyHistory()}get canUndo(){return this.history.canUndo}get canRedo(){return this.history.canRedo}travel(e,t=!0){this.stroke=null,this.dropFill(),this.queue=[],this.fixTimer=0;let n=e===`undo`?this.history.peekUndo():this.history.peekRedo(),r=this.currentMeta();n?.boundary&&(r.whole=this.captureWhole(),r.paperOrigin=[...this.paperOrigin]),this.sleep();let i=this.ink,a=this.wet,o=[[[i.read.views[0],i.write.views[0]],[i.read.views[1],i.write.views[1]],[a.read.views[0],a.write.views[0]]],[[this.fixed.views[0]],[this.fixed.views[1]]]],s=e===`undo`?this.history.undo(o,r):this.history.redo(o,r);if(!s)return;let c=s.meta,l=performance.now();c.whole&&(this.applyWhole(c.whole,c.paperOrigin??[0,0]),this.painted=c.painted?{...c.painted}:null),s.info.kind!==`paper`&&s.info.kind!==`reference`&&(this.lastWet=l-c.wetAgo,this.wetPeak=c.wetPeak,this.active=c.active?{...c.active}:null),s.rect&&(this.dirty=$(this.dirty,s.rect),this.painted=$(this.painted,s.rect),this.everPainted=$(this.everPainted,s.rect)),this.applyDocState(c.doc),this.callbacks.onDocumentChange?.(this.docState()),t&&this.notifyHistory(),this.schedule()}notifyHistory(){this.seenEvictions=this.history.evictions;let{list:e,index:t}=this.history.entries();this.callbacks.onHistoryChange?.(e,t)}currentMeta(){return{wetAgo:performance.now()-this.lastWet,wetPeak:this.wetPeak,active:this.active?{...this.active}:null,painted:this.painted?{...this.painted}:null,doc:this.docState()}}async exportImage(e){let{dw:t,dh:n}=this,r=e.format===`jpeg`&&e.background===`transparent`?`white`:e.background,i=this.readback(!1,L[r],e.texture??!0),a=document.createElement(`canvas`);a.width=t,a.height=n;let o=a.getContext(`2d`),s=o.createImageData(t,n),c=t*4;for(let e=0;e<n;e++)s.data.set(i.subarray((n-1-e)*c,(n-e)*c),e*c);o.putImageData(s,0,0);let l=`image/${e.format}`;return new Promise((t,n)=>a.toBlob(r=>{r?r.type===l?t(r):n(Error(`This browser cannot save ${e.format.toUpperCase()}`)):n(Error(`export failed`))},l,e.quality))}readback(e,t=L.paper,n=!0){let{gl:r,g:i,dw:a,dh:o}=this,s=i.target(a,o,[U],r.NEAREST);this.drawDisplay(s,{x:0,y:0,w:a,h:o},null,e,t,n);let c=new Uint8Array(a*o*4);return r.bindFramebuffer(r.FRAMEBUFFER,s.fbo),r.readPixels(0,0,a,o,r.RGBA,r.UNSIGNED_BYTE,c),i.disposeTarget(s),c}resize(){this.fitCanvas(),this.schedule()}destroy(){cancelAnimationFrame(this.raf),this.dropFill(),this.disposers.forEach(e=>e()),this.tipTextures.forEach(e=>this.gl.deleteTexture(e)),this.tipTextures.clear(),this.ref&&this.gl.deleteTexture(this.ref.tex),this.ref=null,this.g.disposeTargets()}toUv(e){let t=this.canvas.getBoundingClientRect(),n=(e.clientX-t.left)*this.dpr,r=this.canvasSize[1]-(e.clientY-t.top)*this.dpr;return[(n-this.view.x)/this.view.w,(r-this.view.y)/this.view.h]}attachInput(){let e=this.canvas,t=(e,t,n,r)=>{e.addEventListener(t,n,r),this.disposers.push(()=>e.removeEventListener(t,n,r))};t(e,`pointerdown`,t=>{if(t.preventDefault(),!this.interactive||this.nav||t.button===1||this.stroke)return;t.pointerType===`pen`&&(this.pencilSeen=!0);try{e.setPointerCapture(t.pointerId)}catch{}let n=this.tool;t.pointerType===`touch`&&this.pencilSeen&&this.fingerIsWater&&(n=`water`),t.pointerType===`pen`&&t.buttons&32?n=`lift`:t.pointerType===`pen`&&t.buttons&2&&(n=n===`water`?`brush`:`water`),this.stroke={pointerId:t.pointerId,pointerType:t.pointerType,tool:n,started:!1,ending:!1,x:0,y:0,cx:0,cy:0,pr:0,t:t.timeStamp,speed:0,simPressure:.45,carry:0,travelled:0,moved:!1,dx:this.lastDir[0],dy:this.lastDir[1],angle:this.lastAngle,azimuth:null},n!==this.tool&&this.callbacks.onStrokeTool?.(n),this.beginStep(`stroke`,Se[n]),this.pushSample(t),this.trackHover(t),this.schedule()}),t(e,`pointermove`,e=>{if(e.pointerType===`pen`&&(this.pencilSeen=!0),this.trackHover(e),!this.stroke||e.pointerId!==this.stroke.pointerId)return;let t=e.getCoalescedEvents?.()??[];for(let n of t.length?t:[e])this.pushSample(n);this.schedule()});let n=e=>{this.stroke&&e.pointerId===this.stroke.pointerId&&(this.stroke.ending=!0,this.schedule())};t(e,`pointerup`,n),t(e,`pointercancel`,n),t(e,`pointerleave`,()=>{this.hover.inside=!1,this.updateCursor()}),t(e,`contextmenu`,e=>e.preventDefault()),t(window,`blur`,()=>{this.stroke&&(this.stroke.ending=!0)}),t(e,`webkitmouseforcechanged`,e=>{let t=e.webkitForce;typeof t==`number`&&(this.force={value:Z((t-1)/1.7,.04,1),t:performance.now()})})}pushSample(e){let[t,n]=this.toUv(e),r=-1;e.pointerType===`pen`?r=e.pressure>0?e.pressure**.8:.5:e.pointerType===`mouse`&&performance.now()-this.force.t<3e3&&(r=this.force.value),this.queue.push({x:t,y:n,p:r,t:e.timeStamp,tx:e.tiltX||0,ty:e.tiltY||0})}trackHover(e){this.hover.x=e.clientX,this.hover.y=e.clientY,this.hover.inside=!0,this.hover.type=e.pointerType,this.updateCursor()}updateCursor(){let e=this.cursor;if(!e)return;if(!this.hover.inside||this.hover.type===`touch`||!this.interactive||this.nav){e.style.opacity=`0`;return}let t=this.stroke?.tool??this.tool,n=this.radius(t,this.stroke?this.pressureOf(this.stroke,-1):.4,0),r=t===`brush`||t===`water`,i=this.brush,a=Math.max(4,2*n*this.view.h/this.dpr),o=r?Math.max(3,a*i.aspect):a,s=r&&i.rotation!==`random`?-(this.stroke?.angle??this.lastAngle):0;e.style.opacity=`1`,e.style.width=`${a}px`,e.style.height=`${o}px`,e.style.transform=`translate(${this.hover.x-a/2}px, ${this.hover.y-o/2}px) rotate(${s}rad)`,e.style.borderRadius=r&&i.aspect<.6?`${o*.4}px / 50%`:`50%`,e.dataset.tool=t}sizeMult(){return 3**((this.params.size-.5)*2)*(this.scripting?this.scriptScale:1)}radius(e,t,n){let r=this.sizeMult();switch(e){case`pen`:return(.0016+.0042*t)*Z(1.12-n*.3,.55,1.12)*r;case`brush`:return this.brushRadius(t,n);case`water`:return this.brushRadius(t,n)*1.3*(1+Math.min(n,2.5)*.12);case`lift`:return(.012+.03*t)*r}}brushRadius(e,t){let n=this.brush,r=Z(e,0,1)**+n.pressureSize;return(n.size[0]+(n.size[1]-n.size[0])*r)*Z(1-t*n.speedThin,.4,1)*this.sizeMult()*.8}brushAngle(e){let t=this.brush,n;return n=t.rotation===`random`?Math.random()*Math.PI*2:t.rotation===`follow`?Math.atan2(e.dy,e.dx)+t.angle*R:e.azimuth??t.angle*R,t.angleJitter&&(n+=(Math.random()-.5)*2*t.angleJitter*R),e.angle=n,t.rotation!==`random`&&(this.lastAngle=n),n}pressureOf(e,t){return t>=0?t:e.simPressure}processInput(e){let t=this.stroke;if(!t)return;t.moved=!1;let n=this.dw/this.dh;for(let e of this.queue){if(Math.hypot(e.tx,e.ty)>12&&(t.azimuth=Math.atan2(-e.ty,e.tx)),!t.started){t.started=!0,t.x=t.cx=e.x,t.y=t.cy=e.y,t.t=e.t,t.pr=this.pressureOf(t,e.p),this.stamp(t,e.x,e.y,t.pr,0,0,1);continue}let r=Math.max(e.t-t.t,1)/1e3;t.t=e.t;let i=t.pointerType===`mouse`?.5:.65,a=t.cx+(e.x-t.cx)*i,o=t.cy+(e.y-t.cy)*i,s=Math.hypot((a-t.cx)*n,o-t.cy);t.speed+=(s/r-t.speed)*(1-Math.exp(-r*10));let c=Z(1.18-t.speed*.95,.12,1);t.simPressure+=(c-t.simPressure)*(1-Math.exp(-r*6));let l=this.pressureOf(t,e.p),u=(a-t.cx)/r,d=(o-t.cy)/r;t.pointerId===z?this.trace(t,a,o,a,o,l,u,d):this.trace(t,t.cx,t.cy,(t.cx+a)/2,(t.cy+o)/2,l,u,d),t.cx=a,t.cy=o,s>0&&(t.moved=!0)}this.queue=[],t.started&&(!t.moved||t.ending)&&(t.x!==t.cx||t.y!==t.cy)&&this.trace(t,t.cx,t.cy,t.cx,t.cy,t.pr,0,0),!t.moved&&t.started&&!t.ending&&this.stamp(t,t.x,t.y,this.pressureOf(t,-1),0,0,0,e),t.ending&&(this.stroke=null,t.pointerId!==z&&this.callbacks.onStrokeTool?.(null))}trace(e,t,n,r,i,a,o,s){let c=this.dw/this.dh,l=e.x,u=e.y,d=e.pr,f=Math.hypot((t-l)*c,n-u)+Math.hypot((r-t)*c,i-n);if(f<1e-7)return;let p=this.radius(e.tool,Math.max(d,a),e.speed)*this.spacingFrac(e.tool),m=Z(Math.ceil(f/Math.max(p,1e-5)),1,48),h=l,g=u;for(let f=1;f<=m;f++){let p=f/m,_=1-p,v=_*_*l+2*_*p*t+p*p*r,y=_*_*u+2*_*p*n+p*p*i,b=(v-h)*c,x=y-g,S=Math.hypot(b,x),C=d+(a-d)*p;if(S>1e-5){let t=1-Math.exp(-S/(this.radius(e.tool,C,e.speed)*1.5+1e-4));e.dx+=(b/S-e.dx)*t,e.dy+=(x/S-e.dy)*t;let n=Math.hypot(e.dx,e.dy)||1;e.dx/=n,e.dy/=n,this.lastDir=[e.dx,e.dy]}let w=this.radius(e.tool,C,e.speed)*this.spacingFrac(e.tool),T=0;for(;S-T>=w-e.carry;){T+=w-e.carry,e.carry=0;let t=T/S;this.stamp(e,h+(v-h)*t,g+(y-g)*t,C,o,s,1)}e.carry+=S-T,e.travelled+=S,h=v,g=y}e.x=r,e.y=i,e.pr=a}spacingFrac(e){let t=this.brush;return e===`brush`||e===`water`?t.spacing*Math.sqrt(t.aspect):.5}stamp(e,t,n,r,i,a,o,s=0){let c=this.params,l=this.radius(e.tool,r,e.speed),u=o?1:s*8;switch(e.tool){case`brush`:{let s=this.brush,d=.25+.75*Math.exp(-e.travelled/((1.5+3*c.water)*s.capacity)),f=Z(s.grain+(1-s.grain)*Z((.5-d)*2.5,0,1)*.6,0,1),p=.74-.45*r-.05*c.water,m=.15*Math.exp(c.load*2.8)*d*(.6+.4*r)*s.load,h=Z(Math.sqrt(.5/s.tipMean),.7,2.2),g=m*Math.min(s.spacing,1)/1.8*h*u,_=(.25+.75*c.water)*(.7+.3*r)*s.water*(.4+.6*d),v=this.pigment.coeffs,y=[v[0]*g,v[1]*g,v[2]*g,v[3]*g],b=[v[4]*g,v[5]*g,v[6]*g,this.pigment.white*g*1.6];this.eachDab(e,t,n,l,(e,t,n,r)=>{this.brushInk(e,t,n,r,y,b,f,p),this.brushWet(e,t,n*(1+.12*s.wetRound),r,_,s.wetRound,f,p)}),o&&this.splatVelocity(t,n,l*1.2,i,a,(15+c.flow*95)*.25*s.flow);break}case`water`:{let s=this.brush,u=.25+.75*Math.exp(-e.travelled/((3+4*c.water)*s.capacity)),d=(.35+.65*c.water)*(.5+.5*r)*Z(s.water,.6,1.5)*(.7+.3*u),f=s.grain*.7,p=.55-.3*r;if(this.eachDab(e,t,n,l,(e,t,n,r)=>{this.brushWet(e,t,n,r,d,Math.max(s.wetRound,.3),f,p)}),this.brushNow={x:t,y:n,r:l},o)this.splatVelocity(t,n,l*1.15,i,a,(15+c.flow*95)*s.flow);else{let e=Math.random()*Math.PI*2,i=(6+26*c.flow)*r;this.splatVelocityRaw(t,n,l*.9,Math.cos(e)*i,Math.sin(e)*i)}break}case`pen`:{let i=(.9+1.6*r)*Z(1.25-e.speed*.45,.6,1.25)*(.5+c.load)*.5/1.8*u,a=this.pigment.coeffs;this.splatInk(t,n,l,[a[0]*i,a[1]*i,a[2]*i,a[3]*i],[a[4]*i,a[5]*i,a[6]*i,this.pigment.white*i*3],2),this.splatWet(t,n,l*2.6,.13,1);break}case`lift`:{let e=Math.min(.9,.22*u);this.lift(t,n,l,e);break}}}eachDab(e,t,n,r,i){let a=this.brush,o=this.dw/this.dh;for(let s=0;s<a.dabs;s++){let s=t,c=n,l=r;if(a.scatter>0){let e=Math.random()*Math.PI*2,t=Math.sqrt(Math.random())*a.scatter*r;s+=Math.cos(e)*t/o,c+=Math.sin(e)*t}a.sizeJitter>0&&(l*=Z(1+(Math.random()*2-1)*a.sizeJitter,.15,2)),i(s,c,l,this.brushAngle(e))}}drawStamp(e,t,n,r,i,a,o,s,c,l){let{gl:u,g:d}=this,f=this.brush,p=this.programs.stamp;p.bind(),u.uniform1i(p.u.uTip,d.bindTex(0,this.tipTexture(f))),u.uniform1i(p.u.uPaper,d.bindTex(1,this.paper.tex[0])),u.uniform1f(p.u.uAspect,e.w/e.h),u.uniform2f(p.u.uPoint,t,n),u.uniform1f(p.u.uRadius,r),u.uniform1f(p.u.uTipAspect,f.aspect),u.uniform2f(p.u.uAxis,Math.cos(i),Math.sin(i)),u.uniform1f(p.u.uRound,s),u.uniform1f(p.u.uGrain,c),u.uniform1f(p.u.uGrainThr,l),u.uniform4fv(p.u.uColor0,a),u.uniform4fv(p.u.uColor1,o),d.draw(e,this.stampRect(t,n,r,e.w,e.h,Math.sqrt(1+f.aspect*f.aspect)*1.02))}brushInk(e,t,n,r,i,a,o,s){let{gl:c}=this;this.touch(this.stampRect(e,t,n,this.dw,this.dh,1.5)),c.enable(c.BLEND),c.blendEquation(c.FUNC_ADD),c.blendFunc(c.ONE,c.ONE),this.drawStamp(this.ink.read,e,t,n,r,i,a,0,o,s),c.disable(c.BLEND)}brushWet(e,t,n,r,i,a,o,s){let{gl:c}=this;this.touch(this.stampRect(e,t,n,this.dw,this.dh,1.5)),c.enable(c.BLEND),c.blendEquation(c.MAX),this.drawStamp(this.wet.read,e,t,n,r,[i,0,0,0],[0,0,0,0],a,o,s),c.blendEquation(c.FUNC_ADD),c.disable(c.BLEND),this.wetPeak=Math.max(this.wetPeak*this.wetDecay(),i),this.lastWet=performance.now()}stampRect(e,t,n,r,i,a){let o=Math.ceil(n*a*i)+2,s=Math.round(e*r),c=Math.round(t*i);return{x0:Z(s-o,0,r),y0:Z(c-o,0,i),x1:Z(s+o,0,r),y1:Z(c+o,0,i)}}touch(e,t=!0,n=!0){if(e.x1<=e.x0||e.y1<=e.y0)return;let r=$(this.active,e);if(n){let t=Pe;this.history.protect(0,{x0:Math.max(0,e.x0-t),y0:Math.max(0,e.y0-t),x1:Math.min(this.dw,e.x1+t),y1:Math.min(this.dh,e.y1+t)},this.snapshotLayers())}this.active=r,this.painted=$(this.painted,e),this.everPainted=$(this.everPainted,e),this.dirty=$(this.dirty,e),t&&(this.minAwakeUntil=Math.max(this.minAwakeUntil,performance.now()+250))}snapshotLayers(){return[this.ink.read.views[0],this.ink.read.views[1],this.wet.read.views[0]]}drawSplat(e,t,n,r,i,a,o,s){let{gl:c,g:l}=this,u=this.programs.splat;u.bind(),c.uniform1f(u.u.uAspect,e.w/e.h),c.uniform2f(u.u.uPoint,t,n),c.uniform1f(u.u.uRadius,r),c.uniform1f(u.u.uHardness,o),c.uniform4fv(u.u.uColor0,i),c.uniform4fv(u.u.uColor1,a),l.draw(e,this.stampRect(t,n,r,e.w,e.h,s))}splatInk(e,t,n,r,i,a){let{gl:o}=this,s=a>1.4?2.2:3.2;this.touch(this.stampRect(e,t,n,this.dw,this.dh,s)),o.enable(o.BLEND),o.blendEquation(o.FUNC_ADD),o.blendFunc(o.ONE,o.ONE),this.drawSplat(this.ink.read,e,t,n,r,i,a,s),o.disable(o.BLEND)}splatWet(e,t,n,r,i){let{gl:a}=this,o=i>1.4?2.2:3.2;this.touch(this.stampRect(e,t,n,this.dw,this.dh,o)),a.enable(a.BLEND),a.blendEquation(a.MAX),this.drawSplat(this.wet.read,e,t,n,[r,0,0,0],[0,0,0,0],i,o),a.blendEquation(a.FUNC_ADD),a.disable(a.BLEND),this.wetPeak=Math.max(this.wetPeak*this.wetDecay(),r),this.lastWet=performance.now()}splatVelocity(e,t,n,r,i,a){let o=r*a,s=i*a,c=Math.hypot(o,s);c>240&&(o*=240/c,s*=240/c),this.flowSpeed=Math.max(this.flowSpeed,Math.min(c,240)),this.splatVelocityRaw(e,t,n,o,s)}splatVelocityRaw(e,t,n,r,i){let{gl:a}=this;a.enable(a.BLEND),a.blendEquation(a.FUNC_ADD),a.blendFunc(a.ONE,a.ONE),this.drawSplat(this.velocity.read,e,t,n,[r,i,0,0],[0,0,0,0],1,3),a.disable(a.BLEND)}lift(e,t,n,r){let{gl:i,g:a}=this,o=this.stampRect(e,t,n,this.dw,this.dh,2);this.touch(o);let s=this.programs.lift;s.bind(),i.uniform1f(s.u.uAspect,this.dw/this.dh),i.uniform2f(s.u.uPoint,e,t),i.uniform1f(s.u.uRadius,n),i.enable(i.BLEND),i.blendEquation(i.FUNC_ADD),i.blendFunc(i.ZERO,i.ONE_MINUS_SRC_COLOR),i.uniform1f(s.u.uAmount,r),a.draw(this.ink.read,o),i.uniform1f(s.u.uAmount,r*.8),a.draw(this.wet.read,o),i.disable(i.BLEND)}dryTau(){return this.fixTimer>0?.25:2+(1-this.params.dry)*16}wetDecay(){return Math.exp(-(performance.now()-this.lastWet)/1e3/this.dryTau())}wetUntil(){return this.wetPeak<=q?this.lastWet:this.lastWet+this.dryTau()*Math.log(this.wetPeak/q)*1e3}beginStep(e,t){this.dropFill(),this.history.begin({kind:e,label:t},this.currentMeta()),this.notifyHistory()}step(e){let{gl:t,g:n,programs:r}=this,i=this.fixTimer>0;i&&(this.fixTimer-=e,this.fixTimer<=0&&(this.wetPeak=0,this.minAwakeUntil=0,this.painted=null));let a=this.velocity,o=[1/a.w,1/a.h],s=[1/this.dw,1/this.dh],c=this.params.flow,l=this.active;r.advectVelocity.bind(),t.uniform1i(r.advectVelocity.u.uVelocity,n.bindTex(0,a.read.tex[0])),t.uniform1i(r.advectVelocity.u.uWet,n.bindTex(1,this.wet.read.tex[0])),t.uniform2fv(r.advectVelocity.u.uTexel,o),t.uniform1f(r.advectVelocity.u.uDt,e),t.uniform1f(r.advectVelocity.u.uDissipation,Math.exp(-e*(3-c*2.4))*(i?Math.exp(-e*7):1)),n.draw(a.write),a.swap(),r.curl.bind(),t.uniform1i(r.curl.u.uVelocity,n.bindTex(0,a.read.tex[0])),t.uniform2fv(r.curl.u.uTexel,o),n.draw(this.curl),r.vorticity.bind(),t.uniform1i(r.vorticity.u.uVelocity,n.bindTex(0,a.read.tex[0])),t.uniform1i(r.vorticity.u.uCurl,n.bindTex(1,this.curl.tex[0])),t.uniform2fv(r.vorticity.u.uTexel,o),t.uniform1f(r.vorticity.u.uCurlAmount,4+c*22),t.uniform1f(r.vorticity.u.uDt,e),n.draw(a.write),a.swap(),r.divergence.bind(),t.uniform1i(r.divergence.u.uVelocity,n.bindTex(0,a.read.tex[0])),t.uniform2fv(r.divergence.u.uTexel,o),n.draw(this.divergence),r.scale.bind(),t.uniform1i(r.scale.u.uTex,n.bindTex(0,this.pressure.read.tex[0])),t.uniform1f(r.scale.u.uValue,.8),n.draw(this.pressure.write),this.pressure.swap(),r.pressure.bind(),t.uniform1i(r.pressure.u.uDivergence,n.bindTex(1,this.divergence.tex[0])),t.uniform2fv(r.pressure.u.uTexel,o);for(let e=0;e<De;e++)t.uniform1i(r.pressure.u.uPressure,n.bindTex(0,this.pressure.read.tex[0])),n.draw(this.pressure.write),this.pressure.swap();r.gradient.bind(),t.uniform1i(r.gradient.u.uPressure,n.bindTex(0,this.pressure.read.tex[0])),t.uniform1i(r.gradient.u.uVelocity,n.bindTex(1,a.read.tex[0])),t.uniform2fv(r.gradient.u.uTexel,o),n.draw(a.write),a.swap(),r.advectWet.bind(),t.uniform1i(r.advectWet.u.uVelocity,n.bindTex(0,a.read.tex[0])),t.uniform1i(r.advectWet.u.uWet,n.bindTex(1,this.wet.read.tex[0])),t.uniform2fv(r.advectWet.u.uSimTexel,o),t.uniform2fv(r.advectWet.u.uTexel,s),t.uniform1f(r.advectWet.u.uDt,e),t.uniform1f(r.advectWet.u.uDecay,Math.exp(-e/this.dryTau())),t.uniform1f(r.advectWet.u.uSpread,.12),n.draw(this.wet.write,l),this.wet.swap();let u=i?1-Math.exp(-e*5):0;i&&(t.enable(t.BLEND),t.blendEquation(t.FUNC_ADD),t.blendFunc(t.ZERO,t.SRC_COLOR),r.bleach.bind(),t.uniform1i(r.bleach.u.uInkB,n.bindTex(0,this.ink.read.tex[1])),t.uniform1f(r.bleach.u.uSettle,u),n.draw(this.fixed,l),t.blendFunc(t.ONE,t.ONE),r.settle.bind(),t.uniform1i(r.settle.u.uInkA,n.bindTex(0,this.ink.read.tex[0])),t.uniform1i(r.settle.u.uInkB,n.bindTex(1,this.ink.read.tex[1])),t.uniform1f(r.settle.u.uSettle,u),n.draw(this.fixed,l),t.disable(t.BLEND));let d=r.advectInk;d.bind(),t.uniform1i(d.u.uVelocity,n.bindTex(0,a.read.tex[0])),t.uniform1i(d.u.uInkA,n.bindTex(1,this.ink.read.tex[0])),t.uniform1i(d.u.uInkB,n.bindTex(2,this.ink.read.tex[1])),t.uniform1i(d.u.uWet,n.bindTex(3,this.wet.read.tex[0])),t.uniform2fv(d.u.uSimTexel,o),t.uniform2fv(d.u.uTexel,s),t.uniform1f(d.u.uDt,e),t.uniform1f(d.u.uBleed,this.params.bleed),t.uniform1f(d.u.uEdge,this.params.edge*1.4),t.uniform1f(d.u.uAspect,this.dw/this.dh),t.uniform1f(d.u.uKeep,1-u),t.uniform3f(d.u.uBrush,this.brushNow.x,this.brushNow.y,this.brushNow.r),n.draw(this.ink.write,l),this.ink.swap(),this.dirty=$(this.dirty,l)}trimActive(){let e=this.active;if(!e)return;let{gl:t,g:n}=this,r=this.wetMask,i=this.programs.wetMask;i.bind(),t.uniform1i(i.u.uWet,n.bindTex(0,this.wet.read.tex[0])),t.uniform2f(i.u.uBlock,1/r.w,1/r.h),t.uniform1f(i.u.uThreshold,q),n.draw(r),t.bindFramebuffer(t.FRAMEBUFFER,r.fbo),t.readPixels(0,0,r.w,r.h,t.RGBA,t.UNSIGNED_BYTE,this.maskPixels),t.bindFramebuffer(t.FRAMEBUFFER,null);let a=r.w,o=r.h,s=-1,c=-1,l=this.maskPixels;for(let e=0;e<r.h;e++)for(let t=0;t<r.w;t++)l[(e*r.w+t)*4]&&(t<a&&(a=t),t>s&&(s=t),e<o&&(o=e),e>c&&(c=e));let u=null;if(s>=0){let t={x0:Math.max(0,a*J-Y),y0:Math.max(0,o*J-Y),x1:Math.min(this.dw,(s+1)*J+Y),y1:Math.min(this.dh,(c+1)*J+Y)},n={x0:Math.max(e.x0,t.x0),y0:Math.max(e.y0,t.y0),x1:Math.min(e.x1,t.x1),y1:Math.min(e.y1,t.y1)};n.x1>n.x0&&n.y1>n.y0&&(u=n)}if(u&&u.x0===e.x0&&u.y0===e.y0&&u.x1===e.x1&&u.y1===e.y1)return;let d=e.x1-e.x0,f=e.y1-e.y0;for(let t of[this.ink,this.wet])t.read.views.forEach((r,i)=>n.blit(r,e.x0,e.y0,t.write.views[i],e.x0,e.y0,d,f));u?this.active=u:this.sleep()}sleep(){let e=this.active;if(e){let{g:t}=this,n=e.x1-e.x0,r=e.y1-e.y0;for(let i of[this.ink,this.wet])i.read.views.forEach((a,o)=>t.blit(a,e.x0,e.y0,i.write.views[o],e.x0,e.y0,n,r))}for(let e of[this.velocity,this.pressure])this.g.clearTarget(e.read),this.g.clearTarget(e.write);this.active=null,this.wetPeak=0,this.flowSpeed=0}drawDisplay(e,t,n,r=!1,i=L.screen,a=!0){let{gl:o,g:s}=this,c=this.programs.display;c.bind(),o.uniform1i(c.u.uInkA,s.bindTex(0,this.ink.read.tex[0])),o.uniform1i(c.u.uInkB,s.bindTex(1,this.ink.read.tex[1])),o.uniform1i(c.u.uFixedA,s.bindTex(2,this.fixed.tex[0])),o.uniform1i(c.u.uFixedB,s.bindTex(3,this.fixed.tex[1])),o.uniform1i(c.u.uWet,s.bindTex(4,this.wet.read.tex[0])),o.uniform1i(c.u.uPaper,s.bindTex(5,this.paper.tex[0])),o.uniform4f(c.u.uView,t.x,t.y,t.w,t.h),o.uniform2f(c.u.uTexel,1/this.dw,1/this.dh),o.uniform1f(c.u.uGranulation,this.params.granulation*.55),o.uniform1f(c.u.uEdgeDarken,.8),o.uniform1f(c.u.uFlat,+!!r),o.uniform3fv(c.u.uDesk,Fe),o.uniform1i(c.u.uMode,i),this.paperUniforms(c,this.paperPreset,a?this.paperStrength:0);let l=i===L.screen&&!r&&this.refVisible?this.ref:null;o.uniform1f(c.u.uRefOpacity,l?this.refOpacity:0),o.uniform1i(c.u.uRef,s.bindTex(6,l?l.tex:this.paper.tex[0]));let u=this.refRect;o.uniform4f(c.u.uRefRect,u.x,u.y,u.w,u.h);let d=i===L.screen&&!e?Z(Math.min(t.w,t.h)/this.dpr*.05,14,48)*this.dpr:0;o.uniform1f(c.u.uShadow,d),o.uniform1f(c.u.uDpr,this.dpr),s.draw(e,n,this.canvasSize)}render(){if(!this.dirtyAll&&!this.dirty)return;let e=null;if(!this.dirtyAll&&this.dirty){let t=this.view,n=this.dirty;e={x0:Math.floor(t.x+n.x0/this.dw*t.w)-2,y0:Math.floor(t.y+n.y0/this.dh*t.h)-2,x1:Math.ceil(t.x+n.x1/this.dw*t.w)+2,y1:Math.ceil(t.y+n.y1/this.dh*t.h)+2}}this.drawDisplay(null,this.view,e),this.dirty=null,this.dirtyAll=!1}schedule(){this.raf||=(this.lastFrame=performance.now(),requestAnimationFrame(this.frame))}frame=e=>{this.raf=0;let t=Z((e-this.lastFrame)/1e3,1/240,1/30);this.lastFrame=e,this.brushNow.r=0,this.processInput(t);let n=this.active!==null&&(this.stroke!==null||this.fixTimer>0||e<this.minAwakeUntil||e<this.wetUntil());if(n){this.flowSpeed*=Math.exp(-t*(3-this.params.flow*2.4)),this.growCarry+=.4+Math.min(3,.15*this.flowSpeed*t*(this.dw/this.velocity.w));let e=Math.floor(this.growCarry);if(e>0){this.growCarry-=e;let t=this.active;this.touch({x0:Math.max(0,t.x0-e),y0:Math.max(0,t.y0-e),x1:Math.min(this.dw,t.x1+e),y1:Math.min(this.dh,t.y1+e)},!1,!1)}this.step(t),this.fixTimer<=0&&++this.maskCounter>=Ne&&(this.maskCounter=0,this.trimActive())}this.render(),this.history.evictions!==this.seenEvictions&&this.notifyHistory(),!n&&this.active&&this.sleep(),(n||this.stroke)&&this.schedule()}};return e.BRUSH_PRESETS=l,e.DEFAULT_PAPER=S,e.DEFAULT_PARAMS=I,e.PAPERS=x,e.WatercolorEngine=Ie,e.buildBrush=u,e.pigmentFromHex=D,e})({});
     return WCEngine; })(); } catch (e) { WC.lib = null; }
   return WC.lib;
 }
@@ -6184,7 +6270,9 @@ function wcOk() {
 // at the start of a painting: is real watercolour wanted, and a sheet the painting's shape ready for it
 function wcBegin() {
   WC.q = []; WC.cur = null; WC.fresh = false; WC.fed = 0; WC.layer = 0; WC.dryNext = false; WC.drying = 0; OIL.q = []; OIL.cur = null; OIL.fresh = false;
-  const ok = WC.on && S.mode === 'auto' && !S.video && !liveRun(), sts = stylePick.values();
+  // (videos, cameras and playlists too: there the paint is laid over as a cover, not a glaze, so it can follow the picture; not the endless zoom)
+  const ok = WC.on && S.mode === 'auto' && !zoomWanted(), sts = stylePick.values();
+  WC.vid = liveRun(); WC.rb = performance.now();
   WC.wc = ok && sts.some(s => WC_ST.has(s)) && wcOk();
   OIL.live = ok && sts.some(s => OIL_ST.has(s)) && oilBegin(sts);
   WC.live = WC.wc || OIL.live;
@@ -6236,20 +6324,29 @@ function wcAdd(q, t0 = clock(), dur = 0, dir = 1) {
       for (let j = 0; j <= 4; j++) { const x = (i % 2 ? 1 - j / 2 : -1 + j / 2) * half; P.push([cx + x * cs - y * sn, cy + x * sn + y * cs]); }
     }
   }
-  (OIL_ST.has(q.st) ? OIL.q : WC.q).push({ P: P.map(p => [p[0] / W, 1 - p[1] / H]), r: r / H, c0: c0[0] === '#' ? c0 : SHP.hex(c0), c1: c1 && c1[0] === '#' ? c1 : c0[0] === '#' ? c0 : SHP.hex(c0), st: q.st, wash: q.t !== 'S', t0, dur, i: 0 });
+  const Q = OIL_ST.has(q.st) ? OIL.q : WC.q;
+  // sumi is ink: the picture's tones as grey-black ink, a little warm
+  const ink = h => { const [r, g, b] = hexRgb(h), l = 0.3 * r + 0.59 * g + 0.11 * b, v = Math.round(18 + (l / 255) * 205); return SHP.hex([v + 4, v + 2, v]); };
+  if (WC.vid && Q.length > 30) Q.splice(0, Q.length - 20);      // (a moving picture: strokes that waited too long are stale, let them go)
+  let h0 = c0[0] === '#' ? c0 : SHP.hex(c0), h1 = c1 && c1[0] === '#' ? c1 : h0; if (q.st === 'sumi') { h0 = ink(h0); h1 = ink(h1); }
+  Q.push({ P: P.map(p => [p[0] / W, 1 - p[1] / H]), r: r / H, c0: h0, c1: h1, st: q.st, wash: q.t !== 'S', t0, dur, i: 0 });
 }
 // how each style handles water: watercolour a round brush, wet floods the paper, wash a big mop
 const WC_LOOK = {
   watercolour: { brush: 'round', water: 0.3, load: 0.4, flow: 0.1, bleed: 0.3, dry: 0.65, edge: 0.65, granulation: 0.5 },
   wet: { brush: 'round', water: 0.6, load: 0.42, flow: 0.25, bleed: 0.6, dry: 0.45, edge: 0.7, granulation: 0.55 },
+  // ink: a loaded small round (a bigger one for wide strokes), little water, so the line stays crisp and only feathers a little;
+  // sumi: the sumi brush (hairline to broad, fibrous edges), wetter, so the ink bleeds into the paper and pools where it lands
+  ink: { brush: 'detail', big: 'round', water: 0.22, load: 0.95, flow: 0.06, bleed: 0.22, dry: 0.75, edge: 0.55, granulation: 0.12 },
+  sumi: { brush: 'sumi', water: 0.48, load: 0.9, flow: 0.12, bleed: 0.55, dry: 0.5, edge: 0.4, granulation: 0.3 },
   wash: { brush: 'mop', water: 0.5, load: 0.38, flow: 0.2, bleed: 0.5, dry: 0.5, edge: 0.65, granulation: 0.6 },
 };
 const wcPress = u => 0.62 + 0.38 * Math.sin(Math.PI * Math.min(1, 0.08 + u * 0.88));     // (a brush lands, presses, lifts)
 // a stroke onto the sheet: the brush set up for its style, its first colour
 function wcStart(it) {
-  const E = WC.E, L = wcLib(), look = WC_LOOK[it.st] || WC_LOOK.watercolour;
-  if (E.brush.id !== look.brush) E.brush = L.buildBrush(L.BRUSH_PRESETS.find(b => b.id === look.brush) || L.BRUSH_PRESETS[0]);
-  Object.assign(E.params, look, { size: 1 }); delete E.params.brush;
+  const E = WC.E, L = wcLib(), look = WC_LOOK[it.st] || WC_LOOK.watercolour, bid = look.big && it.r > 0.03 ? look.big : look.brush;
+  if (E.brush.id !== bid) E.brush = L.buildBrush(L.BRUSH_PRESETS.find(b => b.id === bid) || L.BRUSH_PRESETS[0]);
+  Object.assign(E.params, look, { size: 1 }); delete E.params.brush; delete E.params.big;
   E.setPigment(L.pigmentFromHex(it.c0));
   if (!E.scriptBegin('brush', it.P[0][0], it.P[0][1], wcPress(0), false, it.r)) return false;
   // the samples' clock: the brush moves at a painter's pace (about half the sheet a second), however fast it is fed
@@ -6290,7 +6387,8 @@ function wcComposite() {
   const x = S.outX, W = S.out.width, H = S.out.height, t = performance.now();
   x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'copy'; x.drawImage(WC.base, 0, 0); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
   if (OIL.live && OIL.fresh) { x.globalCompositeOperation = 'source-over'; x.drawImage(OIL.E.show(), 0, 0, W, H); }
-  if (WC.wc && WC.fresh) { try { WC.E.drawDisplay(null, WC.E.view, null, false, 3, true); x.globalCompositeOperation = 'multiply'; x.drawImage(WC.cv, 0, 0, W, H); } catch (e) { /* lost */ } }
+  // (a still: on white, glazed over everything (multiply); a moving picture: its pigment as colour + coverage laid over, so new washes can cover old)
+  if (WC.wc && WC.fresh) { try { WC.E.drawDisplay(null, WC.E.view, null, false, WC.vid ? 2 : 3, true); x.globalCompositeOperation = WC.vid ? 'source-over' : 'multiply'; x.drawImage(WC.cv, 0, 0, W, H); } catch (e) { /* lost */ } }
   x.restore();
   S.big = null;
   // (how often: about ten times a second, less when it is costly here, so the painter itself keeps its frames)
@@ -6302,6 +6400,8 @@ function wcFrame() {
   const t = performance.now();
   if (WC.wc) wcPump();
   if (OIL.live) oilPump(t);
+  // a moving picture: every few seconds the watercolour so far goes into the base and the sheet starts clean (it never fills up, and stays light to work)
+  if (WC.vid && WC.wc && WC.fresh && !WC.cur && !WC.drying && t - WC.rb > 4000) { WC.rb = t; wcComposite(); WC.bx.globalCompositeOperation = 'copy'; WC.bx.drawImage(S.out, 0, 0); WC.bx.globalCompositeOperation = 'source-over'; WC.fresh = false; try { WC.E.clear(); } catch (e) { /* busy */ } }
   const wb = WC.wc && !!(WC.E.raf || WC.cur || WC.q.length), ob = OIL.live && (OIL.E.busy() || !!OIL.cur || !!OIL.q.length);
   if ((WC.fresh || OIL.fresh) && ((wb || ob) ? t - WC.t > (WC.every || 110) : WC.dirty)) { WC.t = t; WC.dirty = wb || ob; wcComposite(); }
   else if (wb || ob) WC.dirty = true;
@@ -6325,7 +6425,7 @@ function wcFrame() {
 //  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // ─────────────────────────────────────────────────────────────
 const OIL = { lib: undefined, ok: undefined, E: null, size: '', live: false, q: [], cur: null, fresh: false, tmp: null, tx: null, img: null };
-const OIL_ST = new Set(['oil', 'acrylic']);
+const OIL_ST = new Set(['oil', 'acrylic', 'knife']);      // (the palette knife: the same wet paint, laid with a broad, heavily loaded blade)
 function oilLib() {
   if (OIL.lib !== undefined) return OIL.lib;
   try { OIL.lib = (function () {
@@ -8993,7 +9093,7 @@ function oilBegin(sts) {
     if (OIL.E) OIL.E.destroy();
     try { OIL.E = new (oilLib())(w, h, 100); OIL.size = w + 'x' + h; OIL.ok = true; } catch (e) { OIL.E = null; OIL.ok = false; return false; }
   }
-  const oil = sts.includes('oil'), L = OIL.E.light;
+  const oil = sts.includes('oil') || sts.includes('knife'), L = OIL.E.light;
   Object.assign(L, oil ? { rough: 0.075, spec: 0.5, F0: 0.05, diffuse: 0.15, normal: 7 } : { rough: 0.22, spec: 0.16, F0: 0.04, diffuse: 0.22, normal: 9 });
   OIL.E.fluidity(oil ? 0.8 : 0.72);
   return true;
@@ -9013,7 +9113,7 @@ function oilPump(t) {
         for (let j = 1; j <= n; j++) P.push([a[0] + (bx - a[0]) * j / n, a[1] + (by - a[1]) * j / n]);
       }
       it.Q = P.length > cap ? P.filter((p, i) => i % Math.ceil(P.length / cap) === 0 || i === P.length - 1) : P; it.i = 1;
-      E.begin(P[0][0], P[0][1], r, hexRgb(it.c0).map(v => v / 255), it.st === 'acrylic' ? 0.85 : 0.75, (LAG.lite ? 16 : 24) + (LAG.lite ? 44 : 76) * clamp01((r - 3) / 28));     // (fewer bristles for a small brush, and on a slow computer)
+      E.begin(P[0][0], P[0][1], it.st === 'knife' ? Math.min(75, r * 1.25) : r, hexRgb(it.c0).map(v => v / 255), it.st === 'acrylic' ? 0.85 : it.st === 'knife' ? 1 : 0.75, (LAG.lite ? 16 : 24) + (LAG.lite ? 44 : 76) * clamp01((r - 3) / 28));     // (fewer bristles for a small brush, and on a slow computer)
       OIL.cur = it; OIL.fresh = true;
     }
     const it = OIL.cur, n = it.Q.length - 1, upto = many || !it.dur ? n : Math.min(n, Math.floor(n * (now - it.t0) / it.dur));
@@ -9252,7 +9352,7 @@ function paintPanel(b, now, r) {
   X.save(); tracePts(X, P); X.clip();
   if (VZ.mode === 'motion') vizDraw(b, now, r); else if (VZ.on) scorePost(b, now, () => VZ.mode === 'nature' ? natureDraw(b, now) : VZ.mode === 'vector' ? vectorDraw(b, now) : scoreDraw(b, now, VZ.mode === 'organic' ? 'organic' : VZ.mode === 'brush')); else if (S.dg && S.dg.on && S.mode === 'auto' && S.dg.phase !== 'paint') dgDraw(b, now); else paintContent(b, now, r);
   if (SPRAY.wall !== 'none' && S.out && !VZ.on) wallOver(X, b.x, b.y, b.w, b.h);
-  if ((GRADE.on || SIGNAL.on || SCOPE.on) && (S.out || VZ.on)) { const m = X.getTransform(), r4 = [Math.round(m.a * b.x + m.e), Math.round(m.d * b.y + m.f), Math.round(m.a * b.w), Math.round(m.d * b.h)]; if (S.out) gradeApply(X, ...r4); scopeApply(X, ...r4); signalApply(X, ...r4); }
+  if ((GRADE.on || SIGNAL.on || SCOPE.on || LOOK.mode) && (S.out || VZ.on)) { const m = X.getTransform(), r4 = [Math.round(m.a * b.x + m.e), Math.round(m.d * b.y + m.f), Math.round(m.a * b.w), Math.round(m.d * b.h)]; if (S.out) gradeApply(X, ...r4); scopeApply(X, ...r4); lookApply(X, ...r4); signalApply(X, ...r4); }
   X.restore();
   drawRim(b, now, P);
 }
@@ -10269,7 +10369,7 @@ function gradeApply(x, dx, dy, dw, dh) {
 function graded(cv) {
   if (!GRADE.on && !SIGNAL.on && !SCOPE.on) return cv;
   const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height; const x = c.getContext('2d'); x.drawImage(cv, 0, 0);
-  gradeApply(x, 0, 0, c.width, c.height); scopeApply(x, 0, 0, c.width, c.height); signalApply(x, 0, 0, c.width, c.height); if (c.width * c.height > 4e6) GRADE.tmp = GRADE.sm = null;
+  gradeApply(x, 0, 0, c.width, c.height); scopeApply(x, 0, 0, c.width, c.height); lookApply(x, 0, 0, c.width, c.height); signalApply(x, 0, 0, c.width, c.height); if (c.width * c.height > 4e6) GRADE.tmp = GRADE.sm = null;
   return c;
 }
 // ═════════════════════════════════════════════════════════════
@@ -10698,7 +10798,7 @@ function voicesAnchors() {
 //  spills (the red-orange ring film gets round bright things), a filmic roll-off instead of clipping, fine moving grain
 //  and a soft vignette. A thin crosshair with its 0 and faint dashed drops from the strongest points, if wanted.
 // ═════════════════════════════════════════════════════════════
-const SCOPE = { on: false, col: 'green', axes: true, fill: 35, det: 50, gl: null, fail: false, nodes: null, nkey: '' };
+const SCOPE = { on: false, col: 'green', axes: true, fill: 35, det: 50, beam: true, glow: 40, gl: null, fail: false, nodes: null, nkey: '', path: null, pt: 0, bp: 0, lt: 0 };
 const SCOPE_COLS = { green: [0.32, 1, 0.5], amber: [1, 0.62, 0.22], cyan: [0.35, 0.85, 1], white: [0.95, 0.94, 0.9], magenta: [1, 0.35, 0.85], picture: [-1, 0, 0] };
 const SC_VS = 'attribute vec2 a; varying vec2 v; void main() { v = a * .5 + .5; gl_Position = vec4(a, 0., 1.); }';
 // the lines: the gradient, thinned to its ridge (only where it is stronger than across it), and the bright parts
@@ -10710,6 +10810,22 @@ void main() { vec2 g = G(v); float m = length(g); vec2 n = m > 1e-4 ? g / m : ve
   float ridge = step(length(G(v + e)) * .92, m) * step(length(G(v - e)) * .92, m);
   float line = smoothstep(TH, TH + .25, m) * mix(.35, 1., ridge), l = L(v);
   gl_FragColor = vec4(line, smoothstep(.75, .95, l) * FL, l, 1.); }`;
+// the beam (after woscope's way of drawing an oscilloscope): each stretch of the path is a quad round the segment, lit by
+// the beam's gaussian spot integrated along it — so the light a stretch gets goes with how long the beam spends on it:
+// slow, short steps (the picture's lines) burn bright, the long jumps between them are faint wisps, like a real scope
+const SC_BV = `attribute vec2 aA, aB, aC; uniform vec2 R; uniform float S; varying vec2 vp; varying float vl;
+void main() { vec2 d = aB - aA; float l = length(d); vec2 dr = l > 1e-3 ? d / l : vec2(1., 0.), n = vec2(-dr.y, dr.x); float e = S * 3.2;
+  vec2 p = mix(aA - dr * e, aB + dr * e, aC.x) + n * aC.y * e; vp = vec2(dot(p - aA, dr), aC.y * e); vl = l;
+  gl_Position = vec4(p.x / R.x * 2. - 1., 1. - p.y / R.y * 2., 0., 1.); }`;
+const SC_BF = `precision highp float; varying vec2 vp; varying float vl; uniform float S, I, REF;
+float erf_(float x) { float s = sign(x), a = abs(x); float t = 1. + (.278393 + (.230389 + .078108 * a * a) * a) * a; t *= t; return s - s / (t * t); }
+void main() { float k = .70710678 / S, g = exp(-vp.y * vp.y / (2. * S * S)), a;
+  if (vl < 1e-3) a = exp(-dot(vp, vp) / (2. * S * S)); else a = .5 * (erf_(vp.x * k) - erf_((vp.x - vl) * k)) * g * REF / max(vl, REF);
+  gl_FragColor = vec4(a * I, 0., 0., 1.); }`;
+// the phosphor's afterglow: what was lit fades a little every frame
+const SC_D = `precision highp float; uniform sampler2D u; uniform float K; varying vec2 v; void main() { gl_FragColor = vec4(texture2D(u, v).r * K, 0., 0., 1.); }`;
+// the beam's light as the lines, with the bright blobs and the picture's light from the edge pass
+const SC_K = `precision highp float; uniform sampler2D e, pb; varying vec2 v; void main() { vec4 E = texture2D(e, v); gl_FragColor = vec4(min(texture2D(pb, v).r, 4.), E.g, E.b, 1.); }`;
 // a gaussian blur along one direction (9 taps, linear-sampled)
 const SC_B = `precision highp float; uniform sampler2D u; uniform vec2 D; varying vec2 v;
 void main() { vec4 c = texture2D(u, v) * .227; c += (texture2D(u, v + D * 1.385) + texture2D(u, v - D * 1.385)) * .316; c += (texture2D(u, v + D * 3.231) + texture2D(u, v - D * 3.231)) * .07; gl_FragColor = c; }`;
@@ -10732,18 +10848,23 @@ function scopeGL() {
     const cv = document.createElement('canvas'), gl = cv.getContext('webgl', { alpha: false, premultipliedAlpha: false, antialias: false }); if (!gl) throw new Error('no webgl');
     const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
     const prog = (fs, names) => { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, SC_VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); const L = { p, a: gl.getAttribLocation(p, 'a') }; for (const n of names) L[n] = gl.getUniformLocation(p, n); return L; };
-    SCOPE.E = prog(SC_E, ['u', 'R', 'TH', 'FL']); SCOPE.B = prog(SC_B, ['u', 'D']); SCOPE.C = prog(SC_C, ['e', 'b1', 'b2', 'b3', 'src', 'C', 'T', 'PIC', 'R']);
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    SCOPE.E = prog(SC_E, ['u', 'R', 'TH', 'FL']); SCOPE.B = prog(SC_B, ['u', 'D']); SCOPE.D = prog(SC_D, ['u', 'K']); SCOPE.K = prog(SC_K, ['e', 'pb']);
+    { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, SC_BV)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, SC_BF)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+      SCOPE.BM = { p, aA: gl.getAttribLocation(p, 'aA'), aB: gl.getAttribLocation(p, 'aB'), aC: gl.getAttribLocation(p, 'aC'), R: gl.getUniformLocation(p, 'R'), S: gl.getUniformLocation(p, 'S'), I: gl.getUniformLocation(p, 'I'), REF: gl.getUniformLocation(p, 'REF') }; }
+    // (the afterglow wants more than 8 bits: half floats where the card has them)
+    const hf = gl.getExtension('OES_texture_half_float'); SCOPE.hf = hf && gl.getExtension('EXT_color_buffer_half_float') ? hf.HALF_FLOAT_OES : 0; gl.getExtension('OES_texture_half_float_linear');
+    SCOPE.quad = gl.createBuffer(); SCOPE.segs = gl.createBuffer(); SCOPE.C = prog(SC_C, ['e', 'b1', 'b2', 'b3', 'src', 'C', 'T', 'PIC', 'R']);
+    gl.bindBuffer(gl.ARRAY_BUFFER, SCOPE.quad); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const tex = () => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); for (const [p, q] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, p, q); return t; };
     SCOPE.tex = tex; SCOPE.tin = tex(); SCOPE.T = {}; SCOPE.cv = cv; SCOPE.gl = gl;
   } catch (e) { SCOPE.fail = true; console.warn('scope: no WebGL', e); }
   return SCOPE.gl;
 }
 // a render target of a size (kept and reused by name)
-function scopeRT(name, w, h) {
+function scopeRT(name, w, h, hf = false) {
   const gl = SCOPE.gl; let r = SCOPE.T[name];
   if (!r) r = SCOPE.T[name] = { t: SCOPE.tex(), f: gl.createFramebuffer(), w: 0, h: 0 };
-  if (r.w !== w || r.h !== h) { gl.bindTexture(gl.TEXTURE_2D, r.t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); gl.bindFramebuffer(gl.FRAMEBUFFER, r.f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, r.t, 0); r.w = w; r.h = h; }
+  if (r.w !== w || r.h !== h) { gl.bindTexture(gl.TEXTURE_2D, r.t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, hf && SCOPE.hf ? SCOPE.hf : gl.UNSIGNED_BYTE, null); gl.bindFramebuffer(gl.FRAMEBUFFER, r.f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, r.t, 0); r.w = w; r.h = h; }
   return r;
 }
 // the plot's points: the picture's strongest edge points, spread apart (they drift to the new ones on a video)
@@ -10757,6 +10878,124 @@ function scopeNodes() {
   for (let i = 0; i < SCOPE.nodes.length; i++) { const n = SCOPE.nodes[i], t = SCOPE.target[i]; n.x += (t.x - n.x) * 0.15; n.y += (t.y - n.y) * 0.15; }
   return SCOPE.nodes;
 }
+// the beam's path: the picture's edges traced into lines (thinned to their ridge, followed pixel to pixel), then put in one
+// order, each line joined to the nearest end of the next — about four times a second, so a video's lines follow it
+function scopeTrace(t, dw, dh) {
+  const k = Math.min(1, 380 / Math.max(dw, dh)), w = Math.max(16, Math.round(dw * k)), h = Math.max(16, Math.round(dh * k));
+  const c = SCOPE.tc || (SCOPE.tc = document.createElement('canvas')); if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  const cx = c.getContext('2d', { willReadFrequently: true }); cx.drawImage(t, 0, 0, w, h); const d = cx.getImageData(0, 0, w, h).data;
+  const L = new Float32Array(w * h); for (let i = 0; i < w * h; i++) L[i] = (0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2]) / 255;
+  const M = new Float32Array(w * h), A = new Uint8Array(w * h); let mx = 1e-6;
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x;
+    const gx = L[i - w + 1] + 2 * L[i + 1] + L[i + w + 1] - L[i - w - 1] - 2 * L[i - 1] - L[i + w - 1], gy = L[i + w - 1] + 2 * L[i + w] + L[i + w + 1] - L[i - w - 1] - 2 * L[i - w] - L[i - w + 1];
+    const m = Math.hypot(gx, gy); M[i] = m; if (m > mx) mx = m; const an = (Math.atan2(gy, gx) + Math.PI) % Math.PI; A[i] = an < 0.3927 || an >= 2.7489 ? 0 : an < 1.1781 ? 1 : an < 1.9635 ? 2 : 3; }
+  // thinned: a point stays only where it is the strongest across the edge; the detail sets how strong it has to be
+  const th = mx * (0.42 - 0.34 * (SCOPE.det ?? 50) / 100), E = new Uint8Array(w * h), off = [[1, 0], [1, 1], [0, 1], [-1, 1]];
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x, m = M[i]; if (m < th) continue; const [ox, oy] = off[A[i]]; if (m >= M[i + oy * w + ox] && m >= M[i - oy * w - ox]) E[i] = 1; }
+  // followed into chains (each step tries straight on first, then turning a little, then more)
+  const chains = [], nb = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]], turn = [0, 1, -1, 2, -2, 3, -3, 4];
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { if (E[y * w + x] !== 1) continue;
+    const P = [x, y]; E[y * w + x] = 2; let px = x, py = y, dir = -1;
+    for (;;) { let best = -1;
+      for (let s = 0; s < 8; s++) { const q = dir < 0 ? s : (dir + turn[s] + 8) % 8, nx = px + nb[q][0], ny = py + nb[q][1]; if (nx < 1 || ny < 1 || nx >= w - 1 || ny >= h - 1) continue; if (E[ny * w + nx] === 1) { best = q; break; } }
+      if (best < 0) break; px += nb[best][0]; py += nb[best][1]; E[py * w + px] = 2; P.push(px, py); dir = best; }
+    if (P.length >= 10) chains.push(P);
+  }
+  chains.sort((a, b) => b.length - a.length); let budget = 9000; const keep = []; for (const ch of chains) { if (budget <= 0) break; keep.push(ch); budget -= ch.length >> 1; }
+  // one route: from each line's end on to the nearest end of a line not yet drawn (a line may be drawn backwards)
+  const out = [], used = new Uint8Array(keep.length), s = 1 / k; let cx0 = w / 2, cy0 = h / 2;
+  for (let n = 0; n < keep.length; n++) {
+    let bi = -1, bd = 1e18, rev = false;
+    for (let j = 0; j < keep.length; j++) { if (used[j]) continue; const P = keep[j], d0 = (P[0] - cx0) ** 2 + (P[1] - cy0) ** 2, d1 = (P[P.length - 2] - cx0) ** 2 + (P[P.length - 1] - cy0) ** 2; if (d0 < bd) { bd = d0; bi = j; rev = false; } if (d1 < bd) { bd = d1; bi = j; rev = true; } }
+    used[bi] = 1; const P = keep[bi], m2 = P.length >> 1;
+    for (let q = 0; q < m2; q++) { if (q % 2 && q !== m2 - 1) continue; const i = rev ? m2 - 1 - q : q; out.push(P[i * 2] * s, P[i * 2 + 1] * s); }     // (every other pixel: the beam's steps)
+    cx0 = out[out.length - 2] * k; cy0 = out[out.length - 1] * k;
+  }
+  SCOPE.step = 2 * s; return out.length >= 4 ? new Float32Array(out) : null;
+}
+// the next stretch of the route, drawn by the beam into the afterglow (the whole route about three times a second)
+function scopeBeam(gl, Pn, dw, dh, dt) {
+  const P = SCOPE.path; if (!P) return;
+  const n = (P.length >> 1) - 1, rate = 3.2 * (musicOn() ? 1 + 0.5 * Math.min(1, AU.bass || 0) : 1);
+  const adv = Math.min(n, Math.max(1, Math.round(n * rate * dt))), b0 = Math.floor(SCOPE.bp) % n;
+  const V = SCOPE.vb && SCOPE.vb.length >= adv * 36 ? SCOPE.vb : (SCOPE.vb = new Float32Array(Math.max(adv, 512) * 36)); let o = 0;
+  for (let c = 0; c < adv; c++) { const i = (b0 + c) % n, ax = P[i * 2], ay = P[i * 2 + 1], bx = P[i * 2 + 2], by = P[i * 2 + 3];
+    for (const [u, w] of SC_CORNERS) { V[o++] = ax; V[o++] = ay; V[o++] = bx; V[o++] = by; V[o++] = u; V[o++] = w; } }
+  SCOPE.bp = (b0 + adv) % n;
+  const B = SCOPE.BM; gl.useProgram(B.p); gl.bindFramebuffer(gl.FRAMEBUFFER, Pn.f); gl.viewport(0, 0, dw, dh);
+  gl.bindBuffer(gl.ARRAY_BUFFER, SCOPE.segs); gl.bufferData(gl.ARRAY_BUFFER, V.subarray(0, o), gl.STREAM_DRAW);
+  for (const [a, off] of [[B.aA, 0], [B.aB, 8], [B.aC, 16]]) { gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 24, off); }
+  const m = Math.min(dw, dh); gl.uniform2f(B.R, dw, dh); gl.uniform1f(B.S, Math.max(0.7, m / 1000)); gl.uniform1f(B.I, 0.75); gl.uniform1f(B.REF, SCOPE.step || 2);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.drawArrays(gl.TRIANGLES, 0, o / 6); gl.disable(gl.BLEND);
+  for (const a of [B.aA, B.aB, B.aC]) gl.disableVertexAttribArray(a);
+  gl.bindBuffer(gl.ARRAY_BUFFER, SCOPE.quad);
+}
+const SC_CORNERS = [[0, -1], [1, -1], [0, 1], [0, 1], [1, -1], [1, 1]];
+// ═════════════════════════════════════════════════════════════
+//  Grade looks · cross-hatch and CMYK halftone: the whole picture redrawn as a pen drawing or a print (after the post
+//  effects of spite's sketch and paper-design's shaders, written for this painter). cross-hatch: the tones as layers of
+//  hatching that close in as it darkens (one direction, then crossed, then crossed again), each line wobbling as a hand
+//  does and boiling a little from frame to frame like drawn animation, with ink outlines and paper grain. CMYK halftone:
+//  the picture separated into cyan, magenta, yellow and black, each a screen of dots at its own angle (15° 75° 0° 45°),
+//  their sizes from the ink each needs, overprinted on paper a little off register.
+// ═════════════════════════════════════════════════════════════
+const LOOK = { mode: null, P: {} };
+const LK_COMMON = `precision highp float; uniform sampler2D u; uniform vec2 R; uniform float T, SC; varying vec2 v;
+float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vn(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y); }
+float fbm(vec2 p) { float s = 0., a = .5; for (int i = 0; i < 4; i++) { s += a * vn(p); p = p * 2.03 + 7.1; a *= .5; } return s; }
+vec3 C(vec2 q) { return texture2D(u, vec2(q.x, 1. - q.y)).rgb; }
+float L(vec2 q) { return dot(C(q), vec3(.299, .587, .114)); }
+`;
+const LK_HATCH = LK_COMMON + `
+float stripe(vec2 p, float a, float sp, float w) { float t = dot(p, vec2(-sin(a), cos(a))) / sp, f = abs(fract(t) - .5) * sp; return 1. - smoothstep(w * .5, w * .5 + 1., f); }
+void main() {
+  vec2 px = v * R; float boil = floor(T * 8.);
+  vec2 wob = vec2(vn(px * .018 / SC + boil * 3.1), vn(px * .018 / SC + 7. + boil * 1.7)) - .5;
+  vec2 p = px + wob * 7. * SC, e = 2. * SC / R;
+  float l = (L(v) * 2. + L(v + vec2(e.x, 0.)) + L(v - vec2(e.x, 0.)) + L(v + vec2(0., e.y)) + L(v - vec2(0., e.y))) / 6.;
+  float sp = 6.5 * SC, w = 1.05 * SC, ink = 0.;
+  if (l < .86) ink = max(ink, stripe(p, .72, sp, w * mix(.5, 1., (.86 - l) / .86)));
+  if (l < .64) ink = max(ink, stripe(p, -.8, sp, w));
+  if (l < .44) ink = max(ink, stripe(p + 3.1 * SC, .1, sp * .8, w));
+  if (l < .24) ink = max(ink, stripe(p + 1.7 * SC, 1.5, sp * .7, w * 1.2));
+  ink *= .82 + .18 * smoothstep(.2, .5, vn(p * .11 / SC + boil));
+  vec2 g = vec2(L(v + vec2(e.x, 0.)) - L(v - vec2(e.x, 0.)), L(v + vec2(0., e.y)) - L(v - vec2(0., e.y)));
+  ink = max(ink, smoothstep(.07, .18, length(g)) * .95);
+  vec3 paper = vec3(.965, .952, .925) * (.93 + .07 * fbm(px * .14 / SC));
+  gl_FragColor = vec4(mix(paper, vec3(.07, .07, .09), clamp(ink, 0., 1.) * .93), 1.); }`;
+const LK_HALF = LK_COMMON + `
+vec4 cmyk(vec3 c) { float k = 1. - max(c.r, max(c.g, c.b)); return vec4((1. - c - k) / max(1. - k, 1e-3), k); }
+float screen(vec2 px, float an, float cell, int ch) {
+  mat2 r = mat2(cos(an), -sin(an), sin(an), cos(an)); vec2 q = r * px / cell, c = floor(q) + .5;
+  vec2 cpx = (c * cell) * r;
+  vec4 k = cmyk(C(cpx / R)); float val = ch == 0 ? k.x : ch == 1 ? k.y : ch == 2 ? k.z : k.w;
+  float d = length(fract(q) - .5), rad = sqrt(clamp(val, 0., 1.)) * .66, aa = 1.2 / cell;
+  return 1. - smoothstep(rad - aa, rad + aa, d); }
+void main() {
+  vec2 px = v * R; float cell = 6.5 * SC;
+  float c = screen(px + vec2(.7, -.4) * SC, .2618, cell, 0), m = screen(px + vec2(-.5, .6) * SC, 1.309, cell, 1), y = screen(px, 0., cell, 2), k = screen(px + vec2(.3, .3) * SC, .7854, cell, 3);
+  vec3 paper = vec3(.968, .955, .93) * (.95 + .05 * fbm(px * .2 / SC));
+  vec3 o = paper * mix(vec3(1.), vec3(0., .64, .9), c * .92) * mix(vec3(1.), vec3(.92, .05, .52), m * .9) * mix(vec3(1.), vec3(1., .9, .05), y * .9) * mix(vec3(1.), vec3(.09, .09, .11), k * .95);
+  gl_FragColor = vec4(o, 1.); }`;
+function lookApply(x, dx, dy, dw, dh) {
+  if (!LOOK.mode || dw < 8 || dh < 8) return;
+  const gl = scopeGL(); if (!gl) return;
+  let P = LOOK.P[LOOK.mode];
+  if (!P) {
+    const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
+    const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, SC_VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, LOOK.mode === 'hatch' ? LK_HATCH : LK_HALF)); gl.linkProgram(p);
+    P = LOOK.P[LOOK.mode] = { p, a: gl.getAttribLocation(p, 'a'), u: gl.getUniformLocation(p, 'u'), R: gl.getUniformLocation(p, 'R'), T: gl.getUniformLocation(p, 'T'), SC: gl.getUniformLocation(p, 'SC') };
+  }
+  const t = SCOPE.tmp || (SCOPE.tmp = document.createElement('canvas')); if (t.width !== dw || t.height !== dh) { t.width = dw; t.height = dh; }
+  const tx = t.getContext('2d'); tx.globalCompositeOperation = 'copy'; tx.drawImage(x.canvas, dx, dy, dw, dh, 0, 0, dw, dh);
+  const cv = SCOPE.cv; if (cv.width !== dw || cv.height !== dh) { cv.width = dw; cv.height = dh; }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, dw, dh); gl.useProgram(P.p); gl.bindBuffer(gl.ARRAY_BUFFER, SCOPE.quad); gl.enableVertexAttribArray(P.a); gl.vertexAttribPointer(P.a, 2, gl.FLOAT, false, 0, 0);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, SCOPE.tin); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, t); gl.uniform1i(P.u, 0);
+  gl.uniform2f(P.R, dw, dh); gl.uniform1f(P.T, (clock() / 1000) % 1000); gl.uniform1f(P.SC, Math.max(0.6, Math.min(dw, dh) / 900));
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.beginPath(); x.rect(dx, dy, dw, dh); x.clip(); x.globalCompositeOperation = 'copy'; x.drawImage(cv, dx, dy); x.restore();
+}
 function scopeApply(x, dx, dy, dw, dh) {
   if (!SCOPE.on || dw < 8 || dh < 8) return;
   const gl = scopeGL(); if (!gl) return;
@@ -10768,8 +11007,21 @@ function scopeApply(x, dx, dy, dw, dh) {
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, SCOPE.tin); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, t);
   // the lines, at full size
   const E = scopeRT('e', dw, dh); run(SCOPE.E, E, dw, dh); bind(0, SCOPE.tin, SCOPE.E.u); gl.uniform2f(SCOPE.E.R, dw, dh); gl.uniform1f(SCOPE.E.TH, 0.5 - 0.42 * (SCOPE.det ?? 50) / 100); gl.uniform1f(SCOPE.E.FL, SCOPE.fill / 100); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  // the beam: the afterglow faded, the next stretch of the route drawn into it; then it stands for the lines
+  let src = E;
+  if (SCOPE.beam && SCOPE.BM) {
+    const now = performance.now(), dt = Math.min(0.1, SCOPE.lt ? (now - SCOPE.lt) / 1000 : 1 / 60); SCOPE.lt = now;
+    if (!SCOPE.path || now - SCOPE.pt > 260) { SCOPE.pt = now; const old = SCOPE.path, np = scopeTrace(t, dw, dh); if (np) { if (old) SCOPE.bp = Math.floor(SCOPE.bp / (old.length >> 1) * (np.length >> 1)); SCOPE.path = np; } }
+    const ping = SCOPE.ping = !SCOPE.ping, Pn = scopeRT(ping ? 'p0' : 'p1', dw, dh, true), Po = scopeRT(ping ? 'p1' : 'p0', dw, dh, true);
+    const tau = 0.04 + 1.4 * Math.pow((SCOPE.glow ?? 40) / 100, 1.6);       // (afterglow: how long the phosphor holds the light)
+    run(SCOPE.D, Pn, dw, dh); bind(0, Po.t, SCOPE.D.u); gl.uniform1f(SCOPE.D.K, Math.exp(-dt / tau)); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    scopeBeam(gl, Pn, dw, dh, dt);
+    const K = scopeRT('k', dw, dh); run(SCOPE.K, K, dw, dh); bind(0, E.t, SCOPE.K.e); bind(1, Pn.t, SCOPE.K.pb); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    src = K;
+  }
+  const LN = src;
   // the blooms: each level half the size of the last, blurred both ways
-  let src = E; const lv = [];
+  const lv = [];
   for (let i = 0; i < 3; i++) {
     const w = Math.max(2, Math.round(dw / (2 << i))), h = Math.max(2, Math.round(dh / (2 << i))), A = scopeRT('a' + i, w, h), B = scopeRT('b' + i, w, h), sp = 1 + i * 0.6;
     run(SCOPE.B, A, w, h); bind(0, src.t, SCOPE.B.u); gl.uniform2f(SCOPE.B.D, sp / w, 0); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -10777,7 +11029,7 @@ function scopeApply(x, dx, dy, dw, dh) {
     lv.push(B); src = B;
   }
   const C = SCOPE.C, col = SCOPE_COLS[SCOPE.col] || SCOPE_COLS.green; run(C, null, dw, dh);
-  bind(0, E.t, C.e); bind(1, lv[0].t, C.b1); bind(2, lv[1].t, C.b2); bind(3, lv[2].t, C.b3); bind(4, SCOPE.tin, C.src);
+  bind(0, LN.t, C.e); bind(1, lv[0].t, C.b1); bind(2, lv[1].t, C.b2); bind(3, lv[2].t, C.b3); bind(4, SCOPE.tin, C.src);
   gl.uniform3f(C.C, Math.max(0, col[0]), col[1], col[2]); gl.uniform1f(C.PIC, col[0] < 0 ? 1 : 0); gl.uniform1f(C.T, (clock() / 1000) % 100); gl.uniform2f(C.R, dw, dh);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.beginPath(); x.rect(dx, dy, dw, dh); x.clip(); x.globalCompositeOperation = 'copy'; x.drawImage(cv, dx, dy); x.globalCompositeOperation = 'source-over';
@@ -11518,17 +11770,88 @@ function frCircles() {
 //  it pulse. The number of strokes sets how long the line may grow (and so how fine it gets).
 // ═════════════════════════════════════════════════════════════
 const DG = { n: 0 };
+// the growing runs in a worker of its own (tens of thousands of points pushing each other apart is too much work to do
+// between frames); it sends the line back, its points in order round the loop, about thirty times a second
+function dgWorkerMain() {
+  let D = null, F = null, run = false, speed = 1, kick = 0, waiting = false, timer = 0;
+  const at = (x, y) => { const i = Math.min(F.w - 1, Math.max(0, Math.floor(x / D.w * F.w))), j = Math.min(F.h - 1, Math.max(0, Math.floor(y / D.h * F.h))); return F.d[j * F.w + i]; };
+  function step(dt) {
+    const n = D.n, W = D.w, H = D.h, m = Math.min(W, H), rMin = m * 0.0048, rMax = m * 0.034;
+    const R = D.R; let it = D.head;
+    // each point's spacing from the darkness there (the near-white: very wide, so the line keeps out of it)
+    for (let c = 0; c < n; c++) { const dk = at(D.x[it], D.y[it]); R[it] = (dk < 0.04 ? rMax * 1.3 : rMin + (rMax - rMin) * Math.pow(1 - Math.min(0.85, dk), 2.1)) * (1 + 0.25 * kick); it = D.nx[it]; }
+    // the grid: cells as small as the tightest spacing; each point looks only as far as its own spacing
+    const cs = rMin * 2, gw = Math.ceil(W / cs) + 1, gh = Math.ceil(H / cs) + 1;
+    if (!D.grid || D.grid.length !== gw * gh) D.grid = new Int32Array(gw * gh);
+    const head = D.grid, link = D.link, fx = D.fx, fy = D.fy; head.fill(-1); fx.fill(0, 0, n); fy.fill(0, 0, n);
+    for (let i = 0; i < n; i++) { const g = Math.min(gh - 1, Math.max(0, Math.floor(D.y[i] / cs))) * gw + Math.min(gw - 1, Math.max(0, Math.floor(D.x[i] / cs))); link[i] = head[g]; head[g] = i; }
+    for (let i = 0; i < n; i++) {
+      const xi = D.x[i], yi = D.y[i], ri = R[i], p = D.pv[i], q = D.nx[i];
+      fx[i] += ((D.x[p] + D.x[q]) / 2 - xi) * 0.35; fy[i] += ((D.y[p] + D.y[q]) / 2 - yi) * 0.35;      // (smooth: towards the middle of its neighbours)
+      const gx = Math.floor(xi / cs), gy = Math.floor(yi / cs), gr = Math.min(9, Math.ceil(ri / cs));
+      for (let yy = gy - gr; yy <= gy + gr; yy++) { if (yy < 0 || yy >= gh) continue; for (let xx = gx - gr; xx <= gx + gr; xx++) { if (xx < 0 || xx >= gw) continue;
+        for (let j = head[yy * gw + xx]; j >= 0; j = link[j]) { if (j === i || j === p || j === q) continue; const dx = xi - D.x[j], dy = yi - D.y[j], d2 = dx * dx + dy * dy, rr = (ri + R[j]) * 0.5; if (d2 >= rr * rr || d2 < 1e-6) continue; const d = Math.sqrt(d2), f = (rr - d) / rr; fx[i] += dx / d * f * rr * 0.8; fy[i] += dy / d * f * rr * 0.8; } } }
+      const dk = at(xi, yi); if (dk < 0.04) { const g1 = at(xi + rMax, yi) - at(xi - rMax, yi), g2 = at(xi, yi + rMax) - at(xi, yi - rMax); fx[i] += g1 * rMax * 0.6; fy[i] += g2 * rMax * 0.6; }      // (the very light parts push it back out)
+    }
+    for (let i = 0; i < n; i++) { let ax = fx[i], ay = fy[i]; const l = Math.hypot(ax, ay), lim = R[i] * 0.14; if (l > lim) { ax *= lim / l; ay *= lim / l; } D.x[i] = Math.min(W - 1, Math.max(1, D.x[i] + ax)); D.y[i] = Math.min(H - 1, Math.max(1, D.y[i] + ay)); }
+    // grow: a point into every edge that stretched past its spacing, at a pace (a share of the points a step; the speed slider changes it)
+    let grown = 0; it = D.head; const budget = Math.max(1, Math.floor((n * 0.0045 + 1) * Math.max(0.15, Math.min(4, speed / 3)) * (1 + kick)));
+    const start = Math.floor(Math.random() * n); for (let c = 0; c < start; c++) it = D.nx[it];
+    for (let c = 0; c < n && D.n < D.cap && grown < budget; c++) {
+      const j = D.nx[it], l = Math.hypot(D.x[j] - D.x[it], D.y[j] - D.y[it]), sp = Math.min(R[it], R[j]) * 0.62;
+      if (l > sp) { const k = D.n++; D.x[k] = (D.x[it] + D.x[j]) / 2 + (Math.random() - 0.5) * 0.2; D.y[k] = (D.y[it] + D.y[j]) / 2 + (Math.random() - 0.5) * 0.2; D.nx[it] = k; D.pv[k] = it; D.nx[k] = j; D.pv[j] = k; grown++; }
+      it = j;
+    }
+    for (let t = 0; D.n < 300 && t < (budget - grown) * 0.5 && D.n < D.cap; t++) {      // (at the start, some at random too, so the seed loop buckles)
+      const a = Math.floor(Math.random() * D.n), j = D.nx[a], l = Math.hypot(D.x[j] - D.x[a], D.y[j] - D.y[a]);
+      if (l < Math.min(R[a] || rMin, R[j] || rMin) * 0.4) continue;
+      const k = D.n++; D.x[k] = (D.x[a] + D.x[j]) / 2 + (Math.random() - 0.5) * 0.3; D.y[k] = (D.y[a] + D.y[j]) / 2 + (Math.random() - 0.5) * 0.3; D.nx[a] = k; D.pv[k] = a; D.nx[k] = j; D.pv[j] = k; R[k] = R[a];
+    }
+    if (D.n >= D.cap) D.full += dt; else D.full = 0;
+  }
+  // the line in order round the loop, to the page
+  function send() { const P = new Float32Array(D.n * 2); let it = D.head; for (let c = 0; c < D.n; c++) { P[c * 2] = D.x[it]; P[c * 2 + 1] = D.y[it]; it = D.nx[it]; } waiting = true; postMessage({ type: 'pts', gen: D.gen, n: D.n, full: D.full, P }, [P.buffer]); }
+  // steps for ~1/60 s (the same pace of growth as a step a frame), then the line goes out once the page has drawn the last one
+  let last = 0;
+  function loop() {
+    timer = 0; if (!run || !D || !F) return;
+    const t0 = performance.now(), dt = Math.min(0.1, last ? (t0 - last) / 1000 : 0.016); last = t0;
+    let k = 0; do { step(dt / 3); k++; } while (k < 3 && performance.now() - t0 < 14);
+    if (!waiting) send();
+    timer = setTimeout(loop, Math.max(0, 16 - (performance.now() - t0)));
+  }
+  onmessage = e => {
+    const m = e.data;
+    if (m.type === 'start') {
+      const cap = m.cap; F = m.field;
+      D = { gen: m.gen, w: m.w, h: m.h, cap, n: 0, head: 0, full: 0, x: new Float32Array(cap), y: new Float32Array(cap), nx: new Int32Array(cap), pv: new Int32Array(cap), R: new Float32Array(cap), link: new Int32Array(cap), fx: new Float32Array(cap), fy: new Float32Array(cap), grid: null };
+      const n0 = 24; for (let i = 0; i < n0; i++) { D.x[i] = m.cx + Math.cos(i / n0 * 6.283) * m.r0; D.y[i] = m.cy + Math.sin(i / n0 * 6.283) * m.r0; D.nx[i] = (i + 1) % n0; D.pv[i] = (i - 1 + n0) % n0; }
+      D.n = n0; speed = m.speed; run = true; waiting = false; last = 0; if (!timer) loop();
+    } else if (m.type === 'field') F = m.field;
+    else if (m.type === 'set') { speed = m.speed; kick = m.kick; if (m.run !== undefined) { run = m.run; if (run && !timer) loop(); } }
+    else if (m.type === 'ack') waiting = false;
+    else if (m.type === 'stop') { run = false; D = null; }
+  };
+}
+function dgWorker() {
+  if (!DG.wk) {
+    DG.wk = new Worker(URL.createObjectURL(new Blob(['(' + dgWorkerMain.toString() + ')()'], { type: 'text/javascript' })));
+    DG.wk.onmessage = e => { const m = e.data; if (m.type !== 'pts' || m.gen !== DG.gen || DG.phase !== 'grow') return; DG.P = m.P; DG.n = m.n; DG.full = m.full; S.count = m.n; DG.fresh = true; };
+  }
+  return DG.wk;
+}
 function dgStart(data, w, h) {
-  const colour = S.line.colour, cap = Math.max(6000, Math.min(48000, Math.round(S.total * 36)));
+  // (the points it may grow to: enough for the picture, and few enough that the brush can paint them all at a good pace)
+  const colour = S.line.colour, cap = Math.max(4000, Math.min(30000, Math.round(S.total * 16)));
   S.bgHex = S.loopBg = colour ? '#101013' : '#f6f4ef'; paintBg(S.outX); S.bgSet = true;
-  Object.assign(DG, { phase: 'grow', pdone: false, on: true, colour, cap, x: new Float32Array(cap), y: new Float32Array(cap), nx: new Int32Array(cap), pv: new Int32Array(cap), n: 0, head: 0, t0: clock(), last: clock(), field: null, fkey: '', gen: S.gen, full: 0 });
+  Object.assign(DG, { phase: 'grow', pdone: false, on: true, colour, cap, n: 24, P: null, fresh: false, t0: clock(), last: clock(), field: null, fkey: '', gen: S.gen, full: 0, w, h });
   dgField({ d: data, w, h, id: 's' + S.gen });
   // the seed: a small loop at the darkest part (weighted by how dark), in work pixels
   const F = DG.field; let sx = 0, sy = 0, sw = 0;
   for (let y = 0; y < F.h; y++) for (let x = 0; x < F.w; x++) { const d = Math.pow(F.d[y * F.w + x], 3); sx += x * d; sy += y * d; sw += d; }
-  const cx = (sw ? sx / sw : F.w / 2) / F.w * w, cy = (sw ? sy / sw : F.h / 2) / F.h * h, r0 = Math.min(w, h) * 0.02, n0 = 24;
-  for (let i = 0; i < n0; i++) { DG.x[i] = cx + Math.cos(i / n0 * 6.283) * r0; DG.y[i] = cy + Math.sin(i / n0 * 6.283) * r0; DG.nx[i] = (i + 1) % n0; DG.pv[i] = (i - 1 + n0) % n0; }
-  DG.n = n0; DG.w = w; DG.h = h; S.dg = DG; S.workerDone = false; S.count = n0;
+  const cx = (sw ? sx / sw : F.w / 2) / F.w * w, cy = (sw ? sy / sw : F.h / 2) / F.h * h, r0 = Math.min(w, h) * 0.02;
+  dgWorker().postMessage({ type: 'start', gen: S.gen, w, h, cap, cx, cy, r0, field: { w: F.w, h: F.h, d: F.d }, speed: speedFactor() });
+  S.dg = DG; S.workerDone = false; S.count = 24;
   $('hint').textContent = `Growth: one line growing from the darkest part, folding tighter where the picture is darker (up to ${cap.toLocaleString()} points; the stroke count sets it).`;
 }
 // the picture's darkness, small (re-read from a video as it plays): 0 = white, 1 = black, smoothed
@@ -11541,83 +11864,55 @@ function dgField(src = dfSource()) {
   // (levels: the picture's own darkest and lightest parts become the ends of the range, so any picture gets the full contrast)
   const so = Array.from(s).sort((p, q) => p - q), lo = so[Math.floor(so.length * 0.02)], hi = so[Math.floor(so.length * 0.98)], rg = Math.max(0.05, hi - lo);
   for (let i = 0; i < s.length; i++) s[i] = Math.min(1, Math.max(0, (s[i] - lo) / rg));
-  DG.field = { w, h, d: s, c }; DG.fkey = key;
+  const fresh = !!DG.field; DG.field = { w, h, d: s, c }; DG.fkey = key;
+  if (fresh && DG.wk && DG.phase === 'grow') DG.wk.postMessage({ type: 'field', field: { w, h, d: s } });      // (a video: the new picture to the growing line)
 }
-function dgStep(dt) {
-  const D = DG, F = D.field; if (!F) return;
-  const n = D.n, W = D.w, H = D.h, m = Math.min(W, H), rMin = m * 0.0048, rMax = m * 0.034, kick = Math.min(1, (musicOn() ? AU.bass || 0 : 0));
-  const at = (x, y) => { const i = Math.min(F.w - 1, Math.max(0, Math.floor(x / W * F.w))), j = Math.min(F.h - 1, Math.max(0, Math.floor(y / H * F.h))); return F.d[j * F.w + i]; };
-  // each point's spacing from the darkness there (the near-white: very wide, so the line keeps out of it)
-  const B = D.buf && D.buf.cap === D.cap ? D.buf : (D.buf = { cap: D.cap, R: new Float32Array(D.cap), link: new Int32Array(D.cap), fx: new Float32Array(D.cap), fy: new Float32Array(D.cap) });
-  const R = B.R; let it = D.head;
-  for (let c = 0; c < n; c++) { const dk = at(D.x[it], D.y[it]); R[it] = (dk < 0.04 ? rMax * 1.3 : rMin + (rMax - rMin) * Math.pow(1 - Math.min(0.85, dk), 2.1)) * (1 + 0.25 * kick); it = D.nx[it]; }
-  // the grid: points by cell (a cell as wide as the widest spacing)
-  // (cells as small as the tightest spacing; each point looks only as far as its own spacing)
-  const cs = rMin * 2, gw = Math.ceil(W / cs) + 1, gh = Math.ceil(H / cs) + 1;
-  if (!D.head0 || D.head0.length !== gw * gh) D.head0 = new Int32Array(gw * gh);
-  const head = D.head0, link = B.link, fx = B.fx, fy = B.fy; head.fill(-1); fx.fill(0, 0, n); fy.fill(0, 0, n);
-  for (let i = 0; i < n; i++) { const g = Math.min(gh - 1, Math.max(0, Math.floor(D.y[i] / cs))) * gw + Math.min(gw - 1, Math.max(0, Math.floor(D.x[i] / cs))); link[i] = head[g]; head[g] = i; }
-  for (let i = 0; i < n; i++) {
-    const xi = D.x[i], yi = D.y[i], ri = R[i], p = D.pv[i], q = D.nx[i];
-    // smooth: towards the middle of its two neighbours
-    fx[i] += ((D.x[p] + D.x[q]) / 2 - xi) * 0.35; fy[i] += ((D.y[p] + D.y[q]) / 2 - yi) * 0.35;
-    // apart: from every other point nearer than the spacing (not its own neighbours)
-    const gx = Math.floor(xi / cs), gy = Math.floor(yi / cs), gr = Math.min(9, Math.ceil(ri / cs));
-    for (let yy = gy - gr; yy <= gy + gr; yy++) { if (yy < 0 || yy >= gh) continue; for (let xx = gx - gr; xx <= gx + gr; xx++) { if (xx < 0 || xx >= gw) continue;
-      for (let j = head[yy * gw + xx]; j >= 0; j = link[j]) { if (j === i || j === p || j === q) continue; const dx = xi - D.x[j], dy = yi - D.y[j], d2 = dx * dx + dy * dy, rr = (ri + R[j]) * 0.5; if (d2 >= rr * rr || d2 < 1e-6) continue; const d = Math.sqrt(d2), f = (rr - d) / rr; fx[i] += dx / d * f * rr * 0.8; fy[i] += dy / d * f * rr * 0.8; } } }
-    // the very light parts push the line back out (down the darkness's slope)
-    const dk = at(xi, yi); if (dk < 0.04) { const g1 = at(xi + rMax, yi) - at(xi - rMax, yi), g2 = at(xi, yi + rMax) - at(xi, yi - rMax); fx[i] += g1 * rMax * 0.6; fy[i] += g2 * rMax * 0.6; }
-  }
-  for (let i = 0; i < n; i++) { let ax = fx[i], ay = fy[i]; const l = Math.hypot(ax, ay), lim = R[i] * 0.14; if (l > lim) { ax *= lim / l; ay *= lim / l; } D.x[i] = Math.min(W - 1, Math.max(1, D.x[i] + ax)); D.y[i] = Math.min(H - 1, Math.max(1, D.y[i] + ay)); }
-  // grow: a point into every edge that stretched past its spacing (while there is room)
-  // (at a pace: a share of the points a step — the line fills in over ten seconds or so; the speed slider changes it)
-  let grown = 0; it = D.head; const budget = Math.max(1, Math.floor((n * 0.0045 + 1) * Math.max(0.15, Math.min(4, speedFactor() / 3)) * (1 + kick)));
-  const start = Math.floor(Math.random() * n); for (let c = 0; c < start; c++) it = D.nx[it];
-  for (let c = 0; c < n && D.n < D.cap && grown < budget; c++) {
-    const j = D.nx[it], l = Math.hypot(D.x[j] - D.x[it], D.y[j] - D.y[it]), sp = Math.min(R[it], R[j]) * 0.62;
-    if (l > sp) { const k = D.n++; D.x[k] = (D.x[it] + D.x[j]) / 2 + (Math.random() - 0.5) * 0.2; D.y[k] = (D.y[it] + D.y[j]) / 2 + (Math.random() - 0.5) * 0.2; D.nx[it] = k; D.pv[k] = it; D.nx[k] = j; D.pv[j] = k; grown++; }
-    it = j;
-  }
-  // (at the start, some at random too, so the small seed loop buckles and starts to fold)
-  for (let t = 0; D.n < 300 && t < (budget - grown) * 0.5 && D.n < D.cap; t++) {
-    const a = Math.floor(Math.random() * D.n), j = D.nx[a], l = Math.hypot(D.x[j] - D.x[a], D.y[j] - D.y[a]);
-    if (l < Math.min(R[a] || rMin, R[j] || rMin) * 0.4) continue;
-    const k = D.n++; D.x[k] = (D.x[a] + D.x[j]) / 2 + (Math.random() - 0.5) * 0.3; D.y[k] = (D.y[a] + D.y[j]) / 2 + (Math.random() - 0.5) * 0.3; D.nx[a] = k; D.pv[k] = a; D.nx[k] = j; D.pv[j] = k; R[k] = R[a];
-  }
-  if (D.n >= D.cap) D.full += dt; else D.full = 0;
-  S.count = D.n;
-  if (D.full > 4 && !S.workerDone) { S.workerDone = true; S.total = D.n; S.finalSim = S.sim = 0; }
-}
-// the line, in the painting's box: one smooth path round the loop (in the picture's colours: in short runs)
-function dgPath(x, k, ox, oy, from, upto) {
-  const D = DG; let it = from, c = 0; const px = i => ox + D.x[i] * k, py = i => oy + D.y[i] * k;
-  x.moveTo((px(it) + px(D.nx[it])) / 2, (py(it) + py(D.nx[it])) / 2);
-  do { const j = D.nx[it], q = D.nx[j]; x.quadraticCurveTo(px(j), py(j), (px(j) + px(q)) / 2, (py(j) + py(q)) / 2); it = j; c++; } while (c < upto);
-  return it;
+// the line, in the painting's box: one smooth path round the loop, through the midpoints of its points
+function dgPath(x, k, ox, oy) {
+  const P = DG.P, n = P ? P.length >> 1 : 0; if (n < 3) return;
+  const px = i => ox + P[(i % n) * 2] * k, py = i => oy + P[(i % n) * 2 + 1] * k;
+  x.moveTo((px(0) + px(1)) / 2, (py(0) + py(1)) / 2);
+  for (let i = 1; i <= n; i++) x.quadraticCurveTo(px(i), py(i), (px(i) + px(i + 1)) / 2, (py(i) + py(i + 1)) / 2);
 }
 function dgDraw(b, now) {
   const D = DG; if (!D.on || D.gen !== S.gen) return;
-  const t = clock(), dt = Math.min(0.1, Math.max(0, (t - D.last) / 1000)); D.last = t;
+  const t = clock(); D.last = t;
+  if (D.wk && D.phase === 'grow') D.wk.postMessage({ type: 'set', speed: speedFactor(), kick: Math.min(1, musicOn() ? AU.bass || 0 : 0), run: !!(S.running || S.video) });     // (paused: it waits)
   if (S.running || S.video) {
-    dgField(); const steps = D.n < 3000 ? 6 : D.n < 12000 ? 4 : 3; for (let i = 0; i < steps; i++) dgStep(dt);
+    dgField();
+    if (D.fresh) { D.fresh = false; D.wk.postMessage({ type: 'ack' }); }      // (drawn: the worker may send the next)
     // grown (full for a moment, or long enough): the line holds still and is painted in the styles (not on a video, which keeps moving)
-    if (!S.video && (D.full > 1.2 || (t - D.t0) / 1000 > 45 / Math.max(0.3, Math.min(3, speedFactor() / 3)))) { dgFreeze(); return; }
+    if (!S.video && D.P && (D.full > 1.2 || (t - D.t0) / 1000 > 45 / Math.max(0.3, Math.min(3, speedFactor() / 3)))) { dgFreeze(); return; }
   }
   const k = b.w / D.w;
   X.save(); X.beginPath(); X.rect(b.x, b.y, b.w, b.h); X.clip(); X.fillStyle = S.bgHex; X.fillRect(b.x, b.y, b.w, b.h);
   // (while it grows: one steady pencil line, in one colour — no colours shifting along it as points go in)
-  X.lineWidth = Math.max(0.7, Math.min(b.w, b.h) * 0.0015); X.lineJoin = X.lineCap = 'round'; X.strokeStyle = D.colour ? 'rgba(232,230,224,0.75)' : 'rgba(42,42,46,0.8)';
-  X.beginPath(); dgPath(X, k, b.x, b.y, D.head, D.n); X.closePath(); X.stroke();
+  // (drawn once per new line from the worker into a canvas of its own, and that shown every frame)
+  const w = Math.max(1, Math.round(b.w)), h = Math.max(1, Math.round(b.h));
+  if (!D.cv) { D.cv = document.createElement('canvas'); D.cx = D.cv.getContext('2d'); }
+  if (D.cv.width !== w || D.cv.height !== h || (D.cvP !== D.P && performance.now() - (D.cvT || 0) > (D.n > 8000 ? 70 : 30))) {      // (a long line: redrawn ~15 times a second, enough to watch it grow)
+    D.cvT = performance.now();
+    const c = D.cx; if (D.cv.width !== w || D.cv.height !== h) { D.cv.width = w; D.cv.height = h; } else c.clearRect(0, 0, w, h);
+    c.lineWidth = Math.max(0.7, Math.min(b.w, b.h) * 0.0015); c.lineJoin = c.lineCap = 'round'; c.strokeStyle = D.colour ? 'rgba(232,230,224,0.75)' : 'rgba(42,42,46,0.8)';
+    c.beginPath(); dgPath(c, w / D.w, 0, 0); c.closePath(); c.stroke(); D.cvP = D.P;
+  }
+  X.drawImage(D.cv, b.x, b.y, b.w, b.h);
   X.restore();
 }
 // the grown line, frozen: its points in order round the loop, then painted out along it in the ticked styles (strokes
 // like any other: the code, the svg and the big pictures have them), as fast as the speed says or over the rest of the song
 function dgFreeze() {
-  const D = DG; if (D.phase === 'paint') return;
-  const P = new Float32Array(D.n * 2); let it = D.head; for (let c = 0; c < D.n; c++) { P[c * 2] = D.x[it]; P[c * 2 + 1] = D.y[it]; it = D.nx[it]; }
-  Object.assign(D, { phase: 'paint', P, pn: D.n, pi: 0, pt0: clock(), pf0: audioActive() && !AU.ended ? audioProgress(aTime()) : 0, styles: stylePick.values(), runSt: null });
-  S.total = Math.ceil(D.n / 5) + 1; S.count = 0; S.workerDone = false; paintBg(S.outX); S.drawn = []; S.lines = []; S.items = [];
-  $('hint').textContent = `Growth: grown to ${D.n.toLocaleString()} points — now painting the line in ${D.styles.join(', ')}.`;
+  const D = DG; if (D.phase === 'paint' || !D.P) return;
+  if (D.wk) D.wk.postMessage({ type: 'stop' });
+  const P = D.P, n = P.length >> 1;
+  Object.assign(D, { phase: 'paint', P, pn: n, n, pi: 0, pt0: clock(), pf0: audioActive() && !AU.ended ? audioProgress(aTime()) : 0, styles: stylePick.values(), runSt: null });
+  S.total = Math.ceil(n / 5) + 1; S.count = 0; S.workerDone = false; S.drawn = []; S.lines = []; S.items = [];
+  // the grown line stays on the canvas as a faint pencil sketch, and the brush paints over it (no blank flash between the two)
+  paintBg(S.outX); const x = S.outX, k = S.k;
+  x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.lineWidth = Math.max(0.7, Math.min(S.out.width, S.out.height) * 0.0012); x.lineJoin = x.lineCap = 'round'; x.strokeStyle = D.colour ? 'rgba(232,230,224,0.32)' : 'rgba(42,42,46,0.32)';
+  x.beginPath(); dgPath(x, k, 0, 0); x.closePath(); x.stroke(); x.restore();
+  if (WC.live) { WC.bx.globalCompositeOperation = 'copy'; WC.bx.drawImage(S.out, 0, 0); WC.bx.globalCompositeOperation = 'source-over'; }
+  $('hint').textContent = `Growth: grown to ${n.toLocaleString()} points — now painting the line in ${D.styles.join(', ')}.`;
 }
 function dgPaintStep() {
   const D = DG; if (D.phase !== 'paint' || D.pdone) return;
@@ -11637,10 +11932,76 @@ function dgPaintStep() {
   }
   if (D.pi >= N - 1) { D.pdone = true; S.workerDone = true; S.total = S.count; S.finalSim = S.sim = 0; }
 }
+// ═════════════════════════════════════════════════════════════
+//  String art (one line: string art): the picture made of one thread wound between nails round a circular board, as
+//  the string-art machines do (after halfmonty's StringArtGenerator, MIT): from the nail it is at, the thread goes to the
+//  nail whose line crosses the most darkness still owed; that line's darkness is then paid off, and on to the next. A few
+//  thousand lines (the stroke count sets how many) build the tones out of crossings. Found in a worker, wound on screen.
+// ═════════════════════════════════════════════════════════════
+const SA = { wk: null };
+function saWorkerMain() {
+  let stop = false;
+  onmessage = e => { const m = e.data; if (m.type === 'stop') { stop = true; return; } if (m.type !== 'start') return; stop = false;
+    const { N, E, pins, lines, minD, weight, gen } = m; const px = new Float32Array(pins), py = new Float32Array(pins);
+    for (let i = 0; i < pins; i++) { const a = 2 * Math.PI * i / pins - Math.PI / 2; px[i] = (N - 1) / 2 + (N / 2 - 1) * Math.cos(a); py[i] = (N - 1) / 2 + (N / 2 - 1) * Math.sin(a); }
+    // the darkness along a line, and paying it off (a line's pixels, one per step of its length)
+    const walk = (a, b, f) => { const x0 = px[a], y0 = py[a], dx = px[b] - x0, dy = py[b] - y0, n = Math.max(1, Math.floor(Math.hypot(dx, dy))); let s = 0; for (let k = 0; k <= n; k++) { const i = Math.round(y0 + dy * k / n) * N + Math.round(x0 + dx * k / n); s += f(i); } return s / (n + 1); };      // (darkness per pixel of the line: long lines through the middle don't win just by being long)
+    const seq = [0], recent = []; let cur = 0, out = [];
+    for (let l = 0; l < lines && !stop; l++) {
+      let best = -1, bv = -1e9;
+      for (let o = minD; o < pins - minD; o++) { const t = (cur + o) % pins; if (recent.includes(t)) continue; const v = walk(cur, t, i => E[i]); if (v > bv) { bv = v; best = t; } }
+      if (best < 0 || bv <= -40) break;
+      walk(cur, best, i => { E[i] -= weight; return 0; });
+      seq.push(best); out.push(best); recent.push(best); if (recent.length > 20) recent.shift(); cur = best;
+      if (out.length >= 60) { postMessage({ type: 'seq', gen, add: out }); out = []; }
+    }
+    postMessage({ type: 'seq', gen, add: out, done: true });
+  };
+}
+function saStart(data, w, h) {
+  const white = S.line.white, N = 400, pins = 288, lines = Math.max(1500, Math.min(7000, Math.round(S.total * 4)));
+  S.bgHex = S.loopBg = white ? '#121214' : '#f3efe6'; paintBg(S.outX); S.bgSet = true;
+  // the picture inside the board's circle, as darkness owed (white thread: the light is owed)
+  const c = document.createElement('canvas'); c.width = c.height = N; const x = c.getContext('2d'), im = new ImageData(new Uint8ClampedArray(data), w, h), t = document.createElement('canvas'); t.width = w; t.height = h; t.getContext('2d').putImageData(im, 0, 0);
+  const side = Math.min(w, h); x.drawImage(t, (w - side) / 2, (h - side) / 2, side, side, 0, 0, N, N);
+  const d = x.getImageData(0, 0, N, N).data, E = new Float32Array(N * N); let lo = 255, hi = 0;
+  for (let i = 0; i < N * N; i++) { const l = 0.3 * d[i * 4] + 0.59 * d[i * 4 + 1] + 0.11 * d[i * 4 + 2]; E[i] = l; if (l < lo) lo = l; if (l > hi) hi = l; }
+  for (let i = 0; i < N * N; i++) { const yy = Math.floor(i / N), xx = i % N, r = Math.hypot(xx - N / 2, yy - N / 2); const v = (E[i] - lo) / Math.max(1, hi - lo) * 255; E[i] = r > N / 2 - 1 ? 0 : 255 * Math.pow((white ? v : 255 - v) / 255, 1.35); }      // (a little contrast: the mid-tones owe less)
+  if (!SA.wk) { SA.wk = new Worker(URL.createObjectURL(new Blob(['(' + saWorkerMain.toString() + ')()'], { type: 'text/javascript' }))); SA.wk.onmessage = e => { const m = e.data; const A = S.sa; if (!A || m.gen !== A.gen) return; A.seq.push(...m.add); if (m.done) A.found = true; }; }
+  // the board in the painting: the largest circle that fits, its nails round the rim
+  const W = S.out.width, H = S.out.height, R = Math.min(W, H) / 2 * 0.95;
+  S.sa = { gen: S.gen, white, N, pins, lines, seq: [0], found: false, drawn: 0, done: false, cx: W / 2, cy: H / 2, R, t0: clock(), pf0: audioActive() && !AU.ended ? audioProgress(aTime()) : 0 };
+  SA.wk.postMessage({ type: 'start', gen: S.gen, N, E, pins, lines, minD: 22, weight: 20 }, [E.buffer]);
+  // the board: its rim and the nails
+  const o = S.outX; o.save(); o.setTransform(1, 0, 0, 1, 0, 0); o.strokeStyle = white ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'; o.lineWidth = Math.max(1, R * 0.004); o.beginPath(); o.arc(W / 2, H / 2, R * 1.015, 0, 7); o.stroke();
+  o.fillStyle = white ? '#8d8a84' : '#6f6a62'; const nr = Math.max(1, R * 0.0045);
+  for (let i = 0; i < pins; i++) { const [px, py] = saPin(i); o.beginPath(); o.arc(px, py, nr, 0, 7); o.fill(); }
+  o.restore();
+  S.workerDone = false; S.total = lines; S.count = 0;
+  $('hint').textContent = `String art: one thread wound round ${pins} nails, up to ${lines.toLocaleString()} lines (the stroke count sets it).`;
+}
+function saPin(i) { const A = S.sa, a = 2 * Math.PI * i / A.pins - Math.PI / 2; return [A.cx + A.R * Math.cos(a), A.cy + A.R * Math.sin(a)]; }
+// the thread wound on, as fast as the speed says (or over the song); each line a thin thread, nail to nail
+function saStep() {
+  const A = S.sa; if (!A || A.done) return;
+  const total = A.found ? A.seq.length - 1 : A.lines;
+  let f; if (audioActive() && !AU.ended) f = Math.min(1, (audioProgress(aTime()) - A.pf0) / Math.max(0.05, 0.97 - A.pf0));
+  else f = Math.min(1, (clock() - A.t0) / 1000 / Math.max(4, total / 220 / Math.min(speedFactor(), 400) * 3));
+  const upto = Math.min(A.seq.length - 1, Math.floor(f * total)); if (upto <= A.drawn) { if (A.found && A.drawn >= A.seq.length - 1) saEnd(); return; }
+  const o = S.outX, lw = Math.max(0.6, A.R / 650); o.save(); o.setTransform(1, 0, 0, 1, 0, 0); o.lineCap = 'round'; o.lineWidth = lw; o.strokeStyle = A.white ? 'rgba(246,244,238,0.2)' : 'rgba(16,16,20,0.2)';
+  o.beginPath(); for (let i = A.drawn; i < upto; i++) { const [x0, y0] = saPin(A.seq[i]), [x1, y1] = saPin(A.seq[i + 1]); o.moveTo(x0, y0); o.lineTo(x1, y1); } o.stroke(); o.restore();
+  A.drawn = upto; S.count = upto; S.total = total; S.big = null;
+  if (A.found && A.drawn >= A.seq.length - 1) saEnd();
+}
+function saEnd() { const A = S.sa; A.done = true; S.workerDone = true; S.total = S.count; try { simPrepare(S.orig); S.finalSim = S.sim = simOf(S.out); } catch (e) { S.finalSim = S.sim = 0; } }
+function saSvg() {
+  const A = S.sa, W = S.out.width, H = S.out.height, f = v => v.toFixed(1); let d = '';
+  for (let i = 0; i < A.drawn; i++) { const [x0, y0] = saPin(A.seq[i]), [x1, y1] = saPin(A.seq[i + 1]); d += `M${f(x0)} ${f(y0)}L${f(x1)} ${f(y1)}`; }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="${S.bgHex}"/><path d="${d}" fill="none" stroke="${A.white ? '#f6f4ee' : '#101014'}" stroke-opacity="0.2" stroke-width="${Math.max(0.6, A.R / 650).toFixed(2)}"/></svg>\n`;
+}
 function dgSvg() {
-  const D = DG, w = Math.round(D.w), h = Math.round(D.h); let d = '', it = D.head;
-  const f = v => v.toFixed(1); d += `M${f((D.x[it] + D.x[D.nx[it]]) / 2)} ${f((D.y[it] + D.y[D.nx[it]]) / 2)}`;
-  for (let c = 0; c < D.n; c++) { const j = D.nx[it], q = D.nx[j]; d += `Q${f(D.x[j])} ${f(D.y[j])} ${f((D.x[j] + D.x[q]) / 2)} ${f((D.y[j] + D.y[q]) / 2)}`; it = j; }
+  const D = DG, w = Math.round(D.w), h = Math.round(D.h), P = D.P, n = P ? P.length >> 1 : 0, f = v => v.toFixed(1); let d = '';
+  if (n > 2) { const X_ = i => P[(i % n) * 2], Y_ = i => P[(i % n) * 2 + 1]; d = `M${f((X_(0) + X_(1)) / 2)} ${f((Y_(0) + Y_(1)) / 2)}`; for (let i = 1; i <= n; i++) d += `Q${f(X_(i))} ${f(Y_(i))} ${f((X_(i) + X_(i + 1)) / 2)} ${f((Y_(i) + Y_(i + 1)) / 2)}`; }
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"><rect width="${w}" height="${h}" fill="${S.bgHex}"/><path d="${d}Z" fill="none" stroke="${D.colour ? '#e8e6e0' : '#2a2a2e'}" stroke-width="${(Math.min(w, h) * 0.0017).toFixed(2)}" stroke-linejoin="round"/></svg>\n`;
 }
 function dgCanvas(long) {
@@ -11789,7 +12150,7 @@ function paintingOnly(now) {
 // so it stays sharp (kept in step as shapes are committed; shapes still arriving are drawn live on top)
 function hiRes(k) {
   if (S.freeze) return S.freeze;
-  if (S.mode !== 'auto' || k <= 1.05 || !S.out || S.endless.on || RLF.on || WC.live) return S.out;
+  if (S.mode !== 'auto' || k <= 1.05 || !S.out || S.endless.on || RLF.on || WC.live || S.dg || S.sa) return S.out;      // (growth: its pencil sketch is on the canvas, not in the strokes)
   const K = Math.round(k * 100) / 100, done = S.drawn.length - pendingN(), und = underOn();
   if (!S.big || !S.bigs) S.bigs = [];          // (S.big = null anywhere drops every kept size)
   let c = S.bigs.find(c => c.K === K);
@@ -12829,8 +13190,8 @@ $('refx').onclick = refClear;
 //  Path: the painting order (sweeping across the picture instead of biggest-mistake-first) and one line
 //  (the whole picture as one unbroken line). Both are made by the painter's worker; see painter-worker.
 // ═════════════════════════════════════════════════════════════
-$('line').insertAdjacentHTML('beforeend', '<option value="growi">growth · ink</option><option value="growc">growth · colour</option>');
-function lineSpec() { const v = $('line').value; return v === 'pen' ? { kind: 'pen' } : v === 'growi' || v === 'growc' ? { kind: 'growth', colour: v === 'growc' } : ['circles', 'circlesc', 'tracei', 'tracec'].includes(v) ? { kind: 'circles', colour: v === 'circlesc' || v === 'tracec', hide: v[0] === 't' } : null; }      // (trace: the same one-loop drawing, without the circles)
+$('line').insertAdjacentHTML('beforeend', '<option value="growi">growth · ink</option><option value="growc">growth · colour</option><option value="strk">string art · black</option><option value="strw">string art · white</option>');
+function lineSpec() { const v = $('line').value; return v === 'pen' ? { kind: 'pen' } : v === 'growi' || v === 'growc' ? { kind: 'growth', colour: v === 'growc' } : v === 'strk' || v === 'strw' ? { kind: 'string', white: v === 'strw' } : ['circles', 'circlesc', 'tracei', 'tracec'].includes(v) ? { kind: 'circles', colour: v === 'circlesc' || v === 'tracec', hide: v[0] === 't' } : null; }      // (trace: the same one-loop drawing, without the circles)
 $('order').onchange = () => { $('hint').textContent = $('order').value === 'free' ? 'Order: free.' : 'Order: ' + $('order').selectedOptions[0].textContent + '. Repainting.'; rerunSoon(); };
 const outlineMode = () => $('outline').value;
 const pieceOn = () => $('sprayorder').value === 'lines' && stylePick.values().includes('graffiti');
@@ -13229,20 +13590,20 @@ const stylePick = stylePicker();
     panel.querySelector('.ttl').insertAdjacentHTML('afterend', `<div id="wordspop" class="gradepop" hidden><div class="gp-h"><b>text bar</b><button type="button" class="mini" id="wordsx" title="Close">✕</button></div><div class="gp-row"><select id="wordson" class="sel" aria-label="Text bar" title="Text bar: your words between the picture and the code, a line at a time, each line's turn spread evenly over the video, in reel text styles (studio, simple, +code and editor displays)"><option value="off" selected>text: off</option><option value="on">text: on</option></select><select id="wordscol" class="sel" aria-label="Text colour" title="The colour of the words (or of their box): white · black · accent (the theme colour) · picture (the picture's main colour)"><option value="white">white</option><option value="black">black</option><option value="accent">accent</option><option value="picture">picture</option></select></div><div class="gp-row"><select id="wordslook" class="sel" aria-label="Text style" title="How the words look, like the text in a reel: classic · box (white box, dark text) · colour box · outline · neon (a glow) · typewriter (mono on a dark box) · shadow"><option value="classic">classic</option><option value="box">box</option><option value="cbox">colour box</option><option value="outline">outline</option><option value="neon">neon</option><option value="typewriter">typewriter</option><option value="shadow">shadow</option></select></div><div class="gp-row"><select id="wordsfont" class="sel" aria-label="Font" title="The font the words are set in (then painted)"><option value="archivo-black">Archivo Black</option><option value="bebas-neue">Bebas Neue</option><option value="playfair-display">Playfair</option><option value="permanent-marker">Marker</option><option value="caveat">Caveat</option><option value="space-mono">Space Mono</option><option value="abril-fatface">Abril Fatface</option><option value="rubik-mono-one">Rubik Mono</option><option value="pacifico">Pacifico</option><option value="rock-salt">Rock Salt</option></select></div><textarea id="wordstext" placeholder="One line per text. Each line comes up on its own, in turn, spread evenly over the video (three lines over nine seconds: one every three seconds)." aria-label="The words"></textarea></div>`);
     panel.querySelector('.ttl').insertAdjacentHTML('afterend', `<div id="gradepop" class="gradepop" hidden><div class="gp-h"><b>colour grade</b><button type="button" class="mini" id="gradereset" title="Every slider back to 0">reset</button><button type="button" class="mini" id="gradex" title="Close">✕</button></div><label title="Double-click to reset"><span>brightness</span><input id="g_bri" type="range" min="-100" max="100" value="0" aria-label="brightness"><output>0</output></label><label title="Double-click to reset"><span>contrast</span><input id="g_con" type="range" min="-100" max="100" value="0" aria-label="contrast"><output>0</output></label><label title="Double-click to reset"><span>saturation</span><input id="g_sat" type="range" min="-100" max="100" value="0" aria-label="saturation"><output>0</output></label><label title="Double-click to reset"><span>highlights</span><input id="g_hil" type="range" min="-100" max="100" value="0" aria-label="highlights"><output>0</output></label><label title="Double-click to reset"><span>shadows</span><input id="g_sha" type="range" min="-100" max="100" value="0" aria-label="shadows"><output>0</output></label><label title="Double-click to reset"><span>hue</span><input id="g_hue" type="range" min="-180" max="180" value="0" aria-label="hue"><output>0</output></label><label title="Double-click to reset"><span>colour boost</span><input id="g_vib" type="range" min="0" max="100" value="0" aria-label="colour boost"><output>0</output></label><label title="Double-click to reset"><span>glow</span><input id="g_glo" type="range" min="0" max="100" value="0" aria-label="glow"><output>0</output></label><label title="Double-click to reset"><span>haze</span><input id="g_haz" type="range" min="0" max="100" value="0" aria-label="haze"><output>0</output></label></div>`); }
   let saved = {}; try { saved = JSON.parse(store('cp-grade') || '{}') || {}; } catch (e) { /* none */ }
-  const sync = keep => { for (const [k] of GR_DEF) { const el = $('g_' + k); GRADE.v[k] = +el.value; el.nextElementSibling.textContent = el.value; } gradeBuild(); $('gradebtn').classList.toggle('on', GRADE.on || SCOPE.on); if (keep) store('cp-grade', JSON.stringify(GRADE.v)); };
+  const sync = keep => { for (const [k] of GR_DEF) { const el = $('g_' + k); GRADE.v[k] = +el.value; el.nextElementSibling.textContent = el.value; } gradeBuild(); $('gradebtn').classList.toggle('on', GRADE.on || SCOPE.on || !!LOOK.mode); if (keep) store('cp-grade', JSON.stringify(GRADE.v)); };
   for (const [k] of GR_DEF) { const el = $('g_' + k); if (saved[k] != null) el.value = saved[k]; el.addEventListener('input', () => sync(true)); el.addEventListener('dblclick', () => { el.value = 0; sync(true); }); }
   $('gradereset').onclick = () => { for (const [k] of GR_DEF) $('g_' + k).value = 0; sync(true); };
   $('gradex').onclick = () => { $('gradepop').hidden = true; };
   $('gradebtn').onclick = () => { $('gradepop').hidden = !$('gradepop').hidden; $('wordspop').hidden = $('signalpop').hidden = true; };
 // the grade's looks (beside the colour sliders): vector scope
 { const h = document.querySelector('#gradepop .gp-h');
-  h.insertAdjacentHTML('afterend', `<div class="gp-row"><select id="glook" class="sel" aria-label="Grade look" title="A whole look: vector scope — black, the picture's edges as thin glowing phosphor lines with white-hot cores, its brightest parts as glowing blobs, a crosshair and dashed drops to the axes, like an old vector display"><option value="none">look: normal</option><option value="scope">look: vector scope</option></select><select id="gscol" class="sel" aria-label="Scope colour" title="The phosphor's colour"><option value="green">green</option><option value="amber">amber</option><option value="cyan">cyan</option><option value="white">white</option><option value="magenta">magenta</option><option value="picture">picture</option></select></div><div class="gp-row" id="gscoperow"><label class="key" title="The crosshair, its 0 and the dashed drops to the axes"><input id="gsaxes" type="checkbox" checked><span class="led"></span>axes</label></div><label id="gsdetrow" title="How many of the picture's edges become lines: low, only the strongest (right-click: 50)"><span>detail</span><input id="gsdet" type="range" min="0" max="100" value="50" aria-label="detail"><output>50</output></label><label id="gsfillrow" title="How much the brightest parts glow as blobs (right-click: 35)"><span>blobs</span><input id="gsfill" type="range" min="0" max="100" value="35" aria-label="blobs"><output>35</output></label>`);
+  h.insertAdjacentHTML('afterend', `<div class="gp-row"><select id="glook" class="sel" aria-label="Grade look" title="A whole look: vector scope — black, the picture's edges as thin glowing phosphor lines with white-hot cores, its brightest parts as glowing blobs, a crosshair and dashed drops to the axes, like an old vector display"><option value="none">look: normal</option><option value="scope">look: vector scope</option><option value="hatch">look: cross-hatch</option><option value="halftone">look: CMYK halftone</option></select><select id="gscol" class="sel" aria-label="Scope colour" title="The phosphor's colour"><option value="green">green</option><option value="amber">amber</option><option value="cyan">cyan</option><option value="white">white</option><option value="magenta">magenta</option><option value="picture">picture</option></select></div><div class="gp-row" id="gscoperow"><label class="key" title="The crosshair, its 0 and the dashed drops to the axes"><input id="gsaxes" type="checkbox" checked><span class="led"></span>axes</label><label class="key" title="Beam: a real scope's beam traces the picture's lines over and over (after osci-render and woscope): the lines it lingers on burn bright, the jumps between them are faint, and the phosphor's afterglow fades behind it. Off: the edges simply glow, all at once."><input id="gsbeam" type="checkbox" checked><span class="led"></span>beam</label></div><label id="gsdetrow" title="How many of the picture's edges become lines: low, only the strongest (right-click: 50)"><span>detail</span><input id="gsdet" type="range" min="0" max="100" value="50" aria-label="detail"><output>50</output></label><label id="gsfillrow" title="How much the brightest parts glow as blobs (right-click: 35)"><span>blobs</span><input id="gsfill" type="range" min="0" max="100" value="35" aria-label="blobs"><output>35</output></label><label id="gsglowrow" title="Afterglow: how long the phosphor holds the beam's light. Short: a flickering trace; long: a steady picture, with trails on a video (right-click: 40)"><span>afterglow</span><input id="gsglow" type="range" min="0" max="100" value="40" aria-label="afterglow"><output>40</output></label>`);
   let sv = {}; try { sv = JSON.parse(store('cp-scope') || '{}') || {}; } catch (e) { /* none */ }
-  if (sv.look) $('glook').value = sv.look; if (sv.col) $('gscol').value = sv.col; if (sv.axes === false) $('gsaxes').checked = false; if (sv.fill != null) $('gsfill').value = sv.fill; if (sv.det != null) $('gsdet').value = sv.det;
-  const sync = keep => { SCOPE.on = $('glook').value === 'scope'; SCOPE.col = $('gscol').value; SCOPE.axes = $('gsaxes').checked; SCOPE.fill = +$('gsfill').value; $('gsfill').nextElementSibling.textContent = $('gsfill').value; SCOPE.det = +$('gsdet').value; $('gsdet').nextElementSibling.textContent = $('gsdet').value;
-    $('gscol').disabled = $('gsaxes').disabled = $('gsfill').disabled = $('gsdet').disabled = !SCOPE.on; $('gradebtn').classList.toggle('on', GRADE.on || SCOPE.on);
-    if (keep) store('cp-scope', JSON.stringify({ look: $('glook').value, col: SCOPE.col, axes: SCOPE.axes, fill: SCOPE.fill, det: SCOPE.det })); };
-  $('glook').onchange = $('gscol').onchange = $('gsaxes').onchange = () => sync(true); $('gsfill').addEventListener('input', () => sync(true)); $('gsdet').addEventListener('input', () => sync(true));
+  if (sv.look) $('glook').value = sv.look; if (sv.col) $('gscol').value = sv.col; if (sv.axes === false) $('gsaxes').checked = false; if (sv.fill != null) $('gsfill').value = sv.fill; if (sv.det != null) $('gsdet').value = sv.det; if (sv.beam === false) $('gsbeam').checked = false; if (sv.glow != null) $('gsglow').value = sv.glow;
+  const sync = keep => { SCOPE.on = $('glook').value === 'scope'; LOOK.mode = ['hatch', 'halftone'].includes($('glook').value) ? $('glook').value : null; SCOPE.col = $('gscol').value; SCOPE.axes = $('gsaxes').checked; SCOPE.fill = +$('gsfill').value; $('gsfill').nextElementSibling.textContent = $('gsfill').value; SCOPE.det = +$('gsdet').value; $('gsdet').nextElementSibling.textContent = $('gsdet').value; SCOPE.beam = $('gsbeam').checked; SCOPE.glow = +$('gsglow').value; $('gsglow').nextElementSibling.textContent = $('gsglow').value; SCOPE.path = null;
+    $('gscol').disabled = $('gsaxes').disabled = $('gsfill').disabled = $('gsdet').disabled = $('gsbeam').disabled = $('gsglow').disabled = !SCOPE.on; $('gradebtn').classList.toggle('on', GRADE.on || SCOPE.on || !!LOOK.mode);
+    if (keep) store('cp-scope', JSON.stringify({ look: $('glook').value, col: SCOPE.col, axes: SCOPE.axes, fill: SCOPE.fill, det: SCOPE.det, beam: SCOPE.beam, glow: SCOPE.glow })); };
+  $('glook').onchange = $('gscol').onchange = $('gsaxes').onchange = $('gsbeam').onchange = () => sync(true); $('gsglow').addEventListener('input', () => sync(true)); $('gsfill').addEventListener('input', () => sync(true)); $('gsdet').addEventListener('input', () => sync(true));
   sync(false); }
   // the text bar
   const wv = (id, k) => { const v = store('cp-' + id); if (v != null && [...$(id).options].some(o => o.value === v)) $(id).value = v; WORDS[k] = $(id).value; };
@@ -13577,6 +13938,8 @@ $('play').onclick = () => {
 };
 $('restart').onclick = restart;
 $('speed').oninput = showSpeed; showSpeed();
+// (settings files, presets and the phone view set the slider directly: the label follows whatever set it)
+{ let last = $('speed').value; setInterval(() => { const v = $('speed').value; if (v !== last) { last = v; showSpeed(); } }, 250); }
 // zoom: moving the slider on a finished painting starts the endless zoom from there
 $('zoom').oninput = () => { showZoom(); if (S.mode === 'auto' && S.done && zoomWanted() && !S.endless.on) { S.running = true; S.pausedAt = 0; beginEndless(); } };
 $('zoomstart').oninput = showZoom; showZoom();
@@ -13654,7 +14017,12 @@ const liveInput = () => !!(LIVE.stream || LIVE.view3d || AU.live || (S.video && 
 $('recmode').onchange = () => { if (!S.rec) recIdle(); $('hint').textContent = { stage: '⏺ records the stage in real time.', offline: '⏺ now renders the run offline at hq, frame by frame: perfectly smooth and the finest strokes, however long it takes (live inputs are recorded live).', now: '⏺ now records the stage from the moment you press it, as it is (nothing starts over), until you press ⏹.', full: '⏺ now records the whole interface, every knob and key (the browser asks to share this tab).' }[recMode()]; };
 recIdle();
 // the reel: length (a song's part is trimmed to it) and loop
-$('reellen').onchange = () => { applyReelLen(); const L = reelLen(); $('hint').textContent = L ? `Length ${L} s: ${audioActive() ? "the song's part is trimmed to it" : 'the painting is timed to fit'}; a recording is exactly that long. ${S.mode === 'idle' ? '' : '⟲ restart to paint it that way.'}` : 'Free length: the run takes as long as it takes.'; };
+// the length slider and its presets: a preset moves the slider; the slider lights the preset it lands on (none in between)
+const reelShow = () => { const v = $('reelsec').value; $('reelsecv').textContent = +v ? v + ' s' : 'free'; const sel = $('reellen'); sel.value = [...sel.options].some(o => o.value === v) ? v : ''; sel.dispatchEvent(new Event('change')); };
+$('reelsec').oninput = reelShow;
+{ const sel = $('reellen'); sel.value = [...sel.options].some(o => o.value === $('reelsec').value) ? $('reelsec').value : ''; }
+$('reellen').onchange = () => { if ($('reellen').value !== '' && $('reellen').value !== $('reelsec').value) { $('reelsec').value = $('reellen').value; $('reelsecv').textContent = +$('reelsec').value ? $('reelsec').value + ' s' : 'free'; }
+  applyReelLen(); const L = reelLen(); $('hint').textContent = L ? `Length ${L} s: ${audioActive() ? "the song's part is trimmed to it" : 'the painting is timed to fit'}; a recording is exactly that long. ${S.mode === 'idle' ? '' : '⟲ restart to paint it that way.'}` : 'Free length: the run takes as long as it takes.'; };
 $('loop').onchange = () => { $('hint').textContent = loopOn() ? `Loop: the painting builds, holds, then ${$('loop').value === 'fade' ? 'dissolves' : 'rewinds'} back to empty — without recording it keeps looping. ${S.mode === 'idle' ? '' : '⟲ restart to see it.'}` : 'Loop off.'; };
 // camera + playlist bars
 const camShow = () => { $('camamtval').textContent = $('camamt').value + '%'; $('cambarsval').textContent = String(camBars()); $('cutbarsval').textContent = String(cutBars()); };
@@ -13722,7 +14090,7 @@ $('savecode').onclick = async () => {
   download(new Blob([html], { type: 'text/html' }), `${safeName()}-${animate ? 'self-painting' : 'painted-in-code'}.html`);
   $('hint').textContent = `Saved ${animate ? 'self-painting ' : ''}program: ${(html.length / 1024).toFixed(1)} KB${music ? ' (song included)' : ''}.`;
 };
-$('savesvg').onclick = () => download(new Blob([S.dg && S.dg.phase !== 'paint' ? dgSvg() : S.endless.on ? liveSvg() : SHP.svg(S.drawn, S.out.width, S.out.height, S.bgHex)], { type: 'image/svg+xml' }), `${safeName()}-painted.svg`);
+$('savesvg').onclick = () => download(new Blob([S.sa ? saSvg() : S.dg && S.dg.phase !== 'paint' ? dgSvg() : S.endless.on ? liveSvg() : SHP.svg(S.drawn, S.out.width, S.out.height, S.bgHex)], { type: 'image/svg+xml' }), `${safeName()}-painted.svg`);
 // a live input / video / zoom never finishes, and its strokes aren't all kept: its svg is the view as it is now — the
 // canvas traced into flat colour shapes (as score · vector does), with the recent strokes over them as they were drawn
 function liveSvg() {
@@ -13844,7 +14212,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.38.1');
+    const V = await import('./viewer3d.js?v=4.39.0');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }

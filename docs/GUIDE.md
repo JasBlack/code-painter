@@ -167,6 +167,7 @@ It works in the studio, simple, +code and editor displays, shows in recordings, 
 - **⬇ code**: a small web page that paints the picture again by itself, stroke by stroke, in the same styles (self-playing, with the song if you like).
 - **svg**, **png 1K / 4K / 8K**, **stills**, **contact sheet**, **cover**. With a live input, a video, a zoom or a playlist (which never finish), **svg** saves the view as it is now. The canvas is traced into flat colour shapes, with the most recent strokes over them as vector strokes.
 - **window**: open the painting on its own, for a projector or a second screen.
+- **length** (under *free / 15 / 30 / 60*): a slider from 0 to 100 seconds, **12 s** by default. The painting is timed to fit it, a song's part is trimmed to it, and a recording is exactly that long. 0 means free: the run takes as long as it takes. The four buttons set the slider, and right-click puts it back to 12 s.
 - **Displays** (above the stage): *studio*, *simple*, *paint*, *+code* and *editor*. *editor* puts the painting beside its code in an editor window (painting.js, window dots, big line numbers, the current line highlighted, "Code Painter by Jas Black" along the bottom). In 16:9 they sit side by side. In the tall frames the painting is as big as it fits, with a thin black trim, and the editor sits under it, lined up with its edges.
 
 ## Colour grade
@@ -205,16 +206,15 @@ The composite wire is the heart of it. The colour rides a carrier wave along eac
 
 It works on every score mode too, and shows in recordings and the saved PNGs and stills. The **on** switch at the top turns it off and keeps every setting for later; *clean* puts every knob back to 0. Double-click or right-click a knob for 0.
 
-## Grade look: vector scope
+## Grade looks
 
-In the **grade** panel, *look: vector scope* turns the painting into a vector display seen through good glass:
+In the **grade** panel, the *look* menu redraws the whole painting:
 
-- **The lines:** the picture's edges, traced thin and sharp at full resolution, with a hot core.
-- **The light:** each line blooms at three sizes, from a tight glow to a wide soft haze, with a warm halation round the brightest parts and a little film grain. It is meant to feel nostalgic but expensive, not like an old effect.
-- **Axes:** quiet hairline axes with ticks, and a few faint glowing dashes dropped from the picture's strongest points.
-- **Settings:** the colour (*green*, *amber*, *cyan*, *white*, *magenta*, or *picture*, which keeps the picture's own colours in the glow), **axes** on or off, **detail** (how many edges become lines) and **blobs**.
+- **vector scope:** a real oscilloscope beam (after osci-render and woscope). The picture's edges are traced into lines, and a beam with a soft round spot runs along them over and over, about three times a second. Where the beam lingers the line burns bright, the jumps between lines are faint wisps, and the phosphor's **afterglow** fades behind it. On top: a bloom at three sizes, a warm halation, a little grain, and quiet axes with faint drops from the strongest points. Settings: the colour (*green*, *amber*, *cyan*, *white*, *magenta* or *picture*), **axes**, **beam** (off: the edges simply glow), **detail**, **blobs** and **afterglow**.
+- **cross-hatch:** a pen drawing. The tones become layers of hatching that close in as the picture darkens: one direction, then crossed, then crossed again. Every line wobbles like a hand and boils slightly from frame to frame, like drawn animation, with ink outlines and paper grain (after spite's sketch).
+- **CMYK halftone:** a print. The picture is split into cyan, magenta, yellow and black, each a screen of dots at its own angle, overprinted on paper slightly off register (after paper-design's shaders).
 
-It goes on before the signal, so a CRT look can sit on top.
+They go on before the signal, so a CRT look can sit on top.
 
 ## Bolts
 
@@ -226,19 +226,30 @@ It goes on before the signal, so a CRT look can sit on top.
 
 - **Growing:** it starts as a small loop in the picture's darkest part. Each point keeps its neighbours close and pushes every other point away, and where the line stretches a new point goes in. While it grows it shows as a steady pencil line.
 - **The picture:** the line lengthens and folds like a brain coral until it fills the picture. It folds tighter where the picture is darker and leaves the near-white empty.
-- **Painting:** once grown, the brush paints along the whole line in the ticked styles (graffiti, gold, oil…), in the picture's colours with *growth · colour*.
+- **Painting:** once grown, the line stays on the canvas as a faint pencil sketch, and the brush paints over it along the whole line in the ticked styles (graffiti, gold, oil…), in the picture's colours with *growth · colour*.
+- **Smooth:** the growing runs in a worker of its own, so the studio keeps its frame rate even at tens of thousands of points.
 - **Video and music:** on a video the line re-forms round the picture as it plays; with music the bass makes it pulse.
 - **Settings:** the stroke count sets how long it may grow and so how fine it gets; the speed slider sets how fast. **svg** saves the line.
 
-## Real paint
+## String art
+
+*one line → string art · black / string art · white* winds the picture out of one thread round 288 nails on a circular board, as string-art machines do (after halfmonty's StringArtGenerator, MIT licence). From the nail it is at, the thread goes to the nail whose line crosses the most darkness still owed, then that darkness is paid off, and on to the next. A few thousand lines build the tones out of crossings. The stroke count sets how many lines; the speed slider (or the song) sets how fast it winds. **svg** saves the thread.
+
+## Real paint and real paper
 
 **real paint** (in the style panel, beside *pigment*; on by default) paints some styles with a simulation of the paint itself instead of drawing them:
 
-- **Watercolour** (*water*, *wet*, *wash*): Maksim Surguy's Watercolor Playground engine (MIT licence). Water and pigment flow on paper: the paint bleeds into damp paper, pools into a darker tide line as it dries, settles into the paper's grain and glazes where strokes cross. Each layer is let dry before the next, as a watercolourist waits. It is painted on white watercolour paper and lies over the other styles as a transparent glaze.
-- **Oil and acrylic**: David Li's Fluid Paint (MIT licence). A brush of up to a hundred bristles, each bending against the canvas, drags wet paint that smears into the paint already there and keeps the bristles' ridges, lit as a real surface: glossy for oil, matte for acrylic.
+- **Watercolour** (*water*, *wet*, *wash*): Maksim Surguy's Watercolor Playground engine (MIT licence). Water and pigment flow on paper: the paint bleeds into damp paper, pools into a darker tide line as it dries, settles into the paper's grain and glazes where strokes cross. Each layer dries before the next, as a watercolourist waits. On a still it is painted on white watercolour paper and lies over the other styles as a glaze.
+- **Ink and sumi:** the same engine with ink (its water comes from inkwash): a loaded small brush for *ink*, the sumi brush for *sumi* (in grey-black ink tones). Lines feather and bleed a little where the paper is wet.
+- **Oil, acrylic and palette knife:** David Li's Fluid Paint (MIT licence). A brush of up to a hundred bristles, each bending against the canvas, drags wet paint that smears into the paint already there and keeps the bristles' ridges. It is lit as a real surface: glossy for oil and knife, matte for acrylic. The knife lays a broad, heavily loaded smear.
+- **Videos, cameras and playlists:** real paint works there too. The watercolour is laid over as a cover rather than a glaze, so new washes can follow the picture, and every few seconds the sheet starts clean underneath. Strokes the engine couldn't reach in time are dropped, since the picture has moved on.
 - **Where it shows:** on the painting, in the saved pictures and in recordings. The saved code and SVG keep the drawn look, since they are code.
 - **What it needs:** a graphics card with float textures (WebGL 2 for watercolour). Without it, or with real paint off, the drawn styles are used.
-- **Speed:** the paint stays on the graphics card (nothing is read back), about ten times a second, less when that is costly. Without a song the painter waits for the paint when it falls behind, so the two stay in step; with a song the painter keeps time and the paint catches up. On a slow computer the paint sheets are smaller and the oil brush has fewer bristles. To make it lighter still: fewer strokes, or real paint off.
+- **Speed:** the paint stays on the graphics card (nothing is read back), and the painting updates about ten times a second, less when that is costly. Without a song the painter waits for the paint when it falls behind, so the two stay in step; with a song the painter keeps time and the paint catches up. On a slow computer the paint sheets are smaller and the oil brush has fewer bristles. To make it lighter still: fewer strokes, or real paint off.
+
+**Real paper** (always on): pencil, charcoal, pastel and pen catch only the peaks of the paper they are drawn on, as real dry media do (after PigmentLab's grain gate, p5.brush and graphite). Every stroke is cut by one fixed paper, the same paper under all of them, so the white valleys of the grain show through, and layers of strokes fill them in slowly. Pencil goes on fine drawing paper, charcoal on laid charcoal paper with its ribs, pastel on honeycomb pastel paper. Pencil, charcoal and pen alone are drawn on light paper; pastel keeps a toned ground. The paper's own relief shows faintly on the ground.
+
+**Riso** prints from three real riso ink drums (blue, fluorescent pink, yellow). Each colour is built by overprinting them at the densities that come nearest, each drum has its grain, and each sits a fixed little way off register for the whole sheet, as in a real print.
 
 ## Pigment mixing
 
