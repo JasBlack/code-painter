@@ -237,7 +237,8 @@ It goes on before the signal, so a CRT look can sit on top.
 - **Watercolour** (*water*, *wet*, *wash*): Maksim Surguy's Watercolor Playground engine (MIT licence). Water and pigment flow on paper: the paint bleeds into damp paper, pools into a darker tide line as it dries, settles into the paper's grain and glazes where strokes cross. Each layer is let dry before the next, as a watercolourist waits. It is painted on white watercolour paper and lies over the other styles as a transparent glaze.
 - **Oil and acrylic**: David Li's Fluid Paint (MIT licence). A brush of up to a hundred bristles, each bending against the canvas, drags wet paint that smears into the paint already there and keeps the bristles' ridges, lit as a real surface: glossy for oil, matte for acrylic.
 - **Where it shows:** on the painting, in the saved pictures and in recordings. The saved code and SVG keep the drawn look, since they are code.
-- **What it needs:** a graphics card with float textures (WebGL 2 for watercolour). Without it, or with real paint off, the drawn styles are used. Real paint is heavier than drawing: on a slow computer the engine catches up after the painter.
+- **What it needs:** a graphics card with float textures (WebGL 2 for watercolour). Without it, or with real paint off, the drawn styles are used.
+- **Speed:** the paint stays on the graphics card (nothing is read back), about ten times a second, less when that is costly. Without a song the painter waits for the paint when it falls behind, so the two stay in step; with a song the painter keeps time and the paint catches up. On a slow computer the paint sheets are smaller and the oil brush has fewer bristles. To make it lighter still: fewer strokes, or real paint off.
 
 ## Pigment mixing
 

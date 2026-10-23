@@ -366,7 +366,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.38.0">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.38.1">CODE PAINTER</span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -1299,7 +1299,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.38.0 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.38.1 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1317,7 +1317,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.38.0', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.38.1', FOOTER = `Code Painter by Jas Black`;
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
@@ -2462,6 +2462,8 @@ function pace(dt) {
   }
   if (S.fr && !S.fr.done) { frStep(); if (!S.fr.done) return; }
   if (S.dg && S.dg.phase === 'paint' && !S.dg.pdone) { dgPaintStep(); return; }      // (once the circles are done: the usual end of a run)
+  // real paint behind the painter (a slow graphics card): the painter waits for it rather than piling strokes up (not with a song: that keeps time)
+  if (WC.live && !(audioActive() && !AU.ended) && !AU.live && WC.q.length + OIL.q.length > 24) return;
   if (S.endless.on) return paceEndless(dt);
   if (!OFF.on) musicHold(Math.max(0, demand(dt)));
   musicSize(dt);
@@ -3541,7 +3543,7 @@ function commitShape(q) { putShape(q); if (S.mode === 'auto' && !S.endless.on) s
 function redrawAll() {
   const done = S.drawn.length - pendingN();
   WC.keep = true; paintBg(S.outX); for (let i = 0; i < done; i++) putShape(S.drawn[i]); WC.keep = false; reliefFlush(true); S.big = null;
-  if (WC.live && (WC.fresh || OIL.fresh)) wcComposite(false, false);
+  if (WC.live && (WC.fresh || OIL.fresh)) wcComposite();
 }
 // small seeded random numbers, so a sprayed stroke looks the same every time it is drawn (re-bakes, 4K / 8K renders)
 function rngFor(a) {
@@ -6193,13 +6195,17 @@ function wcBegin() {
   if (WC.wc) wcSheet();
 }
 function wcSheet() {
-  const W = S.out.width, H = S.out.height, k = Math.min(1, 1600 / Math.max(W, H)), dw = Math.round(W * k), dh = Math.round(H * k);
+  const W = S.out.width, H = S.out.height, k = Math.min(1, (LAG.lite ? 1024 : 1280) / Math.max(W, H)), dw = Math.round(W * k), dh = Math.round(H * k);     // (the sim's cost grows with its area)
   if (!WC.E || WC.size !== dw + 'x' + dh) {
     if (WC.E) { try { WC.E.destroy(); const l = WC.E.gl.getExtension('WEBGL_lose_context'); if (l) l.loseContext(); } catch (e) { /* gone already */ } WC.cv.remove(); }
     WC.cv = document.createElement('canvas'); WC.cv.width = WC.cv.height = 8;
-    WC.cv.style.cssText = 'position:fixed;left:-20px;top:0;width:8px;height:8px;opacity:0;pointer-events:none';
+    WC.cv.style.cssText = 'display:none';
     document.body.appendChild(WC.cv);
-    try { WC.E = new (wcLib().WatercolorEngine)(WC.cv, null, {}, [dw, dh]); WC.E.interactive = false; WC.size = dw + 'x' + dh; }
+    try {
+      const E = WC.E = new (wcLib().WatercolorEngine)(WC.cv, null, {}, [dw, dh]); E.interactive = false; WC.size = dw + 'x' + dh;
+      // its canvas becomes exactly the sheet, and only wcComposite draws into it (the engine's own per-frame screen drawing is skipped)
+      WC.cv.width = E.dw; WC.cv.height = E.dh; E.canvasSize = [E.dw, E.dh]; E.view = { x: 0, y: 0, w: E.dw, h: E.dh }; E.render = () => {};
+    }
     catch (e) { WC.E = null; WC.ok = false; WC.wc = false; WC.live = OIL.live; WC.cv.remove(); return; }
   }
 }
@@ -6277,23 +6283,18 @@ function wcPump() {
   const it = WC.cur; if (!it) return;
   const n = it.P.length - 1; wcFeed(it, !it.dur ? n : Math.min(n, Math.floor(n * (now - it.t0) / it.dur)));
 }
-// the sheet as it is now, laid over the base as a glaze — about ten times a second while the paint moves
-// an engine's pixels into a 2D canvas of its own (kept between composites)
-function wcLayer(o, px, w, h) {
-  if (!o.tmp || o.tmp.width !== w || o.tmp.height !== h) { o.tmp = document.createElement('canvas'); o.tmp.width = w; o.tmp.height = h; o.tx = o.tmp.getContext('2d'); o.img = o.tx.createImageData(w, h); }
-  o.img.data.set(px); o.tx.putImageData(o.img, 0, 0);
-}
-// the painting = the base, the oil / acrylic paint on it (opaque, lit), the watercolour sheet over all as a glaze
-function wcComposite(water = true, oil = true) {
+// the painting = the base, the oil / acrylic paint on it (opaque, lit), the watercolour sheet over all as a glaze. The engines
+// draw into their own canvases and those are drawn from directly, graphics card to graphics card (no reading pixels back)
+function wcComposite() {
   if (RLF.on) return;
-  if (water && WC.wc && WC.fresh) { let px; try { px = WC.E.readback(false, 3, true); } catch (e) { px = null; } if (px) wcLayer(WC, px, WC.E.dw, WC.E.dh); }
-  if (oil && OIL.live && OIL.fresh) wcLayer(OIL, OIL.E.read(), OIL.E.w, OIL.E.h);
-  const x = S.outX, W = S.out.width, H = S.out.height;
+  const x = S.outX, W = S.out.width, H = S.out.height, t = performance.now();
   x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'copy'; x.drawImage(WC.base, 0, 0); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
-  if (OIL.live && OIL.fresh && OIL.tmp) { x.globalCompositeOperation = 'source-over'; x.drawImage(OIL.tmp, 0, 0, W, H); }
-  if (WC.wc && WC.fresh && WC.tmp) { x.globalCompositeOperation = 'multiply'; x.translate(0, H); x.scale(1, -1); x.drawImage(WC.tmp, 0, 0, W, H); }
+  if (OIL.live && OIL.fresh) { x.globalCompositeOperation = 'source-over'; x.drawImage(OIL.E.show(), 0, 0, W, H); }
+  if (WC.wc && WC.fresh) { try { WC.E.drawDisplay(null, WC.E.view, null, false, 3, true); x.globalCompositeOperation = 'multiply'; x.drawImage(WC.cv, 0, 0, W, H); } catch (e) { /* lost */ } }
   x.restore();
   S.big = null;
+  // (how often: about ten times a second, less when it is costly here, so the painter itself keeps its frames)
+  WC.every = Math.max(100, Math.min(400, (performance.now() - t) * 10));
 }
 function wcFrame() {
   WC.raf = 0; if (!WC.live) return;
@@ -6302,7 +6303,7 @@ function wcFrame() {
   if (WC.wc) wcPump();
   if (OIL.live) oilPump(t);
   const wb = WC.wc && !!(WC.E.raf || WC.cur || WC.q.length), ob = OIL.live && (OIL.E.busy() || !!OIL.cur || !!OIL.q.length);
-  if ((WC.fresh || OIL.fresh) && ((wb || ob) ? t - WC.t > 110 : WC.dirty)) { WC.t = t; WC.dirty = wb || ob; wcComposite(wb || !WC.tmp || WC.dirty2, ob || !OIL.tmp || OIL.dirty2); WC.dirty2 = wb; OIL.dirty2 = ob; }
+  if ((WC.fresh || OIL.fresh) && ((wb || ob) ? t - WC.t > (WC.every || 110) : WC.dirty)) { WC.t = t; WC.dirty = wb || ob; wcComposite(); }
   else if (wb || ob) WC.dirty = true;
   WC.raf = requestAnimationFrame(wcFrame);
 }
@@ -8902,7 +8903,7 @@ var Simulator = (function () {
         //remove all of the splat areas we no longer need to simulate
         var i = this.splatAreas.length;
         while (i--) {
-            if (this.frameNumber - this.splatAreas[i].frameNumber > FRAMES_TO_SIMULATE) {
+            if (this.frameNumber - this.splatAreas[i].frameNumber > (this.framesToSimulate || FRAMES_TO_SIMULATE)) {
                 this.splatAreas.splice(i, 1);
             }
         }
@@ -8926,18 +8927,17 @@ var SRC = {"shaders/splat.vert": "precision highp float;\nattribute vec4 a_splat
 var BRUSH_HEIGHT = 2.0, Z_THRESHOLD = 0.13333, SPLAT_VELOCITY_SCALE = 0.14, SPLAT_RADIUS = 0.05;
 // a painting of w x h texels painted by code: strokes in, a lit RGBA image (alpha = where there is paint) out
 function FluidPaint(w, h, bristles) {
-  var canvas = document.createElement('canvas'); canvas.width = canvas.height = 4;
+  var canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h; this.canvas = canvas;
   var wgl = WrappedGL.create(canvas, { premultipliedAlpha: false, antialias: false, depth: false });
   if (!wgl || !wgl.hasFloatTextureSupport()) throw new Error('no float textures');
   this.wgl = wgl; this.w = w; this.h = h;
   this.sim = new Simulator(wgl, SRC, w, h);
+  this.sim.framesToSimulate = 24;      // (driven by code each brush move is a 'frame': the paint around a dab settles within ~24 of them)
+  this.k = 0;
   this.brush = new Brush(wgl, SRC, bristles || 100);
-  this.prog = wgl.createProgram(SRC['shaders/painting.vert'], '#define SAVE\n#define RGB\n#define CUT\n' + SRC['shaders/painting.frag']);
+  this.prog = wgl.createProgram(SRC['shaders/painting.vert'], '#define RGB\n#define CUT\n' + SRC['shaders/painting.frag']);      // (the painting's own rows: drawn to its canvas as they stand)
   this.quad = wgl.createBuffer(); wgl.bufferData(this.quad, wgl.ARRAY_BUFFER, new Float32Array([-1, -1, -1, 1, 1, -1, 1, 1]), wgl.STATIC_DRAW);
   this.rect = new Rectangle(0, 0, w, h);
-  this.tex = wgl.buildTexture(wgl.RGBA, wgl.UNSIGNED_BYTE, w, h, null, wgl.CLAMP_TO_EDGE, wgl.CLAMP_TO_EDGE, wgl.NEAREST, wgl.NEAREST);
-  this.fb = wgl.createFramebuffer(); wgl.framebufferTexture2D(this.fb, wgl.FRAMEBUFFER, wgl.COLOR_ATTACHMENT0, wgl.TEXTURE_2D, this.tex, 0);
-  this.px = new Uint8Array(w * h * 4);
   this.light = { normal: 7.0, rough: 0.075, F0: 0.05, spec: 0.5, diffuse: 0.15, dir: [0, 1, 1], cut: 0.02, thin: 1.0 };
 }
 FluidPaint.prototype.fluidity = function (f) { this.sim.fluidity = f; };
@@ -8957,7 +8957,7 @@ FluidPaint.prototype.move = function (x, y) {
   var b = this.brush, s = this.s;
   b.update(x, y, this.z, s);
   this.sim.splat(b, Z_THRESHOLD * s, this.rect, this.col, SPLAT_RADIUS * s, SPLAT_VELOCITY_SCALE * this.a);
-  this.sim.simulate();
+  if (++this.k % 2 === 0) this.sim.simulate();      // (the fluid steps every other move: half the work, the same paint)
 };
 FluidPaint.prototype.stroke = function (pts, radius, rgb, load) {
   this.begin(pts[0][0], pts[0][1], radius, rgb, load);
@@ -8966,20 +8966,18 @@ FluidPaint.prototype.stroke = function (pts, radius, rgb, load) {
 FluidPaint.prototype.step = function () { return this.sim.simulate(); };
 FluidPaint.prototype.busy = function () { return this.sim.splatAreas.length > 0; };
 FluidPaint.prototype.clear = function () { this.sim.clear(); this.sim.splatAreas = []; };
-// the painting lit, RGBA8, top row first
-FluidPaint.prototype.read = function () {
+// the painting lit into the engine's own canvas (alpha = where there is paint), to be drawn from at once (no readback)
+FluidPaint.prototype.show = function () {
   var wgl = this.wgl, L = this.light, p = this.prog;
-  var st = wgl.createDrawState().bindFramebuffer(this.fb).viewport(0, 0, this.w, this.h)
+  var st = wgl.createDrawState().bindFramebuffer(null).viewport(0, 0, this.w, this.h)
     .vertexAttribPointer(this.quad, p.getAttribLocation('a_position'), 2, wgl.FLOAT, false, 0, 0).useProgram(p)
     .uniform2f('u_paintingSize', this.w, this.h).uniform2f('u_paintingResolution', this.w, this.h).uniform2f('u_screenResolution', this.w, this.h)
     .uniform2f('u_paintingPosition', 0, 0).uniformTexture('u_paintTexture', 0, wgl.TEXTURE_2D, this.sim.paintTexture)
     .uniform1f('u_normalScale', L.normal).uniform1f('u_roughness', L.rough).uniform1f('u_diffuseScale', L.diffuse)
     .uniform1f('u_specularScale', L.spec).uniform1f('u_F0', L.F0).uniform1f('u_cut', L.cut).uniform1f('u_thin', L.thin).uniform3f('u_lightDirection', L.dir[0], L.dir[1], L.dir[2]);
-  delete wgl.changedParameters.framebuffer;      // (the wrapper's cache can believe another framebuffer is ours)
+  wgl.changedParameters.framebuffer = [undefined];      // (raw binds elsewhere leave the wrapper's cache stale: make it bind)
   wgl.drawArrays(st, wgl.TRIANGLE_STRIP, 0, 4);
-  delete wgl.changedParameters.framebuffer;
-  wgl.readPixels(wgl.createReadState().bindFramebuffer(this.fb), 0, 0, this.w, this.h, wgl.RGBA, wgl.UNSIGNED_BYTE, this.px);
-  return this.px;
+  return this.canvas;
 };
 FluidPaint.prototype.destroy = function () { var l = this.wgl.getExtension('WEBGL_lose_context'); if (l) l.loseContext(); };
 return FluidPaint;
@@ -8990,7 +8988,7 @@ return FluidPaint;
 // a canvas of paint the painting's shape (about 1200 texels on its long side) and the look of the medium
 function oilBegin(sts) {
   if (OIL.ok === false || !oilLib()) return false;
-  const W = S.out.width, H = S.out.height, k = Math.min(1, 1200 / Math.max(W, H)), w = Math.round(W * k), h = Math.round(H * k);
+  const W = S.out.width, H = S.out.height, k = Math.min(1, (LAG.lite ? 768 : 1024) / Math.max(W, H)), w = Math.round(W * k), h = Math.round(H * k);
   if (!OIL.E || OIL.size !== w + 'x' + h) {
     if (OIL.E) OIL.E.destroy();
     try { OIL.E = new (oilLib())(w, h, 100); OIL.size = w + 'x' + h; OIL.ok = true; } catch (e) { OIL.E = null; OIL.ok = false; return false; }
@@ -9000,9 +8998,10 @@ function oilBegin(sts) {
   OIL.E.fluidity(oil ? 0.8 : 0.72);
   return true;
 }
-// strokes onto the paint, as far as the painter has drawn them; behind the painter, as many as fit in ~12 ms a frame
+// strokes onto the paint, as far as the painter has drawn them; behind the painter, as many brush moves as fit in a frame's
+// budget (~7 ms, at most 28 moves: each is a bristle simulation and a fluid step on the graphics card)
 function oilPump(t) {
-  const E = OIL.E, now = clock(), many = OIL.q.length > 4;
+  const E = OIL.E, now = clock(), many = OIL.q.length > 4; let mv = 0;
   for (;;) {
     if (!OIL.cur) {
       if (!OIL.q.length || (!many && now < OIL.q[0].t0)) break;
@@ -9014,16 +9013,16 @@ function oilPump(t) {
         for (let j = 1; j <= n; j++) P.push([a[0] + (bx - a[0]) * j / n, a[1] + (by - a[1]) * j / n]);
       }
       it.Q = P.length > cap ? P.filter((p, i) => i % Math.ceil(P.length / cap) === 0 || i === P.length - 1) : P; it.i = 1;
-      E.begin(P[0][0], P[0][1], r, hexRgb(it.c0).map(v => v / 255), it.st === 'acrylic' ? 0.85 : 0.75, 24 + 76 * clamp01((r - 3) / 28));
+      E.begin(P[0][0], P[0][1], r, hexRgb(it.c0).map(v => v / 255), it.st === 'acrylic' ? 0.85 : 0.75, (LAG.lite ? 16 : 24) + (LAG.lite ? 44 : 76) * clamp01((r - 3) / 28));     // (fewer bristles for a small brush, and on a slow computer)
       OIL.cur = it; OIL.fresh = true;
     }
     const it = OIL.cur, n = it.Q.length - 1, upto = many || !it.dur ? n : Math.min(n, Math.floor(n * (now - it.t0) / it.dur));
-    for (; it.i <= upto; it.i++) {
+    for (; it.i <= upto && mv < 28; it.i++, mv++) {
       if (it.c1 !== it.c0 && it.i === Math.ceil(n / 2)) E.colour(hexRgb(it.c1).map(v => v / 255));
       E.move(it.Q[it.i][0], it.Q[it.i][1]);
     }
     if (it.i > n) OIL.cur = null; else break;
-    if (performance.now() - t > 12) break;
+    if (mv >= 28 || performance.now() - t > 7) break;
   }
   if (!OIL.cur && E.busy()) E.step();      // (the paint keeps settling a moment after the brush lifts)
 }
@@ -13845,7 +13844,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.38.0');
+    const V = await import('./viewer3d.js?v=4.38.1');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
