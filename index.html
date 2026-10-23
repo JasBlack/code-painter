@@ -4631,6 +4631,19 @@ const MEDIA = new Set(['calligraphy', 'watercolour', 'gouache', 'sumi', 'marker'
 const CAN_BLUR = (() => { try { const t = document.createElement('canvas').getContext('2d'); t.filter = 'blur(1px)'; return t.filter === 'blur(1px)'; } catch (e) { return false; } })();
 const RISO_INKS = ['#ff48b0', '#0078bf', '#ffe800', '#00a95c', '#ff6c2f', '#765ba7', '#f15060', '#3d5588', '#00838a', '#000000'];    // fluorescent pink, blue, yellow, green, orange, violet, red, federal blue, teal, black
 let RISO_GRAIN = null;
+// the riso's drums: the inks of the print, and how far each sits off register (device px), the same for every stroke
+const RISO_PAPER = '#f4efe4', RISO_DRUMS = ['#0078bf', '#ff48b0', '#ffe800'], RISO_REG = [[0, 0], [1.6, -0.9], [-1.1, 1.3]], RISO_SPLIT = new Map();
+// a colour as densities of the three inks over white paper: the multiply of what they let through comes nearest it
+function risoSplit(hex) {
+  let r = RISO_SPLIT.get(hex); if (r) return r;
+  const T = hexRgb(hex).map(v => v / 255), I = RISO_DRUMS.map(h => hexRgb(h).map(v => v / 255));
+  const mixOf = d => [0, 1, 2].map(c => (1 - d[0] * (1 - I[0][c])) * (1 - d[1] * (1 - I[1][c])) * (1 - d[2] * (1 - I[2][c])));
+  const err = d => { const m = mixOf(d); return (m[0] - T[0]) ** 2 * 0.3 + (m[1] - T[1]) ** 2 * 0.59 + (m[2] - T[2]) ** 2 * 0.11; };
+  let best = [0, 0, 0], be = err(best);
+  for (let a = 0; a <= 1.001; a += 0.125) for (let b = 0; b <= 1.001; b += 0.125) for (let c = 0; c <= 1.001; c += 0.125) { const e = err([a, b, c]); if (e < be) { be = e; best = [a, b, c]; } }
+  for (let s = 0.0625; s > 0.005; s /= 2) for (let it = 0; it < 3; it++) for (let i = 0; i < 3; i++) for (const dd of [-s, s]) { const t = best.slice(); t[i] = Math.min(1, Math.max(0, t[i] + dd)); const e = err(t); if (e < be) { be = e; best = t; } }
+  if (RISO_SPLIT.size > 4000) RISO_SPLIT.clear(); RISO_SPLIT.set(hex, best); return best;
+}
 function risoGrain(x) {          // the riso's speckle: a tile of fine white grain (where the stencil let less ink through)
   if (!RISO_GRAIN) { const c = document.createElement('canvas'); c.width = c.height = 96; const t = c.getContext('2d'), d = t.createImageData(96, 96), R = rngFor([7, 3, 1]);
     for (let i = 0; i < 96 * 96; i++) { const v = R(); d.data[i * 4] = d.data[i * 4 + 1] = d.data[i * 4 + 2] = 255; d.data[i * 4 + 3] = v < 0.18 ? 120 + v * 700 : 0; }
@@ -4725,20 +4738,20 @@ const STYLE_DRAW = {
     for (let k = 0, n = Math.min(160, Math.round(size * size / 500)); k < n; k++) { const px = b.x0 + R() * b.w, py = b.y0 + R() * b.h, r2 = 0.3 + R() * Math.max(0.6, size * 0.006); x.beginPath(); x.arc(px, py, r2, 0, 7); x.fill(); }
     x.restore(); return endOf(q);
   },
-  riso(x, q) {            // risograph: two spot inks printed one over the other (they multiply), each grainy, the second a little off register
-    const [c0, c1, o] = colsOf(q), a = q.args, P = SHP.poly({ t: q.t, p: a }), b = boxOf(P), R = rngFor(a), size = Math.max(b.w, b.h, 2), path = outlineOf(q);
-    const dist = (h, k) => { const A = hexRgb(h), B = hexRgb(k); return (A[0] - B[0]) ** 2 * 0.3 + (A[1] - B[1]) ** 2 * 0.59 + (A[2] - B[2]) ** 2 * 0.11; };
-    const near = (h, not) => RISO_INKS.filter(k => k !== not).reduce((m, k) => dist(h, k) < dist(h, m) ? k : m, RISO_INKS.find(k => k !== not));
-    const A = near(c0), B = near(c1, A), grain = risoGrain(x);
-    x.save(); x.globalAlpha = 0.9 * o; x.fillStyle = A;          // (the first ink covers what was there; only the second overprints it, so a dense picture doesn't sink to black)
-    if (q.t === 'S') fillShape(x, q, A); else x.fill(path);
+  riso(x, q) {            // risograph (after p5.riso's way of thinking about it): the whole print from three drums of real riso ink — blue, fluorescent pink, yellow — each colour built
+    // by overprinting them at the right densities (they multiply, as the inks do), each drum's grain, and each drum a fixed little way off register for the whole sheet
+    const [c0, c1, o] = colsOf(q), path = outlineOf(q), grain = risoGrain(x), k = Math.max(0.6, devK(x));
+    const d = risoSplit(mixHex(c0, c1, 0.5));
+    x.save(); x.globalAlpha = 0.92 * o; x.fillStyle = RISO_PAPER; if (q.t === 'S') fillShape(x, q, RISO_PAPER); else x.fill(path);      // (the sheet there, then its inks: overlapping strokes don't sink to black)
     x.globalCompositeOperation = 'multiply';
-    const dx = (R() - 0.5) * size * 0.05 + (R() < 0.5 ? -1.5 : 1.5), dy = (R() - 0.5) * size * 0.05 + 1;
-    x.translate(dx, dy);                            // the second drum, off register: only where the picture goes towards its second colour
-    x.fillStyle = gradOf(x, q, [[0, rgbaOf(B, 0)], [0.45, rgbaOf(B, 0.25)], [1, rgbaOf(B, 0.95)]]);
-    if (q.t === 'S') fillShape(x, q, x.fillStyle); else x.fill(path);
-    x.translate(-dx, -dy);
-    if (grain) { x.globalCompositeOperation = 'screen'; x.globalAlpha = 0.5 * o; if (q.t === 'S') fillShape(x, q, grain); else { x.fillStyle = grain; x.fill(path); } }
+    RISO_DRUMS.forEach((ink, i) => {
+      if (d[i] < 0.03) return;
+      const [ox, oy] = RISO_REG[i]; x.save(); x.translate(ox / k, oy / k);
+      x.globalAlpha = Math.min(1, d[i] * o); x.fillStyle = ink;
+      if (q.t === 'S') fillShape(x, q, ink); else x.fill(path);
+      if (grain) { x.globalCompositeOperation = 'screen'; x.globalAlpha = (0.35 + 0.4 * (1 - d[i])) * o; x.fillStyle = grain; if (q.t === 'S') fillShape(x, q, grain); else x.fill(path); x.globalCompositeOperation = 'multiply'; }
+      x.restore();
+    });
     x.restore(); return endOf(q);
   },
   tape(x, q, u = 1, dir = 1) {    // strips of coloured paper tape: straight, a little see-through, torn zigzag ends, a soft sheen and a shadow
@@ -5272,7 +5285,7 @@ const STYLE_DRAW = {
 //    honey: pastel paper (the honeycomb of Mi-Teintes-like paper)
 // ─────────────────────────────────────────────────────────────
 const TOOTH = { cv: null, x: null, pats: new Map(), tiles: new Map() };
-const TOOTH_ST = { pencil: { kind: 'fine', floor: 0.16, gain: 2.1, mid: 0.42 }, charcoal: { kind: 'laid', floor: 0.12, gain: 2.2, mid: 0.46 }, pastel: { kind: 'honey', floor: 0.2, gain: 1.8, mid: 0.45 } };
+const TOOTH_ST = { pen: { kind: 'fine', floor: 0.5, gain: 1.4, mid: 0.36 }, pencil: { kind: 'fine', floor: 0.16, gain: 2.1, mid: 0.42 }, charcoal: { kind: 'laid', floor: 0.12, gain: 2.2, mid: 0.46 }, pastel: { kind: 'honey', floor: 0.2, gain: 1.8, mid: 0.45 } };
 // a tileable height field 0..1, 256 px
 function toothHeight(kind) {
   let H = TOOTH.tiles.get(kind); if (H) return H;
@@ -5309,7 +5322,7 @@ function toothShade(kind) {
   x.putImageData(im, 0, 0); p = x.createPattern(c, 'repeat'); TOOTH.pats.set(key, p); return p;
 }
 // pencil and charcoal go on light drawing paper (pastel keeps a toned ground, as pastel paper is)
-const dryPaper = () => { const v = stylePick.values(); return v.length && v.every(s => s === 'pencil' || s === 'charcoal' || s === 'pen') ? '#f1eee6' : null; };
+const dryPaper = () => { const v = stylePick.values(); return v.length && v.every(s => s === 'pencil' || s === 'charcoal' || s === 'pen') ? '#f1eee6' : v.length && v.every(s => s === 'riso') ? RISO_PAPER : null; };
 const toothScale = () => Math.max(0.6, Math.min(3, (typeof outLong === 'function' ? outLong() : 1600) / 1600));       // (paper features at the same size on any output)
 // draw f into a scratch layer, cut it by the paper's tooth there, then onto x (with x's own clip, alpha and blend)
 function toothed(x, q, f, spec, u, dir) {
@@ -6412,7 +6425,7 @@ function wcFrame() {
 //  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // ─────────────────────────────────────────────────────────────
 const OIL = { lib: undefined, ok: undefined, E: null, size: '', live: false, q: [], cur: null, fresh: false, tmp: null, tx: null, img: null };
-const OIL_ST = new Set(['oil', 'acrylic']);
+const OIL_ST = new Set(['oil', 'acrylic', 'knife']);      // (the palette knife: the same wet paint, laid with a broad, heavily loaded blade)
 function oilLib() {
   if (OIL.lib !== undefined) return OIL.lib;
   try { OIL.lib = (function () {
@@ -9080,7 +9093,7 @@ function oilBegin(sts) {
     if (OIL.E) OIL.E.destroy();
     try { OIL.E = new (oilLib())(w, h, 100); OIL.size = w + 'x' + h; OIL.ok = true; } catch (e) { OIL.E = null; OIL.ok = false; return false; }
   }
-  const oil = sts.includes('oil'), L = OIL.E.light;
+  const oil = sts.includes('oil') || sts.includes('knife'), L = OIL.E.light;
   Object.assign(L, oil ? { rough: 0.075, spec: 0.5, F0: 0.05, diffuse: 0.15, normal: 7 } : { rough: 0.22, spec: 0.16, F0: 0.04, diffuse: 0.22, normal: 9 });
   OIL.E.fluidity(oil ? 0.8 : 0.72);
   return true;
@@ -9100,7 +9113,7 @@ function oilPump(t) {
         for (let j = 1; j <= n; j++) P.push([a[0] + (bx - a[0]) * j / n, a[1] + (by - a[1]) * j / n]);
       }
       it.Q = P.length > cap ? P.filter((p, i) => i % Math.ceil(P.length / cap) === 0 || i === P.length - 1) : P; it.i = 1;
-      E.begin(P[0][0], P[0][1], r, hexRgb(it.c0).map(v => v / 255), it.st === 'acrylic' ? 0.85 : 0.75, (LAG.lite ? 16 : 24) + (LAG.lite ? 44 : 76) * clamp01((r - 3) / 28));     // (fewer bristles for a small brush, and on a slow computer)
+      E.begin(P[0][0], P[0][1], it.st === 'knife' ? Math.min(75, r * 1.25) : r, hexRgb(it.c0).map(v => v / 255), it.st === 'acrylic' ? 0.85 : it.st === 'knife' ? 1 : 0.75, (LAG.lite ? 16 : 24) + (LAG.lite ? 44 : 76) * clamp01((r - 3) / 28));     // (fewer bristles for a small brush, and on a slow computer)
       OIL.cur = it; OIL.fresh = true;
     }
     const it = OIL.cur, n = it.Q.length - 1, upto = many || !it.dur ? n : Math.min(n, Math.floor(n * (now - it.t0) / it.dur));
@@ -9339,7 +9352,7 @@ function paintPanel(b, now, r) {
   X.save(); tracePts(X, P); X.clip();
   if (VZ.mode === 'motion') vizDraw(b, now, r); else if (VZ.on) scorePost(b, now, () => VZ.mode === 'nature' ? natureDraw(b, now) : VZ.mode === 'vector' ? vectorDraw(b, now) : scoreDraw(b, now, VZ.mode === 'organic' ? 'organic' : VZ.mode === 'brush')); else if (S.dg && S.dg.on && S.mode === 'auto' && S.dg.phase !== 'paint') dgDraw(b, now); else paintContent(b, now, r);
   if (SPRAY.wall !== 'none' && S.out && !VZ.on) wallOver(X, b.x, b.y, b.w, b.h);
-  if ((GRADE.on || SIGNAL.on || SCOPE.on) && (S.out || VZ.on)) { const m = X.getTransform(), r4 = [Math.round(m.a * b.x + m.e), Math.round(m.d * b.y + m.f), Math.round(m.a * b.w), Math.round(m.d * b.h)]; if (S.out) gradeApply(X, ...r4); scopeApply(X, ...r4); signalApply(X, ...r4); }
+  if ((GRADE.on || SIGNAL.on || SCOPE.on || LOOK.mode) && (S.out || VZ.on)) { const m = X.getTransform(), r4 = [Math.round(m.a * b.x + m.e), Math.round(m.d * b.y + m.f), Math.round(m.a * b.w), Math.round(m.d * b.h)]; if (S.out) gradeApply(X, ...r4); scopeApply(X, ...r4); lookApply(X, ...r4); signalApply(X, ...r4); }
   X.restore();
   drawRim(b, now, P);
 }
@@ -10356,7 +10369,7 @@ function gradeApply(x, dx, dy, dw, dh) {
 function graded(cv) {
   if (!GRADE.on && !SIGNAL.on && !SCOPE.on) return cv;
   const c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height; const x = c.getContext('2d'); x.drawImage(cv, 0, 0);
-  gradeApply(x, 0, 0, c.width, c.height); scopeApply(x, 0, 0, c.width, c.height); signalApply(x, 0, 0, c.width, c.height); if (c.width * c.height > 4e6) GRADE.tmp = GRADE.sm = null;
+  gradeApply(x, 0, 0, c.width, c.height); scopeApply(x, 0, 0, c.width, c.height); lookApply(x, 0, 0, c.width, c.height); signalApply(x, 0, 0, c.width, c.height); if (c.width * c.height > 4e6) GRADE.tmp = GRADE.sm = null;
   return c;
 }
 // ═════════════════════════════════════════════════════════════
@@ -10918,6 +10931,71 @@ function scopeBeam(gl, Pn, dw, dh, dt) {
   gl.bindBuffer(gl.ARRAY_BUFFER, SCOPE.quad);
 }
 const SC_CORNERS = [[0, -1], [1, -1], [0, 1], [0, 1], [1, -1], [1, 1]];
+// ═════════════════════════════════════════════════════════════
+//  Grade looks · cross-hatch and CMYK halftone: the whole picture redrawn as a pen drawing or a print (after the post
+//  effects of spite's sketch and paper-design's shaders, written for this painter). cross-hatch: the tones as layers of
+//  hatching that close in as it darkens (one direction, then crossed, then crossed again), each line wobbling as a hand
+//  does and boiling a little from frame to frame like drawn animation, with ink outlines and paper grain. CMYK halftone:
+//  the picture separated into cyan, magenta, yellow and black, each a screen of dots at its own angle (15° 75° 0° 45°),
+//  their sizes from the ink each needs, overprinted on paper a little off register.
+// ═════════════════════════════════════════════════════════════
+const LOOK = { mode: null, P: {} };
+const LK_COMMON = `precision highp float; uniform sampler2D u; uniform vec2 R; uniform float T, SC; varying vec2 v;
+float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vn(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y); }
+float fbm(vec2 p) { float s = 0., a = .5; for (int i = 0; i < 4; i++) { s += a * vn(p); p = p * 2.03 + 7.1; a *= .5; } return s; }
+vec3 C(vec2 q) { return texture2D(u, vec2(q.x, 1. - q.y)).rgb; }
+float L(vec2 q) { return dot(C(q), vec3(.299, .587, .114)); }
+`;
+const LK_HATCH = LK_COMMON + `
+float stripe(vec2 p, float a, float sp, float w) { float t = dot(p, vec2(-sin(a), cos(a))) / sp, f = abs(fract(t) - .5) * sp; return 1. - smoothstep(w * .5, w * .5 + 1., f); }
+void main() {
+  vec2 px = v * R; float boil = floor(T * 8.);
+  vec2 wob = vec2(vn(px * .018 / SC + boil * 3.1), vn(px * .018 / SC + 7. + boil * 1.7)) - .5;
+  vec2 p = px + wob * 7. * SC, e = 2. * SC / R;
+  float l = (L(v) * 2. + L(v + vec2(e.x, 0.)) + L(v - vec2(e.x, 0.)) + L(v + vec2(0., e.y)) + L(v - vec2(0., e.y))) / 6.;
+  float sp = 6.5 * SC, w = 1.05 * SC, ink = 0.;
+  if (l < .86) ink = max(ink, stripe(p, .72, sp, w * mix(.5, 1., (.86 - l) / .86)));
+  if (l < .64) ink = max(ink, stripe(p, -.8, sp, w));
+  if (l < .44) ink = max(ink, stripe(p + 3.1 * SC, .1, sp * .8, w));
+  if (l < .24) ink = max(ink, stripe(p + 1.7 * SC, 1.5, sp * .7, w * 1.2));
+  ink *= .82 + .18 * smoothstep(.2, .5, vn(p * .11 / SC + boil));
+  vec2 g = vec2(L(v + vec2(e.x, 0.)) - L(v - vec2(e.x, 0.)), L(v + vec2(0., e.y)) - L(v - vec2(0., e.y)));
+  ink = max(ink, smoothstep(.07, .18, length(g)) * .95);
+  vec3 paper = vec3(.965, .952, .925) * (.93 + .07 * fbm(px * .14 / SC));
+  gl_FragColor = vec4(mix(paper, vec3(.07, .07, .09), clamp(ink, 0., 1.) * .93), 1.); }`;
+const LK_HALF = LK_COMMON + `
+vec4 cmyk(vec3 c) { float k = 1. - max(c.r, max(c.g, c.b)); return vec4((1. - c - k) / max(1. - k, 1e-3), k); }
+float screen(vec2 px, float an, float cell, int ch) {
+  mat2 r = mat2(cos(an), -sin(an), sin(an), cos(an)); vec2 q = r * px / cell, c = floor(q) + .5;
+  vec2 cpx = (c * cell) * r;
+  vec4 k = cmyk(C(cpx / R)); float val = ch == 0 ? k.x : ch == 1 ? k.y : ch == 2 ? k.z : k.w;
+  float d = length(fract(q) - .5), rad = sqrt(clamp(val, 0., 1.)) * .66, aa = 1.2 / cell;
+  return 1. - smoothstep(rad - aa, rad + aa, d); }
+void main() {
+  vec2 px = v * R; float cell = 6.5 * SC;
+  float c = screen(px + vec2(.7, -.4) * SC, .2618, cell, 0), m = screen(px + vec2(-.5, .6) * SC, 1.309, cell, 1), y = screen(px, 0., cell, 2), k = screen(px + vec2(.3, .3) * SC, .7854, cell, 3);
+  vec3 paper = vec3(.968, .955, .93) * (.95 + .05 * fbm(px * .2 / SC));
+  vec3 o = paper * mix(vec3(1.), vec3(0., .64, .9), c * .92) * mix(vec3(1.), vec3(.92, .05, .52), m * .9) * mix(vec3(1.), vec3(1., .9, .05), y * .9) * mix(vec3(1.), vec3(.09, .09, .11), k * .95);
+  gl_FragColor = vec4(o, 1.); }`;
+function lookApply(x, dx, dy, dw, dh) {
+  if (!LOOK.mode || dw < 8 || dh < 8) return;
+  const gl = scopeGL(); if (!gl) return;
+  let P = LOOK.P[LOOK.mode];
+  if (!P) {
+    const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
+    const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, SC_VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, LOOK.mode === 'hatch' ? LK_HATCH : LK_HALF)); gl.linkProgram(p);
+    P = LOOK.P[LOOK.mode] = { p, a: gl.getAttribLocation(p, 'a'), u: gl.getUniformLocation(p, 'u'), R: gl.getUniformLocation(p, 'R'), T: gl.getUniformLocation(p, 'T'), SC: gl.getUniformLocation(p, 'SC') };
+  }
+  const t = SCOPE.tmp || (SCOPE.tmp = document.createElement('canvas')); if (t.width !== dw || t.height !== dh) { t.width = dw; t.height = dh; }
+  const tx = t.getContext('2d'); tx.globalCompositeOperation = 'copy'; tx.drawImage(x.canvas, dx, dy, dw, dh, 0, 0, dw, dh);
+  const cv = SCOPE.cv; if (cv.width !== dw || cv.height !== dh) { cv.width = dw; cv.height = dh; }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, dw, dh); gl.useProgram(P.p); gl.bindBuffer(gl.ARRAY_BUFFER, SCOPE.quad); gl.enableVertexAttribArray(P.a); gl.vertexAttribPointer(P.a, 2, gl.FLOAT, false, 0, 0);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, SCOPE.tin); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, t); gl.uniform1i(P.u, 0);
+  gl.uniform2f(P.R, dw, dh); gl.uniform1f(P.T, (clock() / 1000) % 1000); gl.uniform1f(P.SC, Math.max(0.6, Math.min(dw, dh) / 900));
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.beginPath(); x.rect(dx, dy, dw, dh); x.clip(); x.globalCompositeOperation = 'copy'; x.drawImage(cv, dx, dy); x.restore();
+}
 function scopeApply(x, dx, dy, dw, dh) {
   if (!SCOPE.on || dw < 8 || dh < 8) return;
   const gl = scopeGL(); if (!gl) return;
@@ -13512,18 +13590,18 @@ const stylePick = stylePicker();
     panel.querySelector('.ttl').insertAdjacentHTML('afterend', `<div id="wordspop" class="gradepop" hidden><div class="gp-h"><b>text bar</b><button type="button" class="mini" id="wordsx" title="Close">✕</button></div><div class="gp-row"><select id="wordson" class="sel" aria-label="Text bar" title="Text bar: your words between the picture and the code, a line at a time, each line's turn spread evenly over the video, in reel text styles (studio, simple, +code and editor displays)"><option value="off" selected>text: off</option><option value="on">text: on</option></select><select id="wordscol" class="sel" aria-label="Text colour" title="The colour of the words (or of their box): white · black · accent (the theme colour) · picture (the picture's main colour)"><option value="white">white</option><option value="black">black</option><option value="accent">accent</option><option value="picture">picture</option></select></div><div class="gp-row"><select id="wordslook" class="sel" aria-label="Text style" title="How the words look, like the text in a reel: classic · box (white box, dark text) · colour box · outline · neon (a glow) · typewriter (mono on a dark box) · shadow"><option value="classic">classic</option><option value="box">box</option><option value="cbox">colour box</option><option value="outline">outline</option><option value="neon">neon</option><option value="typewriter">typewriter</option><option value="shadow">shadow</option></select></div><div class="gp-row"><select id="wordsfont" class="sel" aria-label="Font" title="The font the words are set in (then painted)"><option value="archivo-black">Archivo Black</option><option value="bebas-neue">Bebas Neue</option><option value="playfair-display">Playfair</option><option value="permanent-marker">Marker</option><option value="caveat">Caveat</option><option value="space-mono">Space Mono</option><option value="abril-fatface">Abril Fatface</option><option value="rubik-mono-one">Rubik Mono</option><option value="pacifico">Pacifico</option><option value="rock-salt">Rock Salt</option></select></div><textarea id="wordstext" placeholder="One line per text. Each line comes up on its own, in turn, spread evenly over the video (three lines over nine seconds: one every three seconds)." aria-label="The words"></textarea></div>`);
     panel.querySelector('.ttl').insertAdjacentHTML('afterend', `<div id="gradepop" class="gradepop" hidden><div class="gp-h"><b>colour grade</b><button type="button" class="mini" id="gradereset" title="Every slider back to 0">reset</button><button type="button" class="mini" id="gradex" title="Close">✕</button></div><label title="Double-click to reset"><span>brightness</span><input id="g_bri" type="range" min="-100" max="100" value="0" aria-label="brightness"><output>0</output></label><label title="Double-click to reset"><span>contrast</span><input id="g_con" type="range" min="-100" max="100" value="0" aria-label="contrast"><output>0</output></label><label title="Double-click to reset"><span>saturation</span><input id="g_sat" type="range" min="-100" max="100" value="0" aria-label="saturation"><output>0</output></label><label title="Double-click to reset"><span>highlights</span><input id="g_hil" type="range" min="-100" max="100" value="0" aria-label="highlights"><output>0</output></label><label title="Double-click to reset"><span>shadows</span><input id="g_sha" type="range" min="-100" max="100" value="0" aria-label="shadows"><output>0</output></label><label title="Double-click to reset"><span>hue</span><input id="g_hue" type="range" min="-180" max="180" value="0" aria-label="hue"><output>0</output></label><label title="Double-click to reset"><span>colour boost</span><input id="g_vib" type="range" min="0" max="100" value="0" aria-label="colour boost"><output>0</output></label><label title="Double-click to reset"><span>glow</span><input id="g_glo" type="range" min="0" max="100" value="0" aria-label="glow"><output>0</output></label><label title="Double-click to reset"><span>haze</span><input id="g_haz" type="range" min="0" max="100" value="0" aria-label="haze"><output>0</output></label></div>`); }
   let saved = {}; try { saved = JSON.parse(store('cp-grade') || '{}') || {}; } catch (e) { /* none */ }
-  const sync = keep => { for (const [k] of GR_DEF) { const el = $('g_' + k); GRADE.v[k] = +el.value; el.nextElementSibling.textContent = el.value; } gradeBuild(); $('gradebtn').classList.toggle('on', GRADE.on || SCOPE.on); if (keep) store('cp-grade', JSON.stringify(GRADE.v)); };
+  const sync = keep => { for (const [k] of GR_DEF) { const el = $('g_' + k); GRADE.v[k] = +el.value; el.nextElementSibling.textContent = el.value; } gradeBuild(); $('gradebtn').classList.toggle('on', GRADE.on || SCOPE.on || !!LOOK.mode); if (keep) store('cp-grade', JSON.stringify(GRADE.v)); };
   for (const [k] of GR_DEF) { const el = $('g_' + k); if (saved[k] != null) el.value = saved[k]; el.addEventListener('input', () => sync(true)); el.addEventListener('dblclick', () => { el.value = 0; sync(true); }); }
   $('gradereset').onclick = () => { for (const [k] of GR_DEF) $('g_' + k).value = 0; sync(true); };
   $('gradex').onclick = () => { $('gradepop').hidden = true; };
   $('gradebtn').onclick = () => { $('gradepop').hidden = !$('gradepop').hidden; $('wordspop').hidden = $('signalpop').hidden = true; };
 // the grade's looks (beside the colour sliders): vector scope
 { const h = document.querySelector('#gradepop .gp-h');
-  h.insertAdjacentHTML('afterend', `<div class="gp-row"><select id="glook" class="sel" aria-label="Grade look" title="A whole look: vector scope — black, the picture's edges as thin glowing phosphor lines with white-hot cores, its brightest parts as glowing blobs, a crosshair and dashed drops to the axes, like an old vector display"><option value="none">look: normal</option><option value="scope">look: vector scope</option></select><select id="gscol" class="sel" aria-label="Scope colour" title="The phosphor's colour"><option value="green">green</option><option value="amber">amber</option><option value="cyan">cyan</option><option value="white">white</option><option value="magenta">magenta</option><option value="picture">picture</option></select></div><div class="gp-row" id="gscoperow"><label class="key" title="The crosshair, its 0 and the dashed drops to the axes"><input id="gsaxes" type="checkbox" checked><span class="led"></span>axes</label><label class="key" title="Beam: a real scope's beam traces the picture's lines over and over (after osci-render and woscope): the lines it lingers on burn bright, the jumps between them are faint, and the phosphor's afterglow fades behind it. Off: the edges simply glow, all at once."><input id="gsbeam" type="checkbox" checked><span class="led"></span>beam</label></div><label id="gsdetrow" title="How many of the picture's edges become lines: low, only the strongest (right-click: 50)"><span>detail</span><input id="gsdet" type="range" min="0" max="100" value="50" aria-label="detail"><output>50</output></label><label id="gsfillrow" title="How much the brightest parts glow as blobs (right-click: 35)"><span>blobs</span><input id="gsfill" type="range" min="0" max="100" value="35" aria-label="blobs"><output>35</output></label><label id="gsglowrow" title="Afterglow: how long the phosphor holds the beam's light. Short: a flickering trace; long: a steady picture, with trails on a video (right-click: 40)"><span>afterglow</span><input id="gsglow" type="range" min="0" max="100" value="40" aria-label="afterglow"><output>40</output></label>`);
+  h.insertAdjacentHTML('afterend', `<div class="gp-row"><select id="glook" class="sel" aria-label="Grade look" title="A whole look: vector scope — black, the picture's edges as thin glowing phosphor lines with white-hot cores, its brightest parts as glowing blobs, a crosshair and dashed drops to the axes, like an old vector display"><option value="none">look: normal</option><option value="scope">look: vector scope</option><option value="hatch">look: cross-hatch</option><option value="halftone">look: CMYK halftone</option></select><select id="gscol" class="sel" aria-label="Scope colour" title="The phosphor's colour"><option value="green">green</option><option value="amber">amber</option><option value="cyan">cyan</option><option value="white">white</option><option value="magenta">magenta</option><option value="picture">picture</option></select></div><div class="gp-row" id="gscoperow"><label class="key" title="The crosshair, its 0 and the dashed drops to the axes"><input id="gsaxes" type="checkbox" checked><span class="led"></span>axes</label><label class="key" title="Beam: a real scope's beam traces the picture's lines over and over (after osci-render and woscope): the lines it lingers on burn bright, the jumps between them are faint, and the phosphor's afterglow fades behind it. Off: the edges simply glow, all at once."><input id="gsbeam" type="checkbox" checked><span class="led"></span>beam</label></div><label id="gsdetrow" title="How many of the picture's edges become lines: low, only the strongest (right-click: 50)"><span>detail</span><input id="gsdet" type="range" min="0" max="100" value="50" aria-label="detail"><output>50</output></label><label id="gsfillrow" title="How much the brightest parts glow as blobs (right-click: 35)"><span>blobs</span><input id="gsfill" type="range" min="0" max="100" value="35" aria-label="blobs"><output>35</output></label><label id="gsglowrow" title="Afterglow: how long the phosphor holds the beam's light. Short: a flickering trace; long: a steady picture, with trails on a video (right-click: 40)"><span>afterglow</span><input id="gsglow" type="range" min="0" max="100" value="40" aria-label="afterglow"><output>40</output></label>`);
   let sv = {}; try { sv = JSON.parse(store('cp-scope') || '{}') || {}; } catch (e) { /* none */ }
   if (sv.look) $('glook').value = sv.look; if (sv.col) $('gscol').value = sv.col; if (sv.axes === false) $('gsaxes').checked = false; if (sv.fill != null) $('gsfill').value = sv.fill; if (sv.det != null) $('gsdet').value = sv.det; if (sv.beam === false) $('gsbeam').checked = false; if (sv.glow != null) $('gsglow').value = sv.glow;
-  const sync = keep => { SCOPE.on = $('glook').value === 'scope'; SCOPE.col = $('gscol').value; SCOPE.axes = $('gsaxes').checked; SCOPE.fill = +$('gsfill').value; $('gsfill').nextElementSibling.textContent = $('gsfill').value; SCOPE.det = +$('gsdet').value; $('gsdet').nextElementSibling.textContent = $('gsdet').value; SCOPE.beam = $('gsbeam').checked; SCOPE.glow = +$('gsglow').value; $('gsglow').nextElementSibling.textContent = $('gsglow').value; SCOPE.path = null;
-    $('gscol').disabled = $('gsaxes').disabled = $('gsfill').disabled = $('gsdet').disabled = $('gsbeam').disabled = $('gsglow').disabled = !SCOPE.on; $('gradebtn').classList.toggle('on', GRADE.on || SCOPE.on);
+  const sync = keep => { SCOPE.on = $('glook').value === 'scope'; LOOK.mode = ['hatch', 'halftone'].includes($('glook').value) ? $('glook').value : null; SCOPE.col = $('gscol').value; SCOPE.axes = $('gsaxes').checked; SCOPE.fill = +$('gsfill').value; $('gsfill').nextElementSibling.textContent = $('gsfill').value; SCOPE.det = +$('gsdet').value; $('gsdet').nextElementSibling.textContent = $('gsdet').value; SCOPE.beam = $('gsbeam').checked; SCOPE.glow = +$('gsglow').value; $('gsglow').nextElementSibling.textContent = $('gsglow').value; SCOPE.path = null;
+    $('gscol').disabled = $('gsaxes').disabled = $('gsfill').disabled = $('gsdet').disabled = $('gsbeam').disabled = $('gsglow').disabled = !SCOPE.on; $('gradebtn').classList.toggle('on', GRADE.on || SCOPE.on || !!LOOK.mode);
     if (keep) store('cp-scope', JSON.stringify({ look: $('glook').value, col: SCOPE.col, axes: SCOPE.axes, fill: SCOPE.fill, det: SCOPE.det, beam: SCOPE.beam, glow: SCOPE.glow })); };
   $('glook').onchange = $('gscol').onchange = $('gsaxes').onchange = $('gsbeam').onchange = () => sync(true); $('gsglow').addEventListener('input', () => sync(true)); $('gsfill').addEventListener('input', () => sync(true)); $('gsdet').addEventListener('input', () => sync(true));
   sync(false); }
