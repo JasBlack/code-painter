@@ -10706,7 +10706,7 @@ function voicesAnchors() {
 //  spills (the red-orange ring film gets round bright things), a filmic roll-off instead of clipping, fine moving grain
 //  and a soft vignette. A thin crosshair with its 0 and faint dashed drops from the strongest points, if wanted.
 // ═════════════════════════════════════════════════════════════
-const SCOPE = { on: false, col: 'green', axes: true, fill: 35, det: 50, gl: null, fail: false, nodes: null, nkey: '' };
+const SCOPE = { on: false, col: 'green', axes: true, fill: 35, det: 50, beam: true, glow: 40, gl: null, fail: false, nodes: null, nkey: '', path: null, pt: 0, bp: 0, lt: 0 };
 const SCOPE_COLS = { green: [0.32, 1, 0.5], amber: [1, 0.62, 0.22], cyan: [0.35, 0.85, 1], white: [0.95, 0.94, 0.9], magenta: [1, 0.35, 0.85], picture: [-1, 0, 0] };
 const SC_VS = 'attribute vec2 a; varying vec2 v; void main() { v = a * .5 + .5; gl_Position = vec4(a, 0., 1.); }';
 // the lines: the gradient, thinned to its ridge (only where it is stronger than across it), and the bright parts
@@ -10718,6 +10718,22 @@ void main() { vec2 g = G(v); float m = length(g); vec2 n = m > 1e-4 ? g / m : ve
   float ridge = step(length(G(v + e)) * .92, m) * step(length(G(v - e)) * .92, m);
   float line = smoothstep(TH, TH + .25, m) * mix(.35, 1., ridge), l = L(v);
   gl_FragColor = vec4(line, smoothstep(.75, .95, l) * FL, l, 1.); }`;
+// the beam (after woscope's way of drawing an oscilloscope): each stretch of the path is a quad round the segment, lit by
+// the beam's gaussian spot integrated along it — so the light a stretch gets goes with how long the beam spends on it:
+// slow, short steps (the picture's lines) burn bright, the long jumps between them are faint wisps, like a real scope
+const SC_BV = `attribute vec2 aA, aB, aC; uniform vec2 R; uniform float S; varying vec2 vp; varying float vl;
+void main() { vec2 d = aB - aA; float l = length(d); vec2 dr = l > 1e-3 ? d / l : vec2(1., 0.), n = vec2(-dr.y, dr.x); float e = S * 3.2;
+  vec2 p = mix(aA - dr * e, aB + dr * e, aC.x) + n * aC.y * e; vp = vec2(dot(p - aA, dr), aC.y * e); vl = l;
+  gl_Position = vec4(p.x / R.x * 2. - 1., 1. - p.y / R.y * 2., 0., 1.); }`;
+const SC_BF = `precision highp float; varying vec2 vp; varying float vl; uniform float S, I, REF;
+float erf_(float x) { float s = sign(x), a = abs(x); float t = 1. + (.278393 + (.230389 + .078108 * a * a) * a) * a; t *= t; return s - s / (t * t); }
+void main() { float k = .70710678 / S, g = exp(-vp.y * vp.y / (2. * S * S)), a;
+  if (vl < 1e-3) a = exp(-dot(vp, vp) / (2. * S * S)); else a = .5 * (erf_(vp.x * k) - erf_((vp.x - vl) * k)) * g * REF / max(vl, REF);
+  gl_FragColor = vec4(a * I, 0., 0., 1.); }`;
+// the phosphor's afterglow: what was lit fades a little every frame
+const SC_D = `precision highp float; uniform sampler2D u; uniform float K; varying vec2 v; void main() { gl_FragColor = vec4(texture2D(u, v).r * K, 0., 0., 1.); }`;
+// the beam's light as the lines, with the bright blobs and the picture's light from the edge pass
+const SC_K = `precision highp float; uniform sampler2D e, pb; varying vec2 v; void main() { vec4 E = texture2D(e, v); gl_FragColor = vec4(min(texture2D(pb, v).r, 4.), E.g, E.b, 1.); }`;
 // a gaussian blur along one direction (9 taps, linear-sampled)
 const SC_B = `precision highp float; uniform sampler2D u; uniform vec2 D; varying vec2 v;
 void main() { vec4 c = texture2D(u, v) * .227; c += (texture2D(u, v + D * 1.385) + texture2D(u, v - D * 1.385)) * .316; c += (texture2D(u, v + D * 3.231) + texture2D(u, v - D * 3.231)) * .07; gl_FragColor = c; }`;
@@ -10740,18 +10756,23 @@ function scopeGL() {
     const cv = document.createElement('canvas'), gl = cv.getContext('webgl', { alpha: false, premultipliedAlpha: false, antialias: false }); if (!gl) throw new Error('no webgl');
     const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
     const prog = (fs, names) => { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, SC_VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); const L = { p, a: gl.getAttribLocation(p, 'a') }; for (const n of names) L[n] = gl.getUniformLocation(p, n); return L; };
-    SCOPE.E = prog(SC_E, ['u', 'R', 'TH', 'FL']); SCOPE.B = prog(SC_B, ['u', 'D']); SCOPE.C = prog(SC_C, ['e', 'b1', 'b2', 'b3', 'src', 'C', 'T', 'PIC', 'R']);
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    SCOPE.E = prog(SC_E, ['u', 'R', 'TH', 'FL']); SCOPE.B = prog(SC_B, ['u', 'D']); SCOPE.D = prog(SC_D, ['u', 'K']); SCOPE.K = prog(SC_K, ['e', 'pb']);
+    { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, SC_BV)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, SC_BF)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+      SCOPE.BM = { p, aA: gl.getAttribLocation(p, 'aA'), aB: gl.getAttribLocation(p, 'aB'), aC: gl.getAttribLocation(p, 'aC'), R: gl.getUniformLocation(p, 'R'), S: gl.getUniformLocation(p, 'S'), I: gl.getUniformLocation(p, 'I'), REF: gl.getUniformLocation(p, 'REF') }; }
+    // (the afterglow wants more than 8 bits: half floats where the card has them)
+    const hf = gl.getExtension('OES_texture_half_float'); SCOPE.hf = hf && gl.getExtension('EXT_color_buffer_half_float') ? hf.HALF_FLOAT_OES : 0; gl.getExtension('OES_texture_half_float_linear');
+    SCOPE.quad = gl.createBuffer(); SCOPE.segs = gl.createBuffer(); SCOPE.C = prog(SC_C, ['e', 'b1', 'b2', 'b3', 'src', 'C', 'T', 'PIC', 'R']);
+    gl.bindBuffer(gl.ARRAY_BUFFER, SCOPE.quad); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const tex = () => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); for (const [p, q] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, p, q); return t; };
     SCOPE.tex = tex; SCOPE.tin = tex(); SCOPE.T = {}; SCOPE.cv = cv; SCOPE.gl = gl;
   } catch (e) { SCOPE.fail = true; console.warn('scope: no WebGL', e); }
   return SCOPE.gl;
 }
 // a render target of a size (kept and reused by name)
-function scopeRT(name, w, h) {
+function scopeRT(name, w, h, hf = false) {
   const gl = SCOPE.gl; let r = SCOPE.T[name];
   if (!r) r = SCOPE.T[name] = { t: SCOPE.tex(), f: gl.createFramebuffer(), w: 0, h: 0 };
-  if (r.w !== w || r.h !== h) { gl.bindTexture(gl.TEXTURE_2D, r.t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); gl.bindFramebuffer(gl.FRAMEBUFFER, r.f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, r.t, 0); r.w = w; r.h = h; }
+  if (r.w !== w || r.h !== h) { gl.bindTexture(gl.TEXTURE_2D, r.t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, hf && SCOPE.hf ? SCOPE.hf : gl.UNSIGNED_BYTE, null); gl.bindFramebuffer(gl.FRAMEBUFFER, r.f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, r.t, 0); r.w = w; r.h = h; }
   return r;
 }
 // the plot's points: the picture's strongest edge points, spread apart (they drift to the new ones on a video)
@@ -10765,6 +10786,59 @@ function scopeNodes() {
   for (let i = 0; i < SCOPE.nodes.length; i++) { const n = SCOPE.nodes[i], t = SCOPE.target[i]; n.x += (t.x - n.x) * 0.15; n.y += (t.y - n.y) * 0.15; }
   return SCOPE.nodes;
 }
+// the beam's path: the picture's edges traced into lines (thinned to their ridge, followed pixel to pixel), then put in one
+// order, each line joined to the nearest end of the next — about four times a second, so a video's lines follow it
+function scopeTrace(t, dw, dh) {
+  const k = Math.min(1, 380 / Math.max(dw, dh)), w = Math.max(16, Math.round(dw * k)), h = Math.max(16, Math.round(dh * k));
+  const c = SCOPE.tc || (SCOPE.tc = document.createElement('canvas')); if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  const cx = c.getContext('2d', { willReadFrequently: true }); cx.drawImage(t, 0, 0, w, h); const d = cx.getImageData(0, 0, w, h).data;
+  const L = new Float32Array(w * h); for (let i = 0; i < w * h; i++) L[i] = (0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2]) / 255;
+  const M = new Float32Array(w * h), A = new Uint8Array(w * h); let mx = 1e-6;
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x;
+    const gx = L[i - w + 1] + 2 * L[i + 1] + L[i + w + 1] - L[i - w - 1] - 2 * L[i - 1] - L[i + w - 1], gy = L[i + w - 1] + 2 * L[i + w] + L[i + w + 1] - L[i - w - 1] - 2 * L[i - w] - L[i - w + 1];
+    const m = Math.hypot(gx, gy); M[i] = m; if (m > mx) mx = m; const an = (Math.atan2(gy, gx) + Math.PI) % Math.PI; A[i] = an < 0.3927 || an >= 2.7489 ? 0 : an < 1.1781 ? 1 : an < 1.9635 ? 2 : 3; }
+  // thinned: a point stays only where it is the strongest across the edge; the detail sets how strong it has to be
+  const th = mx * (0.42 - 0.34 * (SCOPE.det ?? 50) / 100), E = new Uint8Array(w * h), off = [[1, 0], [1, 1], [0, 1], [-1, 1]];
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x, m = M[i]; if (m < th) continue; const [ox, oy] = off[A[i]]; if (m >= M[i + oy * w + ox] && m >= M[i - oy * w - ox]) E[i] = 1; }
+  // followed into chains (each step tries straight on first, then turning a little, then more)
+  const chains = [], nb = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]], turn = [0, 1, -1, 2, -2, 3, -3, 4];
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { if (E[y * w + x] !== 1) continue;
+    const P = [x, y]; E[y * w + x] = 2; let px = x, py = y, dir = -1;
+    for (;;) { let best = -1;
+      for (let s = 0; s < 8; s++) { const q = dir < 0 ? s : (dir + turn[s] + 8) % 8, nx = px + nb[q][0], ny = py + nb[q][1]; if (nx < 1 || ny < 1 || nx >= w - 1 || ny >= h - 1) continue; if (E[ny * w + nx] === 1) { best = q; break; } }
+      if (best < 0) break; px += nb[best][0]; py += nb[best][1]; E[py * w + px] = 2; P.push(px, py); dir = best; }
+    if (P.length >= 10) chains.push(P);
+  }
+  chains.sort((a, b) => b.length - a.length); let budget = 9000; const keep = []; for (const ch of chains) { if (budget <= 0) break; keep.push(ch); budget -= ch.length >> 1; }
+  // one route: from each line's end on to the nearest end of a line not yet drawn (a line may be drawn backwards)
+  const out = [], used = new Uint8Array(keep.length), s = 1 / k; let cx0 = w / 2, cy0 = h / 2;
+  for (let n = 0; n < keep.length; n++) {
+    let bi = -1, bd = 1e18, rev = false;
+    for (let j = 0; j < keep.length; j++) { if (used[j]) continue; const P = keep[j], d0 = (P[0] - cx0) ** 2 + (P[1] - cy0) ** 2, d1 = (P[P.length - 2] - cx0) ** 2 + (P[P.length - 1] - cy0) ** 2; if (d0 < bd) { bd = d0; bi = j; rev = false; } if (d1 < bd) { bd = d1; bi = j; rev = true; } }
+    used[bi] = 1; const P = keep[bi], m2 = P.length >> 1;
+    for (let q = 0; q < m2; q++) { if (q % 2 && q !== m2 - 1) continue; const i = rev ? m2 - 1 - q : q; out.push(P[i * 2] * s, P[i * 2 + 1] * s); }     // (every other pixel: the beam's steps)
+    cx0 = out[out.length - 2] * k; cy0 = out[out.length - 1] * k;
+  }
+  SCOPE.step = 2 * s; return out.length >= 4 ? new Float32Array(out) : null;
+}
+// the next stretch of the route, drawn by the beam into the afterglow (the whole route about three times a second)
+function scopeBeam(gl, Pn, dw, dh, dt) {
+  const P = SCOPE.path; if (!P) return;
+  const n = (P.length >> 1) - 1, rate = 3.2 * (musicOn() ? 1 + 0.5 * Math.min(1, AU.bass || 0) : 1);
+  const adv = Math.min(n, Math.max(1, Math.round(n * rate * dt))), b0 = Math.floor(SCOPE.bp) % n;
+  const V = SCOPE.vb && SCOPE.vb.length >= adv * 36 ? SCOPE.vb : (SCOPE.vb = new Float32Array(Math.max(adv, 512) * 36)); let o = 0;
+  for (let c = 0; c < adv; c++) { const i = (b0 + c) % n, ax = P[i * 2], ay = P[i * 2 + 1], bx = P[i * 2 + 2], by = P[i * 2 + 3];
+    for (const [u, w] of SC_CORNERS) { V[o++] = ax; V[o++] = ay; V[o++] = bx; V[o++] = by; V[o++] = u; V[o++] = w; } }
+  SCOPE.bp = (b0 + adv) % n;
+  const B = SCOPE.BM; gl.useProgram(B.p); gl.bindFramebuffer(gl.FRAMEBUFFER, Pn.f); gl.viewport(0, 0, dw, dh);
+  gl.bindBuffer(gl.ARRAY_BUFFER, SCOPE.segs); gl.bufferData(gl.ARRAY_BUFFER, V.subarray(0, o), gl.STREAM_DRAW);
+  for (const [a, off] of [[B.aA, 0], [B.aB, 8], [B.aC, 16]]) { gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 24, off); }
+  const m = Math.min(dw, dh); gl.uniform2f(B.R, dw, dh); gl.uniform1f(B.S, Math.max(0.7, m / 1000)); gl.uniform1f(B.I, 0.75); gl.uniform1f(B.REF, SCOPE.step || 2);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.drawArrays(gl.TRIANGLES, 0, o / 6); gl.disable(gl.BLEND);
+  for (const a of [B.aA, B.aB, B.aC]) gl.disableVertexAttribArray(a);
+  gl.bindBuffer(gl.ARRAY_BUFFER, SCOPE.quad);
+}
+const SC_CORNERS = [[0, -1], [1, -1], [0, 1], [0, 1], [1, -1], [1, 1]];
 function scopeApply(x, dx, dy, dw, dh) {
   if (!SCOPE.on || dw < 8 || dh < 8) return;
   const gl = scopeGL(); if (!gl) return;
@@ -10776,8 +10850,21 @@ function scopeApply(x, dx, dy, dw, dh) {
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, SCOPE.tin); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, t);
   // the lines, at full size
   const E = scopeRT('e', dw, dh); run(SCOPE.E, E, dw, dh); bind(0, SCOPE.tin, SCOPE.E.u); gl.uniform2f(SCOPE.E.R, dw, dh); gl.uniform1f(SCOPE.E.TH, 0.5 - 0.42 * (SCOPE.det ?? 50) / 100); gl.uniform1f(SCOPE.E.FL, SCOPE.fill / 100); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  // the beam: the afterglow faded, the next stretch of the route drawn into it; then it stands for the lines
+  let src = E;
+  if (SCOPE.beam && SCOPE.BM) {
+    const now = performance.now(), dt = Math.min(0.1, SCOPE.lt ? (now - SCOPE.lt) / 1000 : 1 / 60); SCOPE.lt = now;
+    if (!SCOPE.path || now - SCOPE.pt > 260) { SCOPE.pt = now; const old = SCOPE.path, np = scopeTrace(t, dw, dh); if (np) { if (old) SCOPE.bp = Math.floor(SCOPE.bp / (old.length >> 1) * (np.length >> 1)); SCOPE.path = np; } }
+    const ping = SCOPE.ping = !SCOPE.ping, Pn = scopeRT(ping ? 'p0' : 'p1', dw, dh, true), Po = scopeRT(ping ? 'p1' : 'p0', dw, dh, true);
+    const tau = 0.04 + 1.4 * Math.pow((SCOPE.glow ?? 40) / 100, 1.6);       // (afterglow: how long the phosphor holds the light)
+    run(SCOPE.D, Pn, dw, dh); bind(0, Po.t, SCOPE.D.u); gl.uniform1f(SCOPE.D.K, Math.exp(-dt / tau)); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    scopeBeam(gl, Pn, dw, dh, dt);
+    const K = scopeRT('k', dw, dh); run(SCOPE.K, K, dw, dh); bind(0, E.t, SCOPE.K.e); bind(1, Pn.t, SCOPE.K.pb); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    src = K;
+  }
+  const LN = src;
   // the blooms: each level half the size of the last, blurred both ways
-  let src = E; const lv = [];
+  const lv = [];
   for (let i = 0; i < 3; i++) {
     const w = Math.max(2, Math.round(dw / (2 << i))), h = Math.max(2, Math.round(dh / (2 << i))), A = scopeRT('a' + i, w, h), B = scopeRT('b' + i, w, h), sp = 1 + i * 0.6;
     run(SCOPE.B, A, w, h); bind(0, src.t, SCOPE.B.u); gl.uniform2f(SCOPE.B.D, sp / w, 0); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -10785,7 +10872,7 @@ function scopeApply(x, dx, dy, dw, dh) {
     lv.push(B); src = B;
   }
   const C = SCOPE.C, col = SCOPE_COLS[SCOPE.col] || SCOPE_COLS.green; run(C, null, dw, dh);
-  bind(0, E.t, C.e); bind(1, lv[0].t, C.b1); bind(2, lv[1].t, C.b2); bind(3, lv[2].t, C.b3); bind(4, SCOPE.tin, C.src);
+  bind(0, LN.t, C.e); bind(1, lv[0].t, C.b1); bind(2, lv[1].t, C.b2); bind(3, lv[2].t, C.b3); bind(4, SCOPE.tin, C.src);
   gl.uniform3f(C.C, Math.max(0, col[0]), col[1], col[2]); gl.uniform1f(C.PIC, col[0] < 0 ? 1 : 0); gl.uniform1f(C.T, (clock() / 1000) % 100); gl.uniform2f(C.R, dw, dh);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.beginPath(); x.rect(dx, dy, dw, dh); x.clip(); x.globalCompositeOperation = 'copy'; x.drawImage(cv, dx, dy); x.globalCompositeOperation = 'source-over';
@@ -13286,13 +13373,13 @@ const stylePick = stylePicker();
   $('gradebtn').onclick = () => { $('gradepop').hidden = !$('gradepop').hidden; $('wordspop').hidden = $('signalpop').hidden = true; };
 // the grade's looks (beside the colour sliders): vector scope
 { const h = document.querySelector('#gradepop .gp-h');
-  h.insertAdjacentHTML('afterend', `<div class="gp-row"><select id="glook" class="sel" aria-label="Grade look" title="A whole look: vector scope — black, the picture's edges as thin glowing phosphor lines with white-hot cores, its brightest parts as glowing blobs, a crosshair and dashed drops to the axes, like an old vector display"><option value="none">look: normal</option><option value="scope">look: vector scope</option></select><select id="gscol" class="sel" aria-label="Scope colour" title="The phosphor's colour"><option value="green">green</option><option value="amber">amber</option><option value="cyan">cyan</option><option value="white">white</option><option value="magenta">magenta</option><option value="picture">picture</option></select></div><div class="gp-row" id="gscoperow"><label class="key" title="The crosshair, its 0 and the dashed drops to the axes"><input id="gsaxes" type="checkbox" checked><span class="led"></span>axes</label></div><label id="gsdetrow" title="How many of the picture's edges become lines: low, only the strongest (right-click: 50)"><span>detail</span><input id="gsdet" type="range" min="0" max="100" value="50" aria-label="detail"><output>50</output></label><label id="gsfillrow" title="How much the brightest parts glow as blobs (right-click: 35)"><span>blobs</span><input id="gsfill" type="range" min="0" max="100" value="35" aria-label="blobs"><output>35</output></label>`);
+  h.insertAdjacentHTML('afterend', `<div class="gp-row"><select id="glook" class="sel" aria-label="Grade look" title="A whole look: vector scope — black, the picture's edges as thin glowing phosphor lines with white-hot cores, its brightest parts as glowing blobs, a crosshair and dashed drops to the axes, like an old vector display"><option value="none">look: normal</option><option value="scope">look: vector scope</option></select><select id="gscol" class="sel" aria-label="Scope colour" title="The phosphor's colour"><option value="green">green</option><option value="amber">amber</option><option value="cyan">cyan</option><option value="white">white</option><option value="magenta">magenta</option><option value="picture">picture</option></select></div><div class="gp-row" id="gscoperow"><label class="key" title="The crosshair, its 0 and the dashed drops to the axes"><input id="gsaxes" type="checkbox" checked><span class="led"></span>axes</label><label class="key" title="Beam: a real scope's beam traces the picture's lines over and over (after osci-render and woscope): the lines it lingers on burn bright, the jumps between them are faint, and the phosphor's afterglow fades behind it. Off: the edges simply glow, all at once."><input id="gsbeam" type="checkbox" checked><span class="led"></span>beam</label></div><label id="gsdetrow" title="How many of the picture's edges become lines: low, only the strongest (right-click: 50)"><span>detail</span><input id="gsdet" type="range" min="0" max="100" value="50" aria-label="detail"><output>50</output></label><label id="gsfillrow" title="How much the brightest parts glow as blobs (right-click: 35)"><span>blobs</span><input id="gsfill" type="range" min="0" max="100" value="35" aria-label="blobs"><output>35</output></label><label id="gsglowrow" title="Afterglow: how long the phosphor holds the beam's light. Short: a flickering trace; long: a steady picture, with trails on a video (right-click: 40)"><span>afterglow</span><input id="gsglow" type="range" min="0" max="100" value="40" aria-label="afterglow"><output>40</output></label>`);
   let sv = {}; try { sv = JSON.parse(store('cp-scope') || '{}') || {}; } catch (e) { /* none */ }
-  if (sv.look) $('glook').value = sv.look; if (sv.col) $('gscol').value = sv.col; if (sv.axes === false) $('gsaxes').checked = false; if (sv.fill != null) $('gsfill').value = sv.fill; if (sv.det != null) $('gsdet').value = sv.det;
-  const sync = keep => { SCOPE.on = $('glook').value === 'scope'; SCOPE.col = $('gscol').value; SCOPE.axes = $('gsaxes').checked; SCOPE.fill = +$('gsfill').value; $('gsfill').nextElementSibling.textContent = $('gsfill').value; SCOPE.det = +$('gsdet').value; $('gsdet').nextElementSibling.textContent = $('gsdet').value;
-    $('gscol').disabled = $('gsaxes').disabled = $('gsfill').disabled = $('gsdet').disabled = !SCOPE.on; $('gradebtn').classList.toggle('on', GRADE.on || SCOPE.on);
-    if (keep) store('cp-scope', JSON.stringify({ look: $('glook').value, col: SCOPE.col, axes: SCOPE.axes, fill: SCOPE.fill, det: SCOPE.det })); };
-  $('glook').onchange = $('gscol').onchange = $('gsaxes').onchange = () => sync(true); $('gsfill').addEventListener('input', () => sync(true)); $('gsdet').addEventListener('input', () => sync(true));
+  if (sv.look) $('glook').value = sv.look; if (sv.col) $('gscol').value = sv.col; if (sv.axes === false) $('gsaxes').checked = false; if (sv.fill != null) $('gsfill').value = sv.fill; if (sv.det != null) $('gsdet').value = sv.det; if (sv.beam === false) $('gsbeam').checked = false; if (sv.glow != null) $('gsglow').value = sv.glow;
+  const sync = keep => { SCOPE.on = $('glook').value === 'scope'; SCOPE.col = $('gscol').value; SCOPE.axes = $('gsaxes').checked; SCOPE.fill = +$('gsfill').value; $('gsfill').nextElementSibling.textContent = $('gsfill').value; SCOPE.det = +$('gsdet').value; $('gsdet').nextElementSibling.textContent = $('gsdet').value; SCOPE.beam = $('gsbeam').checked; SCOPE.glow = +$('gsglow').value; $('gsglow').nextElementSibling.textContent = $('gsglow').value; SCOPE.path = null;
+    $('gscol').disabled = $('gsaxes').disabled = $('gsfill').disabled = $('gsdet').disabled = $('gsbeam').disabled = $('gsglow').disabled = !SCOPE.on; $('gradebtn').classList.toggle('on', GRADE.on || SCOPE.on);
+    if (keep) store('cp-scope', JSON.stringify({ look: $('glook').value, col: SCOPE.col, axes: SCOPE.axes, fill: SCOPE.fill, det: SCOPE.det, beam: SCOPE.beam, glow: SCOPE.glow })); };
+  $('glook').onchange = $('gscol').onchange = $('gsaxes').onchange = $('gsbeam').onchange = () => sync(true); $('gsglow').addEventListener('input', () => sync(true)); $('gsfill').addEventListener('input', () => sync(true)); $('gsdet').addEventListener('input', () => sync(true));
   sync(false); }
   // the text bar
   const wv = (id, k) => { const v = store('cp-' + id); if (v != null && [...$(id).options].some(o => o.value === v)) $(id).value = v; WORDS[k] = $(id).value; };
