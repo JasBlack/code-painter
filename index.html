@@ -1500,7 +1500,7 @@ function setButtons() {
   const active = S.mode !== 'idle';
   $('play').disabled = !active || (S.done && !audioActive()); $('restart').disabled = !active; $('rec').disabled = !active;
   // while zooming endlessly there is no finished program to save (⬇ png saves the current view)
-  $('savecode').disabled = S.mode !== 'auto' || !S.count || S.endless.on || !!(S.dg && S.dg.phase !== 'paint'); $('savepng').disabled = !active;
+  $('savecode').disabled = S.mode !== 'auto' || !S.count || S.endless.on || !!(S.dg && S.dg.phase !== 'paint') || !!S.sa; $('savepng').disabled = !active;
   $('savesvg').disabled = S.mode !== 'auto' || !S.count;      // (live / zoom / video: the view as it is now, see liveSvg)
   $('savestills').disabled = $('savesheet').disabled = !stillsOk(); $('savecover').disabled = !active;
   $('embedmusic').disabled = !AU.el;
@@ -2044,7 +2044,7 @@ async function startAuto(src, name, fileName = '', opts = {}) {
   S.startArgs = [src, name, fileName, opts];
   S.mode = 'auto'; S.name = name; S.orig = img; S.done = false; S.lines = []; S.items = []; S.drawn = []; S.liveDrawn = []; S.bits = 0; S.count = 0; S.sim = null; S.recent = [];
   S.queue = []; S.acc = 0; S.workerDone = false; const pk = !liveRun() || (!zoomWanted() && !S.video); S.line = pk ? lineSpec() : null; S.order = pk ? $('order').value : 'free'; S.picN = 0;     // (an order / one line: a still picture, or a playlist without zoom) S.lineSeed = 1 + Math.floor(Math.random() * 1e6); if (S.line) S.line.seed = S.lineSeed;
-  S.pen = !!S.line && S.line.kind === 'pen'; S.fr = null; S.dg = null; DG.on = false; if (DG.wk) DG.wk.postMessage({ type: 'stop' }); S.penCut = false; S.penEnd = 0; S.penEnds = {}; S.hit = null; S.tipGlow = null; S.accWant = null; S.held = false; S.until = null; S.wCount = 0; S.hurry = 1; S.wr = null; S.loud = 0; S.loudLo = S.loudHi = null; S.penLen = 0; S.fmt = $('export').value; S.codeBytes = 0; S.landing = []; S.big = null; S.debt = 0; S.brush = null;
+  S.pen = !!S.line && S.line.kind === 'pen'; S.fr = null; S.dg = null; DG.on = false; if (DG.wk) DG.wk.postMessage({ type: 'stop' }); S.sa = null; if (SA.wk) SA.wk.postMessage({ type: 'stop' }); S.penCut = false; S.penEnd = 0; S.penEnds = {}; S.hit = null; S.tipGlow = null; S.accWant = null; S.held = false; S.until = null; S.wCount = 0; S.hurry = 1; S.wr = null; S.loud = 0; S.loudLo = S.loudHi = null; S.penLen = 0; S.fmt = $('export').value; S.codeBytes = 0; S.landing = []; S.big = null; S.debt = 0; S.brush = null;
   S.endless = newEndless();
   S.total = shapesWanted();
   // a video's own soundtrack only starts once the video does (after the first frame has emerged)
@@ -2066,6 +2066,7 @@ async function startAuto(src, name, fileName = '', opts = {}) {
   S.bgHex = SHP.hex(pal ? nearest(meanOf(data), pal) : meanOf(data)); S.loopBg = S.bgHex; S.bgSet = false;
   wcBegin(); paintBg(S.outX); snapMaybe(0);
   if (S.line && S.line.kind === 'circles') { frStart(data, ww, wh); S.waitAudio = audioActive() && !vidSound; S.waitSince = clock(); setButtons(); return; }
+  if (S.line && S.line.kind === 'string') { saStart(data, ww, wh); S.waitAudio = audioActive() && !vidSound; S.waitSince = clock(); setButtons(); return; }
   if (S.line && S.line.kind === 'growth') { dgStart(data, ww, wh); S.waitAudio = audioActive() && !vidSound; S.waitSince = clock(); setButtons(); return; }
   const FM = await faceMsgAsync(data, ww, wh);
   if (vbaseOn() && !S.video) S.total = Math.max(60, Math.round(S.total * (0.2 + 0.8 * (SCP.vpaint ?? 0.6))));       // (over a vector base: fewer strokes, the details — more of them with paint over)
@@ -2105,6 +2106,9 @@ function paintBg(x) {
       x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 0.16; x.fillStyle = patternFor('canvas', '#000'); x.fillRect(0, 0, x.canvas.width, x.canvas.height);
       x.globalAlpha = 0.07; x.fillStyle = patternFor('canvas', '#fff'); x.translate(2, 2); x.fillRect(-2, -2, x.canvas.width, x.canvas.height); x.restore();
     }
+    // dry media: the paper they are drawn on, its tooth faintly lit (the same paper that breaks up their strokes)
+    const dry = stylePick.values().map(s => TOOTH_ST[s]).find(Boolean);
+    if (dry) { const p = toothShade(dry.kind), k = toothScale(); p.setTransform(new DOMMatrix(x.getTransform()).scaleSelf(k, k)); x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'soft-light'; x.globalAlpha = 0.3; x.fillStyle = p; x.fillRect(0, 0, x.canvas.width, x.canvas.height); x.restore(); }
   }
   if (x === S.outX && WC.live) wcBg();
 }
@@ -2168,7 +2172,7 @@ worker.onmessage = (e) => {
   if (m.gen !== S.gen || S.mode !== 'auto') return;
   wake();
   if (m.type === 'mask') { S.mask = m; S.maskCv = null; return; }
-  if (m.type === 'bg') { S.bgHex = S.loopBg = WC.wc ? WC.paper : SHP.hex(m.c);      // (real watercolour: on white watercolour paper)
+  if (m.type === 'bg') { S.bgHex = S.loopBg = WC.wc ? WC.paper : dryPaper() || SHP.hex(m.c);      // (real watercolour: on white watercolour paper)
     if (!S.count) { paintBg(S.outX); S.snaps = []; snapMaybe(0); } S.sim = m.sim; S.bgSet = true; }
   else if (m.type === 'shape' && m.acc) { S.accWant = null; S.wCount = m.count; if (S.running && styleOkFor(m)) S.accN = (S.accN || 0) + 1, reveal(m, { k: 1, max: 130 + 40 * (1 - musicAmt()) }); }   // the beat's stroke: down at once, snapped on in a flash
   else if (m.type === 'accent-none') S.accWant = null;
@@ -2463,6 +2467,7 @@ function pace(dt) {
   }
   if (S.fr && !S.fr.done) { frStep(); if (!S.fr.done) return; }
   if (S.dg && S.dg.phase === 'paint' && !S.dg.pdone) { dgPaintStep(); return; }      // (once the circles are done: the usual end of a run)
+  if (S.sa && !S.sa.done) { saStep(); return; }
   // real paint behind the painter (a slow graphics card): the painter waits for it rather than piling strokes up (not with a song: that keeps time)
   if (WC.live && !WC.vid && !(audioActive() && !AU.ended) && !AU.live && WC.q.length + OIL.q.length > 24) return;
   if (S.endless.on) return paceEndless(dt);
@@ -5229,10 +5234,10 @@ const STYLE_DRAW = {
     x.save(); x.lineCap = x.lineJoin = 'round';
     const end = shapePath(x, q, u, dir);
     if (q.t === 'S') {
-      x.globalAlpha = o * 0.1; x.strokeStyle = mixHex(c0, c1, 0.5); x.lineWidth = a[6] * 1.5; x.stroke();       // the faintest smudge
-      x.globalAlpha = Math.min(1, o * 0.7); x.strokeStyle = pat; x.lineWidth = a[6] * 0.7; x.stroke();           // the body, in the paper's grain
-      const P = quadPts(a, 1, dir, 20), ink = mixHex(c0, c1, 0.3), dust = { q, args: a, fast, upto: u, dir, fill: ink, w: Math.max(1.5, a[6] * 1.1), pmin: 0.55, pmax: 1.15, peak: 0.35, hw: 0.5, minStep: 0.55, maxSteps: 200, sharp: 0.68 };
-      stampLine(x, P, { ...dust, id: 'c', salt: 1, spacing: 0.1, scatter: 1.7, grain: 0.55, alpha: Math.min(1, o * 1.1) });      // the thick, rough, pressed line
+      x.globalAlpha = o * 0.16; x.strokeStyle = mixHex(c0, c1, 0.5); x.lineWidth = a[6] * 1.6; x.stroke();       // the smudge round it
+      x.globalAlpha = Math.min(1, o * 0.9); x.strokeStyle = pat; x.lineWidth = a[6] * 0.85; x.stroke();          // the body (the paper's tooth breaks it up)
+      const P = quadPts(a, 1, dir, 20), ink = mixHex(c0, c1, 0.3), dust = { q, args: a, fast, upto: u, dir, fill: ink, w: Math.max(1.2, Math.min(5, a[6] * 0.42)), pmin: 0.55, pmax: 1.15, peak: 0.35, hw: 0.5, minStep: 0.55, maxSteps: 200, sharp: 0.68 };
+      stampLine(x, P, { ...dust, id: 'c', salt: 1, spacing: 0.1, scatter: 2.4, grain: 0.55, alpha: Math.min(1, o * 0.8) });      // crumbs pressed into the line
       stampLine(x, P, { ...dust, id: 'd', salt: 2, spacing: 0.2, scatter: 2.6, grain: 0.8, w: dust.w * 0.8, alpha: o * 0.7 });    // ragged crumbs along its edges
     } else {
       const size = Math.max(a[2] || 0, a[3] || 0, 4);
@@ -5258,6 +5263,73 @@ const STYLE_DRAW = {
     x.restore();
   }
 };
+// ─────────────────────────────────────────────────────────────
+//  The paper's tooth (after PigmentLab's grain gate and p5.brush / graphite's studies of pencil on paper): dry media only
+//  catch the peaks of the paper, and the harder they press the deeper they reach. Each dry style is drawn into a scratch
+//  layer and cut by one fixed paper — the same paper under every stroke, in the painting's own coordinates — so the white
+//  valleys of the grain show through the graphite, the charcoal and the pastel, and layers of strokes fill them in slowly.
+//    fine: drawing paper (a fine, fibrous tooth) · laid: charcoal paper (ribbed laid lines and chain lines, plus grain)
+//    honey: pastel paper (the honeycomb of Mi-Teintes-like paper)
+// ─────────────────────────────────────────────────────────────
+const TOOTH = { cv: null, x: null, pats: new Map(), tiles: new Map() };
+const TOOTH_ST = { pencil: { kind: 'fine', floor: 0.16, gain: 2.1, mid: 0.42 }, charcoal: { kind: 'laid', floor: 0.12, gain: 2.2, mid: 0.46 }, pastel: { kind: 'honey', floor: 0.2, gain: 1.8, mid: 0.45 } };
+// a tileable height field 0..1, 256 px
+function toothHeight(kind) {
+  let H = TOOTH.tiles.get(kind); if (H) return H;
+  const N = 256; H = new Float32Array(N * N); const R = rngFor([kind.length * 31.7, 9.1, 4.4]);
+  // periodic value noise: lattice of g cells, wrapped, smooth-stepped
+  const octave = (g, amp, sx = 1, sy = 1) => { const L = new Float32Array(g * g); for (let i = 0; i < L.length; i++) L[i] = R();
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const fx = x / N * g * sx, fy = y / N * g * sy, ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy, u = tx * tx * (3 - 2 * tx), v = ty * ty * (3 - 2 * ty);
+      const a = L[(iy % g) * g + ix % g], b = L[(iy % g) * g + (ix + 1) % g], c = L[((iy + 1) % g) * g + ix % g], d = L[((iy + 1) % g) * g + (ix + 1) % g];
+      H[y * N + x] += amp * (a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v); } };
+  if (kind === 'fine') { octave(128, 0.5); octave(64, 0.3); octave(32, 0.15); octave(16, 0.08); octave(128, 0.22, 1, 0.25); }      // (fibres: a stretched octave)
+  else if (kind === 'laid') { octave(64, 0.35); octave(32, 0.22); octave(128, 0.18);
+    const W_ = new Float32Array(N); for (let x = 0; x < N; x++) W_[x] = Math.sin(x / N * 2 * Math.PI * 3) * 1.4 + Math.sin(x / N * 2 * Math.PI * 7 + 1.3) * 0.6;      // (the laid lines wander a little)
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) H[y * N + x] += 0.16 * Math.pow(0.5 + 0.5 * Math.cos((y + W_[x]) / N * 2 * Math.PI * 40), 1.6) * (0.6 + 0.8 * H[y * N + x]) + 0.05 * Math.pow(0.5 + 0.5 * Math.cos(x / N * 2 * Math.PI * 4), 30); }
+  else {      // honeycomb: distance to the nearest of a hexagonal grid of cell centres, a little jittered
+    octave(64, 0.3); octave(128, 0.2); octave(32, 0.15); const s = N / 15, pts = [];
+    for (let j = -1; j <= 26; j++) for (let i = -1; i <= 23; i++) pts.push([(i + (j % 2) * 0.5) * s + (R() - 0.5) * s * 0.55, j * s * 0.866 + (R() - 0.5) * s * 0.55]);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { let d = 1e9; for (const [px, py] of pts) { const dx = Math.abs(x - px), dy = Math.abs(y - py), ddx = Math.min(dx, N - dx), ddy = Math.min(dy, N - dy), dd = ddx * ddx + ddy * ddy; if (dd < d) d = dd; } H[y * N + x] += 0.32 * Math.min(1, Math.sqrt(d) / (s * 0.55)); }
+  }
+  let lo = 1e9, hi = -1e9; for (const v of H) { if (v < lo) lo = v; if (v > hi) hi = v; } for (let i = 0; i < H.length; i++) H[i] = (H[i] - lo) / (hi - lo || 1);
+  TOOTH.tiles.set(kind, H); return H;
+}
+// the tooth as an alpha pattern: how much of a stroke a point of the paper takes (peaks all of it, valleys only the floor)
+function toothPattern(spec) {
+  const key = spec.kind + spec.floor + spec.gain + spec.mid; let p = TOOTH.pats.get(key); if (p) return p;
+  const H = toothHeight(spec.kind), N = 256, c = document.createElement('canvas'); c.width = c.height = N; const x = c.getContext('2d'), im = x.createImageData(N, N);
+  for (let i = 0; i < N * N; i++) { const a = spec.floor + (1 - spec.floor) * Math.min(1, Math.max(0, (H[i] - spec.mid) * spec.gain + 0.5)); im.data[i * 4 + 3] = Math.round(a * 255); }
+  x.putImageData(im, 0, 0); p = x.createPattern(c, 'repeat'); TOOTH.pats.set(key, p); return p;
+}
+// the paper's own relief as a faint shading of the ground (so the paper reads as paper under a drawing)
+function toothShade(kind) {
+  const key = 'shade' + kind; let p = TOOTH.pats.get(key); if (p) return p;
+  const H = toothHeight(kind), N = 256, c = document.createElement('canvas'); c.width = c.height = N; const x = c.getContext('2d'), im = x.createImageData(N, N);
+  for (let y = 0; y < N; y++) for (let xx = 0; xx < N; xx++) { const i = y * N + xx, s = H[i] - H[((y + N - 1) % N) * N + (xx + N - 1) % N]; const v = Math.max(0, Math.min(255, 128 + s * 420)); im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; }
+  x.putImageData(im, 0, 0); p = x.createPattern(c, 'repeat'); TOOTH.pats.set(key, p); return p;
+}
+// pencil and charcoal go on light drawing paper (pastel keeps a toned ground, as pastel paper is)
+const dryPaper = () => { const v = stylePick.values(); return v.length && v.every(s => s === 'pencil' || s === 'charcoal' || s === 'pen') ? '#f1eee6' : null; };
+const toothScale = () => Math.max(0.6, Math.min(3, (typeof outLong === 'function' ? outLong() : 1600) / 1600));       // (paper features at the same size on any output)
+// draw f into a scratch layer, cut it by the paper's tooth there, then onto x (with x's own clip, alpha and blend)
+function toothed(x, q, f, spec, u, dir) {
+  const m = x.getTransform(), a = q.args, P = SHP.poly({ t: q.t, p: a }), pad = (q.t === 'S' ? a[6] * 1.6 : 4) + 6;
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (let i = 0; i < P.length; i += 2) for (const [dx, dy] of [[-pad, -pad], [pad, -pad], [-pad, pad], [pad, pad]]) { const X_ = m.a * (P[i] + dx) + m.c * (P[i + 1] + dy) + m.e, Y_ = m.b * (P[i] + dx) + m.d * (P[i + 1] + dy) + m.f; if (X_ < x0) x0 = X_; if (X_ > x1) x1 = X_; if (Y_ < y0) y0 = Y_; if (Y_ > y1) y1 = Y_; }
+  x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0)); x1 = Math.min(x.canvas.width, Math.ceil(x1)); y1 = Math.min(x.canvas.height, Math.ceil(y1));
+  const w = x1 - x0, h = y1 - y0; if (w <= 0 || h <= 0) return f(x, q, u, dir);
+  if (w * h > 4.2e6) return f(x, q, u, dir);      // (a huge shape: drawn as it is)
+  if (!TOOTH.cv) { TOOTH.cv = document.createElement('canvas'); TOOTH.x = TOOTH.cv.getContext('2d'); }
+  const c = TOOTH.cv, s = TOOTH.x; if (c.width < w || c.height < h) { c.width = Math.max(c.width, w); c.height = Math.max(c.height, h); }
+  s.setTransform(1, 0, 0, 1, 0, 0); s.globalCompositeOperation = 'source-over'; s.globalAlpha = 1; s.clearRect(0, 0, w, h);
+  s.setTransform(m.a, m.b, m.c, m.d, m.e - x0, m.f - y0);
+  const r = f(s, q, u, dir);
+  const pat = toothPattern(spec), k = toothScale(); pat.setTransform(new DOMMatrix([m.a, m.b, m.c, m.d, m.e - x0, m.f - y0]).scaleSelf(k, k));
+  s.setTransform(1, 0, 0, 1, 0, 0); s.globalCompositeOperation = 'destination-in'; s.globalAlpha = 1; s.fillStyle = pat; s.fillRect(0, 0, w, h); s.globalCompositeOperation = 'source-over';
+  x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(c, 0, 0, w, h, x0, y0, w, h); x.restore();
+  return r;
+}
+for (const [st, spec] of Object.entries(TOOTH_ST)) { const f = STYLE_DRAW[st]; if (f) STYLE_DRAW[st] = (x, q, u, dir) => toothed(x, q, f, spec, u, dir); }
 const STITCH = 7;   // the fabric grid, in painting pixels (1000 across the long side)
 // points along (the first part of) a quadratic stroke, for the media that build a stroke out of several lines
 // a layer of its own for one stroke (so parts of it can be cut away without cutting into the canvas under it): covers the
@@ -5578,7 +5650,7 @@ const mixHex = (a, b, f) => PIGMENT.k && typeof spectral !== 'undefined' && a[0]
 //  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // ─────────────────────────────────────────────────────────────
 const WC = { paper: '#f7f3ea', on: true, lib: undefined, ok: undefined, E: null, cv: null, base: null, bx: null, q: [], cur: null, live: false, keep: false, t: 0, img: null, tmp: null, tx: null, dirty: false, raf: 0, fresh: false };
-const WC_ST = new Set(['watercolour', 'wet', 'wash']);
+const WC_ST = new Set(['watercolour', 'wet', 'wash', 'ink', 'sumi']);      // (ink and sumi: the same water on paper, with ink: inkwash's model)
 const oilSt = st => OIL.live && OIL_ST.has(st);     // (real oil / acrylic: not a relief)
 const realSt = st => WC.live && !RLF.on && ((WC.wc && WC_ST.has(st)) || (OIL.live && OIL_ST.has(st)));
 // the engine's code, run the first time it is wanted (so a browser without WebGL 2 never even loads it)
@@ -6240,21 +6312,28 @@ function wcAdd(q, t0 = clock(), dur = 0, dir = 1) {
     }
   }
   const Q = OIL_ST.has(q.st) ? OIL.q : WC.q;
+  // sumi is ink: the picture's tones as grey-black ink, a little warm
+  const ink = h => { const [r, g, b] = hexRgb(h), l = 0.3 * r + 0.59 * g + 0.11 * b, v = Math.round(18 + (l / 255) * 205); return SHP.hex([v + 4, v + 2, v]); };
   if (WC.vid && Q.length > 30) Q.splice(0, Q.length - 20);      // (a moving picture: strokes that waited too long are stale, let them go)
-  Q.push({ P: P.map(p => [p[0] / W, 1 - p[1] / H]), r: r / H, c0: c0[0] === '#' ? c0 : SHP.hex(c0), c1: c1 && c1[0] === '#' ? c1 : c0[0] === '#' ? c0 : SHP.hex(c0), st: q.st, wash: q.t !== 'S', t0, dur, i: 0 });
+  let h0 = c0[0] === '#' ? c0 : SHP.hex(c0), h1 = c1 && c1[0] === '#' ? c1 : h0; if (q.st === 'sumi') { h0 = ink(h0); h1 = ink(h1); }
+  Q.push({ P: P.map(p => [p[0] / W, 1 - p[1] / H]), r: r / H, c0: h0, c1: h1, st: q.st, wash: q.t !== 'S', t0, dur, i: 0 });
 }
 // how each style handles water: watercolour a round brush, wet floods the paper, wash a big mop
 const WC_LOOK = {
   watercolour: { brush: 'round', water: 0.3, load: 0.4, flow: 0.1, bleed: 0.3, dry: 0.65, edge: 0.65, granulation: 0.5 },
   wet: { brush: 'round', water: 0.6, load: 0.42, flow: 0.25, bleed: 0.6, dry: 0.45, edge: 0.7, granulation: 0.55 },
+  // ink: a loaded small round (a bigger one for wide strokes), little water, so the line stays crisp and only feathers a little;
+  // sumi: the sumi brush (hairline to broad, fibrous edges), wetter, so the ink bleeds into the paper and pools where it lands
+  ink: { brush: 'detail', big: 'round', water: 0.22, load: 0.95, flow: 0.06, bleed: 0.22, dry: 0.75, edge: 0.55, granulation: 0.12 },
+  sumi: { brush: 'sumi', water: 0.48, load: 0.9, flow: 0.12, bleed: 0.55, dry: 0.5, edge: 0.4, granulation: 0.3 },
   wash: { brush: 'mop', water: 0.5, load: 0.38, flow: 0.2, bleed: 0.5, dry: 0.5, edge: 0.65, granulation: 0.6 },
 };
 const wcPress = u => 0.62 + 0.38 * Math.sin(Math.PI * Math.min(1, 0.08 + u * 0.88));     // (a brush lands, presses, lifts)
 // a stroke onto the sheet: the brush set up for its style, its first colour
 function wcStart(it) {
-  const E = WC.E, L = wcLib(), look = WC_LOOK[it.st] || WC_LOOK.watercolour;
-  if (E.brush.id !== look.brush) E.brush = L.buildBrush(L.BRUSH_PRESETS.find(b => b.id === look.brush) || L.BRUSH_PRESETS[0]);
-  Object.assign(E.params, look, { size: 1 }); delete E.params.brush;
+  const E = WC.E, L = wcLib(), look = WC_LOOK[it.st] || WC_LOOK.watercolour, bid = look.big && it.r > 0.03 ? look.big : look.brush;
+  if (E.brush.id !== bid) E.brush = L.buildBrush(L.BRUSH_PRESETS.find(b => b.id === bid) || L.BRUSH_PRESETS[0]);
+  Object.assign(E.params, look, { size: 1 }); delete E.params.brush; delete E.params.big;
   E.setPigment(L.pigmentFromHex(it.c0));
   if (!E.scriptBegin('brush', it.P[0][0], it.P[0][1], wcPress(0), false, it.r)) return false;
   // the samples' clock: the brush moves at a painter's pace (about half the sheet a second), however fast it is fed
@@ -11775,6 +11854,73 @@ function dgPaintStep() {
   }
   if (D.pi >= N - 1) { D.pdone = true; S.workerDone = true; S.total = S.count; S.finalSim = S.sim = 0; }
 }
+// ═════════════════════════════════════════════════════════════
+//  String art (one line: string art): the picture made of one thread wound between nails round a circular board, as
+//  the string-art machines do (after halfmonty's StringArtGenerator, MIT): from the nail it is at, the thread goes to the
+//  nail whose line crosses the most darkness still owed; that line's darkness is then paid off, and on to the next. A few
+//  thousand lines (the stroke count sets how many) build the tones out of crossings. Found in a worker, wound on screen.
+// ═════════════════════════════════════════════════════════════
+const SA = { wk: null };
+function saWorkerMain() {
+  let stop = false;
+  onmessage = e => { const m = e.data; if (m.type === 'stop') { stop = true; return; } if (m.type !== 'start') return; stop = false;
+    const { N, E, pins, lines, minD, weight, gen } = m; const px = new Float32Array(pins), py = new Float32Array(pins);
+    for (let i = 0; i < pins; i++) { const a = 2 * Math.PI * i / pins - Math.PI / 2; px[i] = (N - 1) / 2 + (N / 2 - 1) * Math.cos(a); py[i] = (N - 1) / 2 + (N / 2 - 1) * Math.sin(a); }
+    // the darkness along a line, and paying it off (a line's pixels, one per step of its length)
+    const walk = (a, b, f) => { const x0 = px[a], y0 = py[a], dx = px[b] - x0, dy = py[b] - y0, n = Math.max(1, Math.floor(Math.hypot(dx, dy))); let s = 0; for (let k = 0; k <= n; k++) { const i = Math.round(y0 + dy * k / n) * N + Math.round(x0 + dx * k / n); s += f(i); } return s / (n + 1); };      // (darkness per pixel of the line: long lines through the middle don't win just by being long)
+    const seq = [0], recent = []; let cur = 0, out = [];
+    for (let l = 0; l < lines && !stop; l++) {
+      let best = -1, bv = -1e9;
+      for (let o = minD; o < pins - minD; o++) { const t = (cur + o) % pins; if (recent.includes(t)) continue; const v = walk(cur, t, i => E[i]); if (v > bv) { bv = v; best = t; } }
+      if (best < 0 || bv <= -40) break;
+      walk(cur, best, i => { E[i] -= weight; return 0; });
+      seq.push(best); out.push(best); recent.push(best); if (recent.length > 20) recent.shift(); cur = best;
+      if (out.length >= 60) { postMessage({ type: 'seq', gen, add: out }); out = []; }
+    }
+    postMessage({ type: 'seq', gen, add: out, done: true });
+  };
+}
+function saStart(data, w, h) {
+  const white = S.line.white, N = 400, pins = 288, lines = Math.max(1500, Math.min(7000, Math.round(S.total * 4)));
+  S.bgHex = S.loopBg = white ? '#121214' : '#f3efe6'; paintBg(S.outX); S.bgSet = true;
+  // the picture inside the board's circle, as darkness owed (white thread: the light is owed)
+  const c = document.createElement('canvas'); c.width = c.height = N; const x = c.getContext('2d'), im = new ImageData(new Uint8ClampedArray(data), w, h), t = document.createElement('canvas'); t.width = w; t.height = h; t.getContext('2d').putImageData(im, 0, 0);
+  const side = Math.min(w, h); x.drawImage(t, (w - side) / 2, (h - side) / 2, side, side, 0, 0, N, N);
+  const d = x.getImageData(0, 0, N, N).data, E = new Float32Array(N * N); let lo = 255, hi = 0;
+  for (let i = 0; i < N * N; i++) { const l = 0.3 * d[i * 4] + 0.59 * d[i * 4 + 1] + 0.11 * d[i * 4 + 2]; E[i] = l; if (l < lo) lo = l; if (l > hi) hi = l; }
+  for (let i = 0; i < N * N; i++) { const yy = Math.floor(i / N), xx = i % N, r = Math.hypot(xx - N / 2, yy - N / 2); const v = (E[i] - lo) / Math.max(1, hi - lo) * 255; E[i] = r > N / 2 - 1 ? 0 : 255 * Math.pow((white ? v : 255 - v) / 255, 1.35); }      // (a little contrast: the mid-tones owe less)
+  if (!SA.wk) { SA.wk = new Worker(URL.createObjectURL(new Blob(['(' + saWorkerMain.toString() + ')()'], { type: 'text/javascript' }))); SA.wk.onmessage = e => { const m = e.data; const A = S.sa; if (!A || m.gen !== A.gen) return; A.seq.push(...m.add); if (m.done) A.found = true; }; }
+  // the board in the painting: the largest circle that fits, its nails round the rim
+  const W = S.out.width, H = S.out.height, R = Math.min(W, H) / 2 * 0.95;
+  S.sa = { gen: S.gen, white, N, pins, lines, seq: [0], found: false, drawn: 0, done: false, cx: W / 2, cy: H / 2, R, t0: clock(), pf0: audioActive() && !AU.ended ? audioProgress(aTime()) : 0 };
+  SA.wk.postMessage({ type: 'start', gen: S.gen, N, E, pins, lines, minD: 22, weight: 20 }, [E.buffer]);
+  // the board: its rim and the nails
+  const o = S.outX; o.save(); o.setTransform(1, 0, 0, 1, 0, 0); o.strokeStyle = white ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'; o.lineWidth = Math.max(1, R * 0.004); o.beginPath(); o.arc(W / 2, H / 2, R * 1.015, 0, 7); o.stroke();
+  o.fillStyle = white ? '#8d8a84' : '#6f6a62'; const nr = Math.max(1, R * 0.0045);
+  for (let i = 0; i < pins; i++) { const [px, py] = saPin(i); o.beginPath(); o.arc(px, py, nr, 0, 7); o.fill(); }
+  o.restore();
+  S.workerDone = false; S.total = lines; S.count = 0;
+  $('hint').textContent = `String art: one thread wound round ${pins} nails, up to ${lines.toLocaleString()} lines (the stroke count sets it).`;
+}
+function saPin(i) { const A = S.sa, a = 2 * Math.PI * i / A.pins - Math.PI / 2; return [A.cx + A.R * Math.cos(a), A.cy + A.R * Math.sin(a)]; }
+// the thread wound on, as fast as the speed says (or over the song); each line a thin thread, nail to nail
+function saStep() {
+  const A = S.sa; if (!A || A.done) return;
+  const total = A.found ? A.seq.length - 1 : A.lines;
+  let f; if (audioActive() && !AU.ended) f = Math.min(1, (audioProgress(aTime()) - A.pf0) / Math.max(0.05, 0.97 - A.pf0));
+  else f = Math.min(1, (clock() - A.t0) / 1000 / Math.max(4, total / 220 / Math.min(speedFactor(), 400) * 3));
+  const upto = Math.min(A.seq.length - 1, Math.floor(f * total)); if (upto <= A.drawn) { if (A.found && A.drawn >= A.seq.length - 1) saEnd(); return; }
+  const o = S.outX, lw = Math.max(0.6, A.R / 650); o.save(); o.setTransform(1, 0, 0, 1, 0, 0); o.lineCap = 'round'; o.lineWidth = lw; o.strokeStyle = A.white ? 'rgba(246,244,238,0.2)' : 'rgba(16,16,20,0.2)';
+  o.beginPath(); for (let i = A.drawn; i < upto; i++) { const [x0, y0] = saPin(A.seq[i]), [x1, y1] = saPin(A.seq[i + 1]); o.moveTo(x0, y0); o.lineTo(x1, y1); } o.stroke(); o.restore();
+  A.drawn = upto; S.count = upto; S.total = total; S.big = null;
+  if (A.found && A.drawn >= A.seq.length - 1) saEnd();
+}
+function saEnd() { const A = S.sa; A.done = true; S.workerDone = true; S.total = S.count; try { simPrepare(S.orig); S.finalSim = S.sim = simOf(S.out); } catch (e) { S.finalSim = S.sim = 0; } }
+function saSvg() {
+  const A = S.sa, W = S.out.width, H = S.out.height, f = v => v.toFixed(1); let d = '';
+  for (let i = 0; i < A.drawn; i++) { const [x0, y0] = saPin(A.seq[i]), [x1, y1] = saPin(A.seq[i + 1]); d += `M${f(x0)} ${f(y0)}L${f(x1)} ${f(y1)}`; }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="${S.bgHex}"/><path d="${d}" fill="none" stroke="${A.white ? '#f6f4ee' : '#101014'}" stroke-opacity="0.2" stroke-width="${Math.max(0.6, A.R / 650).toFixed(2)}"/></svg>\n`;
+}
 function dgSvg() {
   const D = DG, w = Math.round(D.w), h = Math.round(D.h), P = D.P, n = P ? P.length >> 1 : 0, f = v => v.toFixed(1); let d = '';
   if (n > 2) { const X_ = i => P[(i % n) * 2], Y_ = i => P[(i % n) * 2 + 1]; d = `M${f((X_(0) + X_(1)) / 2)} ${f((Y_(0) + Y_(1)) / 2)}`; for (let i = 1; i <= n; i++) d += `Q${f(X_(i))} ${f(Y_(i))} ${f((X_(i) + X_(i + 1)) / 2)} ${f((Y_(i) + Y_(i + 1)) / 2)}`; }
@@ -11926,7 +12072,7 @@ function paintingOnly(now) {
 // so it stays sharp (kept in step as shapes are committed; shapes still arriving are drawn live on top)
 function hiRes(k) {
   if (S.freeze) return S.freeze;
-  if (S.mode !== 'auto' || k <= 1.05 || !S.out || S.endless.on || RLF.on || WC.live || S.dg) return S.out;      // (growth: its pencil sketch is on the canvas, not in the strokes)
+  if (S.mode !== 'auto' || k <= 1.05 || !S.out || S.endless.on || RLF.on || WC.live || S.dg || S.sa) return S.out;      // (growth: its pencil sketch is on the canvas, not in the strokes)
   const K = Math.round(k * 100) / 100, done = S.drawn.length - pendingN(), und = underOn();
   if (!S.big || !S.bigs) S.bigs = [];          // (S.big = null anywhere drops every kept size)
   let c = S.bigs.find(c => c.K === K);
@@ -12966,8 +13112,8 @@ $('refx').onclick = refClear;
 //  Path: the painting order (sweeping across the picture instead of biggest-mistake-first) and one line
 //  (the whole picture as one unbroken line). Both are made by the painter's worker; see painter-worker.
 // ═════════════════════════════════════════════════════════════
-$('line').insertAdjacentHTML('beforeend', '<option value="growi">growth · ink</option><option value="growc">growth · colour</option>');
-function lineSpec() { const v = $('line').value; return v === 'pen' ? { kind: 'pen' } : v === 'growi' || v === 'growc' ? { kind: 'growth', colour: v === 'growc' } : ['circles', 'circlesc', 'tracei', 'tracec'].includes(v) ? { kind: 'circles', colour: v === 'circlesc' || v === 'tracec', hide: v[0] === 't' } : null; }      // (trace: the same one-loop drawing, without the circles)
+$('line').insertAdjacentHTML('beforeend', '<option value="growi">growth · ink</option><option value="growc">growth · colour</option><option value="strk">string art · black</option><option value="strw">string art · white</option>');
+function lineSpec() { const v = $('line').value; return v === 'pen' ? { kind: 'pen' } : v === 'growi' || v === 'growc' ? { kind: 'growth', colour: v === 'growc' } : v === 'strk' || v === 'strw' ? { kind: 'string', white: v === 'strw' } : ['circles', 'circlesc', 'tracei', 'tracec'].includes(v) ? { kind: 'circles', colour: v === 'circlesc' || v === 'tracec', hide: v[0] === 't' } : null; }      // (trace: the same one-loop drawing, without the circles)
 $('order').onchange = () => { $('hint').textContent = $('order').value === 'free' ? 'Order: free.' : 'Order: ' + $('order').selectedOptions[0].textContent + '. Repainting.'; rerunSoon(); };
 const outlineMode = () => $('outline').value;
 const pieceOn = () => $('sprayorder').value === 'lines' && stylePick.values().includes('graffiti');
@@ -13866,7 +14012,7 @@ $('savecode').onclick = async () => {
   download(new Blob([html], { type: 'text/html' }), `${safeName()}-${animate ? 'self-painting' : 'painted-in-code'}.html`);
   $('hint').textContent = `Saved ${animate ? 'self-painting ' : ''}program: ${(html.length / 1024).toFixed(1)} KB${music ? ' (song included)' : ''}.`;
 };
-$('savesvg').onclick = () => download(new Blob([S.dg && S.dg.phase !== 'paint' ? dgSvg() : S.endless.on ? liveSvg() : SHP.svg(S.drawn, S.out.width, S.out.height, S.bgHex)], { type: 'image/svg+xml' }), `${safeName()}-painted.svg`);
+$('savesvg').onclick = () => download(new Blob([S.sa ? saSvg() : S.dg && S.dg.phase !== 'paint' ? dgSvg() : S.endless.on ? liveSvg() : SHP.svg(S.drawn, S.out.width, S.out.height, S.bgHex)], { type: 'image/svg+xml' }), `${safeName()}-painted.svg`);
 // a live input / video / zoom never finishes, and its strokes aren't all kept: its svg is the view as it is now — the
 // canvas traced into flat colour shapes (as score · vector does), with the recent strokes over them as they were drawn
 function liveSvg() {
