@@ -4379,14 +4379,19 @@ float fbm(vec2 p) { float s = 0., a = .5; for (int i = 0; i < 4; i++) { s += a *
 vec2 ngrad(vec2 p, float f) { float e = .5; return vec2(vn((p + vec2(e, 0)) * f) - vn((p - vec2(e, 0)) * f), vn((p + vec2(0, e)) * f) - vn((p - vec2(0, e)) * f)) / (2. * e) ; }
 vec2 fgrad(vec2 p, float f) { float e = 1.; return vec2(fbm((p + vec2(e, 0)) * f) - fbm((p - vec2(e, 0)) * f), fbm((p + vec2(0, e)) * f) - fbm((p - vec2(0, e)) * f)) / (2. * e); }
 float spec(vec3 n, vec3 h, float s) { return pow(max(dot(n, h), 0.), s); }
-vec3 env(vec3 r, vec3 tint) {            // a studio for the polished metals: dark floor, bright soft boxes, a horizon line
-  float up = -r.y, side = r.x;
-  vec3 c = mix(vec3(.04), vec3(.95), smoothstep(-.25, .35, up));
-  c += vec3(1.2) * smoothstep(.55, .75, up) * smoothstep(.2, -.1, abs(side + .25) - .25);
-  c *= mix(vec3(1), tint, .35);
-  c += vec3(.5) * exp(-abs(up + .05) * 30.);
+vec3 env(vec3 r, vec3 tint) {            // a photo studio for the polished metals (as the material libraries light them): a dark room, a big soft box overhead,
+  float up = -r.y, side = r.x;           // two strip lights at the sides (one cooler), a warm bounce off the floor, a bright horizon line — high contrast, so metal reads as metal
+  vec3 c = mix(vec3(.03, .03, .035), vec3(.55, .56, .6), smoothstep(-.35, .55, up));
+  c += vec3(2.4) * smoothstep(.62, .78, up) * smoothstep(.34, .2, abs(side + .15));
+  c += vec3(1.7, 1.65, 1.55) * smoothstep(.07, .0, abs(side - .66) - .05) * smoothstep(-.25, .05, up) * smoothstep(.7, .45, up);
+  c += vec3(1.05, 1.15, 1.35) * smoothstep(.06, .0, abs(side + .72) - .04) * smoothstep(-.3, 0., up) * smoothstep(.65, .4, up);
+  c += vec3(.28, .2, .12) * smoothstep(0., -.6, up);
+  c += vec3(.7) * exp(-abs(up + .04) * 38.);
+  c *= mix(vec3(1), tint, .2);
   return c;
 }
+float fres(vec3 n, float f0) { return f0 + (1. - f0) * pow(1. - clamp(n.z, 0., 1.), 5.); }      // (Schlick: metal brightens towards its edges)
+vec3 metalTone(vec3 o) { return o / (1. + max(vec3(0.), o - .85) * .9); }                                     // (a soft roll-off of the highlights instead of clipping)
 void main() {
   vec2 p = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y), uv = p / uRes, ps = p / uK;
   vec4 A = texture(uA, uv);
@@ -4444,7 +4449,9 @@ void main() {
     float sl = length(n.xy), fa = dot(n.xy / max(sl, 1e-4), normalize(L.xy + 1e-5));
     float e = .3 + .8 * smoothstep(.05, .5, sl) * (.5 + .5 * fa) + .7 * exp(-pow((sl - .32) * 7., 2.)) * (.6 + .4 * fa) - .2 * smoothstep(.55, .9, sl);
     e += .25 * smoothstep(.6, .95, -fa) * smoothstep(.2, .6, sl);                   // a second, dimmer light from behind
-    o = vec3(e) * mix(vec3(1), c * 1.35, .6) * (.5 + .5 * sh) * ao + vec3(2.) * spec(n, Hh, 320.) * sh + (grain - .5) * .035;
+    vec3 rr = reflect(vec3(0, 0, -1), n);
+    o = (vec3(e) * .6 + env(rr, c) * .5 * (.6 + .4 * fres(n, .55))) * mix(vec3(1), c * 1.35, .55) * (.5 + .5 * sh) * ao + vec3(2.6) * spec(n, Hh, 320.) * sh + (grain - .5) * .03;
+    o = metalTone(o * 1.25);
   } else if (m == 7) {                              // pewter: brushed metal, its highlight drawn out across the brushing
     vec3 b = mix(c, vec3(.62, .63, .66), .5); float th = dot(vec3(dv, 0.), Hh);
     float aniso = pow(sqrt(max(0., 1. - th * th)) * max(dot(n, Hh), 0.), 36.);
@@ -4458,7 +4465,7 @@ void main() {
     o = b * (.22 + .85 * dif * sh) * ao + vec3(.35) * spec(n, Hh, 70.) * sh;
   } else if (m == 9) {                              // copper: polished where it stands up, green verdigris in the hollows
     vec3 cu = mix(vec3(.80, .42, .26), c, .2), r = reflect(vec3(0, 0, -1), n);
-    vec3 shine = cu * (.1 + .6 * dif * sh) * ao + cu * env(r, cu) * .5 * (.5 + .5 * sh) + mix(cu, vec3(1), .4) * spec(n, Hh, 50.) * 1.2 * sh;
+    vec3 shine = metalTone((cu * (.08 + .45 * dif * sh) * ao + cu * env(r, cu) * .8 * fres(n, .6) * (.5 + .5 * sh) + mix(cu, vec3(1), .4) * spec(n, Hh, 50.) * 1.4 * sh) * 1.2);
     float pa = smoothstep(.15, .6, (1. - ao) * 2.2 + max(0., avg - h) / (5. * uK) + .45 * (fbm(ps * .04) - .45));
     vec3 verd = vec3(.32, .62, .52) * (.75 + .45 * fbm(ps * .09));
     o = mix(shine, verd * (.3 + .7 * dif * sh) * ao, pa * .92);
@@ -4468,10 +4475,11 @@ void main() {
     float crack = smoothstep(0., .06, d2 - d1), hc = hash(id);
     vec3 n2 = normalize(n + vec3((hash(id + 1.3) - .5) * .22, (hash(id + 2.7) - .5) * .22, 0.)), H2 = normalize(L + V), r = reflect(vec3(0, 0, -1), n2);
     vec3 au = mix(vec3(1., .78, .34), c, .12);
-    o = (au * (.12 + .5 * max(dot(n2, L), 0.) * sh) * ao + au * env(r, au) * .62 * (.6 + .4 * sh) + vec3(1., .9, .6) * spec(n2, H2, 90.) * 1.3 * sh) * (.9 + .18 * hc) * mix(.55, 1., crack);
+    o = (au * (.1 + .4 * max(dot(n2, L), 0.) * sh) * ao + au * env(r, au) * .85 * fres(n2, .75) * (.6 + .4 * sh) + vec3(1., .9, .6) * spec(n2, H2, 90.) * 1.5 * sh) * (.9 + .18 * hc) * mix(.55, 1., crack);
+    o = metalTone(o * 1.2);
   } else if (m == 11) {                             // bronze: dark patina in the low parts, polished golden-brown on the high points
     vec3 bz = mix(vec3(.72, .52, .28), c, .2), r = reflect(vec3(0, 0, -1), n);
-    vec3 pol = bz * (.1 + .6 * dif * sh) * ao + bz * env(r, bz) * .42 * (.5 + .5 * sh) + mix(bz, vec3(1), .45) * spec(n, Hh, 70.) * 1.1 * sh;
+    vec3 pol = metalTone((bz * (.08 + .5 * dif * sh) * ao + bz * env(r, bz) * .7 * fres(n, .55) * (.5 + .5 * sh) + mix(bz, vec3(1), .45) * spec(n, Hh, 70.) * 1.3 * sh) * 1.15);
     vec3 pat = mix(vec3(.24, .29, .21), vec3(.36, .42, .32), fbm(ps * .06)) * (.45 + .65 * dif * sh) * ao;
     o = mix(pat, pol, smoothstep(-2.5 * uK, 2. * uK, h - avg));
   } else if (m == 12) {                             // beads: glossy, lacquered
@@ -4842,17 +4850,23 @@ const STYLE_DRAW = {
     }
     x.restore(); return q.t === 'S' ? [a[4], a[5]] : endOf(q);
   },
-  scribble(x, q) {        // a pen going back and forth inside the shape, a bit wobbly, sometimes a second layer across
-    const [c, , o] = colsOf(q), P = SHP.poly({ t: q.t, p: q.args }), b = boxOf(P), R = rngFor(q.args), size = Math.max(b.w, b.h, 2);
-    const lw = Math.max(0.7, Math.min(3.2, size * 0.03)), gap = lw * 2.3, half = size * 0.75;
-    x.save(); outlinePath(x, q); x.clip();
-    x.globalAlpha = o; x.strokeStyle = c; x.lineWidth = lw; x.lineCap = x.lineJoin = 'round';
-    for (let pass = 0, n = R() < 0.45 ? 2 : 1; pass < n; pass++) {
-      x.save(); x.translate(b.cx, b.cy); x.rotate(R() * Math.PI + pass * 1.3);
-      x.beginPath(); let y = -half, side = 1; x.moveTo(-half, y);
-      while (y < half) { y += gap * (0.8 + R() * 0.5); x.lineTo(side * half + (R() - 0.5) * gap * 3, y); side = -side; }
-      x.stroke(); x.restore();
+  scribble(x, q) {        // a sketchy pen (after the 'sketchy' brush of mr.doob's Harmony, written anew): it scribbles back and forth through the shape, and
+    // every point of the line is joined by faint threads to the points of it that came before and lie near — the web of shading a quick sketch builds up
+    const [c, , o] = colsOf(q), P = SHP.poly({ t: q.t, p: q.args }), b = boxOf(P), R = rngFor(q.args), size = Math.max(b.w, b.h, 2), tk = Math.max(0.7, outLong() / 1600);
+    const lw = Math.max(0.8 * tk, Math.min(2.6 * tk, size * 0.02)), gap = Math.max(lw * 1.7, size * 0.022), half = size * 0.62, pts = [];
+    const an = R() * Math.PI, cs = Math.cos(an), sn = Math.sin(an);
+    for (let y = -half, side = 1; y < half; y += gap * (0.7 + R() * 0.6), side = -side) {      // the scribble's points, kept inside the shape
+      for (let s = 0; s <= 10; s++) { const u = side * (-half + 2 * half * s / 10) + (R() - 0.5) * gap, v = y + (R() - 0.5) * gap * 0.6, px = b.cx + u * cs - v * sn, py = b.cy + u * sn + v * cs; if (inPoly(P, px, py)) pts.push([px, py]); }
     }
+    if (pts.length < 2) { x.save(); x.globalAlpha = o; x.strokeStyle = c; x.lineWidth = lw; outlinePath(x, q); x.stroke(); x.restore(); return; }
+    x.save(); x.lineCap = x.lineJoin = 'round'; x.strokeStyle = c;
+    x.globalAlpha = o * 0.9; x.lineWidth = lw; x.beginPath(); pts.forEach((p, i) => x[i ? 'lineTo' : 'moveTo'](p[0], p[1])); x.stroke();
+    const reach = (gap * 2.2) ** 2, web = new Path2D();
+    for (let i = 1; i < pts.length; i++) for (let j = Math.max(0, i - 60); j < i - 1; j++) {
+      const dx = pts[j][0] - pts[i][0], dy = pts[j][1] - pts[i][1], d = dx * dx + dy * dy;
+      if (d < reach && R() > d / reach * 0.85) { web.moveTo(pts[i][0] + dx * 0.25, pts[i][1] + dy * 0.25); web.lineTo(pts[j][0] - dx * 0.25, pts[j][1] - dy * 0.25); }
+    }
+    x.globalAlpha = o * 0.35; x.lineWidth = lw * 0.6; x.stroke(web);
     x.restore();
   },
   halftone(x, q) {        // comic-book dots on a 45° screen, small at the first colour, big at the second
@@ -4947,21 +4961,31 @@ const STYLE_DRAW = {
     x.globalAlpha = o * 0.35; x.fillStyle = dust; x.fill(path);
     x.restore(); return [a[0], a[1]];
   },
-  pen(x, q, u = 1, dir = 1) {      // fine-liner: crisp even lines — strokes as single lines, shapes as their outline and contours inside it, over a pale wash
-    const [c, , o] = colsOf(q), ink = shade(c, -0.38);
-    x.save(); x.lineCap = x.lineJoin = 'round'; x.strokeStyle = ink;
+  pen(x, q, u = 1, dir = 1) {      // ballpoint pen (after Ploma's study of ballpoint ink): the ink comes and goes along the line in a slow random walk, a little gob
+    // where the pen lands, the paper's tooth breaking it slightly; areas are hatched as a pen artist does — denser, then crossed, the darker they are
+    const [c, , o] = colsOf(q), ink = shade(c, -0.38), R = rngFor(q.args), lw0 = Math.max(0.7, Math.min(1.7, outLong() / 1600 * 1.05));
+    const line = (P, w) => {      // one ballpoint line: segments in five ink densities (batched)
+      const B = [new Path2D(), new Path2D(), new Path2D(), new Path2D(), new Path2D()]; let d = 0.75 + R() * 0.2;
+      for (let i = 1; i < P.length; i++) { d = Math.min(1, Math.max(0.45, d + (R() - 0.5) * 0.22)); const k = Math.min(4, Math.floor((d - 0.45) / 0.11)); B[k].moveTo(P[i - 1][0], P[i - 1][1]); B[k].lineTo(P[i][0], P[i][1]); }
+      x.lineWidth = w; B.forEach((p, k) => { x.globalAlpha = o * (0.5 + k * 0.12); x.stroke(p); });
+    };
+    x.save(); x.lineCap = x.lineJoin = 'round'; x.strokeStyle = ink; x.fillStyle = ink;
     if (q.t === 'S') {
-      const a = q.args, P = quadPts(a, u, dir, 20);
-      x.globalAlpha = o; x.lineWidth = Math.max(0.8, Math.min(2.2, a[6] * 0.25)); offsetLine(x, P, 0); x.stroke();
+      const a = q.args, n = Math.max(6, Math.min(60, Math.round(sizeOf(q) / 3))), P = quadPts(a, u, dir, n), w = Math.max(lw0 * 0.8, Math.min(lw0 * 2.2, a[6] * 0.22));
+      line(P, w);
+      if (u > 0.05) { x.globalAlpha = o * 0.85; x.beginPath(); x.arc(P[0][0], P[0][1], w * 0.75, 0, 7); x.fill(); }      // the gob where it landed
       x.restore(); return P[P.length - 1];
     }
-    const P = SHP.poly({ t: q.t, p: q.args }), b = boxOf(P), size = Math.max(b.w, b.h, 2), lw = Math.max(0.7, Math.min(1.8, size * 0.012));
-    x.globalAlpha = o * 0.4; x.fillStyle = c; outlinePath(x, q); x.fill();
-    x.globalAlpha = o;
-    const rings = Math.max(1, Math.min(6, Math.round(size / 12)));
-    for (let k = 0; k < rings; k++) {
-      const s = 1 - k / rings * 0.9;
-      x.save(); x.translate(b.cx, b.cy); x.scale(s, s); x.translate(-b.cx, -b.cy); x.lineWidth = lw / s; outlinePath(x, q); x.stroke(); x.restore();
+    const P = SHP.poly({ t: q.t, p: q.args }), b = boxOf(P), [r, g, bb] = hexRgb(c), lum = (0.3 * r + 0.59 * g + 0.11 * bb) / 255;
+    x.clip(raggedPath(q, R, 0.16));      // (hatching stops raggedly, never on a drawn edge)
+    const gap = lw0 * (3.2 + 9 * lum), passes = lum > 0.72 ? 1 : lum > 0.42 ? 2 : 3, half = Math.hypot(b.w, b.h) / 2 + 2;
+    for (let p = 0; p < passes; p++) {
+      const an = -0.8 + p * 1.05 + (R() - 0.5) * 0.15, cs = Math.cos(an), sn = Math.sin(an);
+      for (let v = -half; v <= half; v += gap * (0.85 + R() * 0.3)) {
+        const j = (R() - 0.5) * gap * 0.5, x0 = b.cx - cs * half - sn * v, y0 = b.cy - sn * half + cs * v, x1 = b.cx + cs * half - sn * (v + j), y1 = b.cy + sn * half + cs * (v + j);
+        const m = 8, L = []; for (let i = 0; i <= m; i++) { const t = i / m; L.push([x0 + (x1 - x0) * t + (R() - 0.5) * lw0 * 0.6, y0 + (y1 - y0) * t + (R() - 0.5) * lw0 * 0.6]); }
+        line(L, lw0 * (0.85 + R() * 0.3));
+      }
     }
     x.restore(); return [q.args[0], q.args[1]];
   },
