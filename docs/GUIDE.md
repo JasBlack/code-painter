@@ -249,6 +249,16 @@ They go on before the signal, so a CRT look can sit on top.
 
 **Real paper** (always on): pencil, charcoal, pastel and pen catch only the peaks of the paper they are drawn on, as real dry media do (after PigmentLab's grain gate, p5.brush and graphite). Every stroke is cut by one fixed paper, the same paper under all of them, so the white valleys of the grain show through, and layers of strokes fill them in slowly. Pencil goes on fine drawing paper, charcoal on laid charcoal paper with its ribs, pastel on honeycomb pastel paper. Pencil, charcoal and pen alone are drawn on light paper; pastel keeps a toned ground. The paper's own relief shows faintly on the ground.
 
+**Beads** are fuse beads on a pegboard, as in a Hama or Perler bead picture (after beadmachine, MIT licence). Each stroke fills the grid with beads in the nearest of Hama's 55 real bead colours, each bead a small lit plastic tube with its hole, and the pegboard shows between them.
+
+**Embroidery** (*thread*) is satin stitch in silk: fine threads laid close, each rounded with a glint along its crown. Its sheen depends on how it lies to the light: stitches across the light catch it and those along it stay deep, which gives embroidery its shimmer.
+
+**Pen** is a ballpoint (after Ploma's study of ballpoint ink). The ink comes and goes along each line, there is a small gob where the pen lands, and areas are hatched as a pen artist hatches them, denser and crossed in the darker tones, with ragged ends.
+
+**Scribble** is a sketchy pen (after the "sketchy" brush of mr.doob's Harmony, written anew). It scribbles back and forth through each shape, and every point is joined by faint threads to the nearby points before it, the web of shading a quick sketch builds up.
+
+**Metals** (metal, chrome, gold, copper, bronze) reflect a photo studio: a dark room, a big soft box overhead, two strip lights and a warm floor bounce. They brighten towards their edges (Fresnel), and their highlights roll off softly instead of clipping.
+
 **Riso** prints from three real riso ink drums (blue, fluorescent pink, yellow). Each colour is built by overprinting them at the densities that come nearest, each drum has its grain, and each sits a fixed little way off register for the whole sheet, as in a real print.
 
 ## Pigment mixing
