@@ -451,7 +451,7 @@
         <label class="key" data-cat="craft" title="thread: embroidery, satin stitches across every stroke and rows of stitches filling the shapes, each one a lit, shadowed thread, on a woven fabric"><input type="checkbox" value="thread"><span class="led"></span>thread</label>
         <label class="key" data-cat="craft" title="cross-stitch: an × in every square of a fabric grid"><input type="checkbox" value="stitch"><span class="led"></span>stitch</label>
         <label class="key" data-cat="craft" title="clay: modelling clay, ropes and lumps pressed together, matte, with dents and thumb marks (relief: lit in 3D, follows the light)"><input type="checkbox" value="plast"><span class="led"></span>clay</label>
-        <label class="key" data-cat="craft" title="beads: chains of glossy lacquered beads (relief: lit in 3D, follows the light)"><input type="checkbox" value="beads"><span class="led"></span>beads</label>
+        <label class="key" data-cat="craft" title="beads: fuse beads on a pegboard, as in a Hama / Perler bead picture — each stroke fills the grid with beads in the nearest of Hama's 55 real bead colours, each a little lit cylinder with its hole"><input type="checkbox" value="beads"><span class="led"></span>beads</label>
         <label class="key" data-cat="craft" title="foam: beaded, bulbous ropes lying in layers, casting shadows on each other (relief: lit in 3D, follows the light)"><input type="checkbox" value="foam"><span class="led"></span>foam</label>
         <label class="key" data-cat="craft" title="tape: strips of coloured paper tape, straight, a little see-through, torn ends, a soft shadow (follows the light)"><input type="checkbox" value="tape"><span class="led"></span>tape</label>
         <label class="key" data-cat="material" title="ceramic: glazed porcelain ropes with a lacquer highlight, ends that drop to a point (relief: lit in 3D, follows the light)"><input type="checkbox" value="ceramic"><span class="led"></span>cera</label>
@@ -2106,6 +2106,10 @@ function paintBg(x) {
       x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 0.16; x.fillStyle = patternFor('canvas', '#000'); x.fillRect(0, 0, x.canvas.width, x.canvas.height);
       x.globalAlpha = 0.07; x.fillStyle = patternFor('canvas', '#fff'); x.translate(2, 2); x.fillRect(-2, -2, x.canvas.width, x.canvas.height); x.restore();
     }
+    // beads: the pegboard under them, its pegs on the same grid
+    if (stylePick.values().includes('beads')) { const cell = beadCell(), m = x.getTransform(), k = Math.hypot(m.a, m.b), pc = document.createElement('canvas'), s = Math.max(4, Math.round(cell * k)); pc.width = pc.height = s;
+      const px = pc.getContext('2d'); px.fillStyle = 'rgba(0,0,0,0.10)'; px.beginPath(); px.arc(s / 2 + s * 0.04, s / 2 + s * 0.05, s * 0.16, 0, 7); px.fill(); px.fillStyle = 'rgba(255,255,255,0.35)'; px.beginPath(); px.arc(s / 2, s / 2, s * 0.14, 0, 7); px.fill();
+      const pat = x.createPattern(pc, 'repeat'); pat.setTransform(new DOMMatrix([m.a, m.b, m.c, m.d, m.e, m.f]).scaleSelf(cell / s, cell / s)); x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = pat; x.fillRect(0, 0, x.canvas.width, x.canvas.height); x.restore(); }
     // dry media: the paper they are drawn on, its tooth faintly lit (the same paper that breaks up their strokes)
     const dry = stylePick.values().map(s => TOOTH_ST[s]).find(Boolean);
     if (dry) { const p = toothShade(dry.kind), k = toothScale(); p.setTransform(new DOMMatrix(x.getTransform()).scaleSelf(k, k)); x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'soft-light'; x.globalAlpha = 0.3; x.fillStyle = p; x.fillRect(0, 0, x.canvas.width, x.canvas.height); x.restore(); }
@@ -3791,7 +3795,7 @@ function threadStitches(q, R) {
   if (q.t === 'S') {
     const w = Math.max(3, a[6]), P = quadPts(a, 1, 1, 48), cum = [0];
     for (let i = 1; i < P.length; i++) cum.push(cum[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
-    const L = cum[cum.length - 1] || 1, pitch = Math.max(1.2, w * 0.3); tw = Math.max(1.3, pitch * 1.05); let j = 1;
+    const L = cum[cum.length - 1] || 1, tk = Math.max(0.7, outLong() / 1600), pitch = Math.max(0.9 * tk, Math.min(w * 0.13, 2.1 * tk)); tw = pitch * 1.18; let j = 1;      // (fine silk threads laid close: no gaps)
     for (let d = 0; d <= L; d += pitch) {
       while (j < P.length - 1 && cum[j] < d) j++;
       const seg = cum[j] - cum[j - 1] || 1, f = (d - cum[j - 1]) / seg, tx = (P[j][0] - P[j - 1][0]) / seg, ty = (P[j][1] - P[j - 1][1]) / seg;
@@ -3801,7 +3805,7 @@ function threadStitches(q, R) {
     end = [a[4], a[5]];
   } else {
     const P = SHP.poly({ t: q.t, p: a }), b = boxOf(P), size = Math.max(b.w, b.h, 2), ang = q.t === 'R' ? a[4] : R() * Math.PI, dx = Math.cos(ang), dy = Math.sin(ang), nx = -dy, ny = dx;
-    const n = P.length / 2, U = [], V = [], ext = Math.hypot(b.w, b.h) / 2 + 1; let rowGap = Math.max(1.4, size * 0.035);
+    const n = P.length / 2, U = [], V = [], ext = Math.hypot(b.w, b.h) / 2 + 1, tk = Math.max(0.7, outLong() / 1600); let rowGap = Math.max(1.1 * tk, Math.min(size * 0.025, 2.3 * tk));
     for (let i = 0; i < n; i++) { const ox = P[i * 2] - b.cx, oy = P[i * 2 + 1] - b.cy; U.push(ox * dx + oy * dy); V.push(ox * nx + oy * ny); }
     for (let tries = 0; tries < 3; tries++) {
       list.length = 0; let row = 0;
@@ -3818,7 +3822,7 @@ function threadStitches(q, R) {
           }
         }
       }
-      if (list.length <= 520) break; rowGap *= 1.5;
+      if (list.length <= 2400) break; rowGap *= 1.4;
     }
     tw = rowGap * 1.08; end = [a[0], a[1]];
   }
@@ -3826,16 +3830,25 @@ function threadStitches(q, R) {
 }
 // a thread lit from the top left: a shadow under it, the body in a few shades, a thin highlight along it
 function drawThread(x, st, u, c0, c1, o) {
-  const shadow = new Path2D(), hi = new Path2D(), body = [new Path2D(), new Path2D(), new Path2D(), new Path2D()], tw = st.tw, hx = LIGHT.x * tw * 0.3, hy = LIGHT.y * tw * 0.3;
+  // satin stitch in silk (after Threadlab's rendered embroidery): each stitch a fine rounded thread — the dark line where it
+  // meets its neighbours, the body, a thin glint along its crown — and its sheen from how it lies to the light (silk shines
+  // across its fibres, so stitches running across the light catch it and those along it stay deep): the shimmer of embroidery
+  const tw = st.tw, lx = LIGHT.x, ly = LIGHT.y, ll = Math.hypot(lx, ly) || 1, N = 6, mid = mixHex(c0, c1, 0.5);
+  const groove = new Path2D(), body = Array.from({ length: N }, () => new Path2D()), glint = Array.from({ length: N }, () => new Path2D());
+  const gx = lx / ll * tw * 0.22, gy = ly / ll * tw * 0.22;
   for (const s of st.list) {
     if (s.t > u) break;
-    shadow.moveTo(s.x0 - LIGHT.x * tw * 0.45, s.y0 - LIGHT.y * tw * 0.45); shadow.lineTo(s.x1 - LIGHT.x * tw * 0.45, s.y1 - LIGHT.y * tw * 0.45);
-    body[s.b].moveTo(s.x0, s.y0); body[s.b].lineTo(s.x1, s.y1); hi.moveTo(s.x0 + hx, s.y0 + hy); hi.lineTo(s.x1 + hx, s.y1 + hy);
+    const dx = s.x1 - s.x0, dy = s.y1 - s.y0, d = Math.hypot(dx, dy) || 1, across = Math.abs((dx * ly - dy * lx) / (d * ll));       // 1: lying across the light
+    const k = Math.min(N - 1, Math.floor(across * 0.999 * N + (s.b - 1.5) * 0.25));
+    groove.moveTo(s.x0, s.y0); groove.lineTo(s.x1, s.y1);
+    body[Math.max(0, k)].moveTo(s.x0, s.y0); body[Math.max(0, k)].lineTo(s.x1, s.y1);
+    glint[Math.max(0, k)].moveTo(s.x0 + gx, s.y0 + gy); glint[Math.max(0, k)].lineTo(s.x1 + gx, s.y1 + gy);
   }
-  const mid = mixHex(c0, c1, 0.5); x.save(); x.lineCap = 'round'; x.lineJoin = 'round';
-  x.globalAlpha = o * 0.55; x.strokeStyle = '#000'; x.lineWidth = tw * 1.3; x.stroke(shadow);
-  [-0.12, 0.06, -0.22, 0.14].forEach((k, i) => { x.globalAlpha = o; x.strokeStyle = shade2(mid, k); x.lineWidth = tw; x.stroke(body[i]); });
-  x.globalAlpha = o * 0.5; x.strokeStyle = '#fff'; x.lineWidth = Math.max(0.5, tw * 0.28); x.stroke(hi);
+  x.save(); x.lineCap = 'butt'; x.lineJoin = 'round';
+  x.globalAlpha = o; x.strokeStyle = shade2(mid, -0.42); x.lineWidth = tw * 1.05; x.stroke(groove);                         // between the threads
+  for (let i = 0; i < N; i++) { const f = i / (N - 1);
+    x.globalAlpha = o; x.strokeStyle = shade2(mid, -0.3 + 0.48 * f); x.lineWidth = tw * 0.74; x.stroke(body[i]);            // the thread, lit by its lie
+    x.globalAlpha = o * (0.12 + 0.55 * f * f); x.strokeStyle = mixHex(shade2(mid, 0.5), '#ffffff', 0.35); x.lineWidth = Math.max(0.35, tw * 0.2); x.stroke(glint[i]); }   // the glint on its crown
   x.restore();
 }
 // ── light, and helpers for the lit styles (hylics, glass, embroidery, and the relief materials) ────────────────────────
@@ -3952,7 +3965,6 @@ const RELIEF = {
   copper:   { id: 9, layer: 0.5, fuse: 2, hk: 0.9 },
   gold:     { id: 10, layer: 0.5, fuse: 2, hk: 0.9, taper: 0.2 },
   bronze:   { id: 11, layer: 0.45, fuse: 3, hk: 0.85 },
-  beads:    { id: 12, layer: 0.75, fuse: 0, hk: 1, bead: 'chain' },
   puffy:    { id: 13, layer: 0.5, fuse: 2, hk: 1.15, puff: true },
   // paint with body (a bristle brush, see reliefBristle): thick oil, flatter acrylic, a palette knife
   oil:      { id: 14, layer: 0.55, fuse: 0, hk: 1, bristle: 'oil', thick: 0.62 },
@@ -4631,6 +4643,33 @@ const MEDIA = new Set(['calligraphy', 'watercolour', 'gouache', 'sumi', 'marker'
 const CAN_BLUR = (() => { try { const t = document.createElement('canvas').getContext('2d'); t.filter = 'blur(1px)'; return t.filter === 'blur(1px)'; } catch (e) { return false; } })();
 const RISO_INKS = ['#ff48b0', '#0078bf', '#ffe800', '#00a95c', '#ff6c2f', '#765ba7', '#f15060', '#3d5588', '#00838a', '#000000'];    // fluorescent pink, blue, yellow, green, orange, violet, red, federal blue, teal, black
 let RISO_GRAIN = null;
+// fuse beads (after beadmachine, MIT, and its palette of Hama's real bead colours): a pegboard grid, one bead per peg
+const HAMA = ['ffffff','f6f0c0','f2cb0e','cd4a1c','a22523','d68c9b','584189','215294','0b71b9','2e783b','75b489','433125','a8121e','e9c912','0289c9','66ab7e','808080','000000','793520','b0713b','981e2d','323232','685a8d','98784f','e1beab','d9b882','384531','ab1845','57383e','84aec4','b81c63','be1830','e2d845','b8241a','2285c8','84b34d','d98219','e5e051','c94417','469ad8','7bb044','f1ea65','d36157','9a8db8','78b7ea','a0c46d','ce8ab3','71bacd','dea427','d8c090','c8cccd','c0b780','d8cfc8','aeaeae','4f4f4f'].map(h => '#' + h), BEAD = { sprites: new Map(), near: new Map(), lab: null };
+const beadCell = () => Math.max(4, (typeof outLong === 'function' ? outLong() : 1600) / 92);
+function labOf(h) { const c = hexRgb(h).map(v => { v /= 255; return v > 0.04045 ? Math.pow((v + 0.055) / 1.055, 2.4) : v / 12.92; });
+  const X = (c[0] * 0.4124 + c[1] * 0.3576 + c[2] * 0.1805) / 0.9505, Y = c[0] * 0.2126 + c[1] * 0.7152 + c[2] * 0.0722, Z = (c[0] * 0.0193 + c[1] * 0.1192 + c[2] * 0.9505) / 1.089;
+  const f = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116; return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))]; }
+// the bead nearest a colour, by how different they look (CIE Lab)
+function beadOf(h) {
+  let r = BEAD.near.get(h); if (r) return r; if (!BEAD.lab) BEAD.lab = HAMA.map(labOf);
+  const L = labOf(h); let bi = 0, bd = 1e9; BEAD.lab.forEach((B, i) => { const d = (B[0] - L[0]) ** 2 + (B[1] - L[1]) ** 2 + (B[2] - L[2]) ** 2; if (d < bd) { bd = d; bi = i; } });
+  if (BEAD.near.size > 5000) BEAD.near.clear(); BEAD.near.set(h, r = HAMA[bi]); return r;
+}
+// one bead seen from above, s px: a short plastic tube — its rim lit from the light, the hole showing the board, a contact shadow
+function beadSprite(col, s) {
+  s = Math.max(6, Math.round(s)); const key = col + s; let c = BEAD.sprites.get(key); if (c) return c;
+  c = document.createElement('canvas'); c.width = c.height = s; const x = c.getContext("2d"), m = s / 2, R = s * 0.47, r = s * 0.17, lx = LIGHT.x || -0.6, ly = LIGHT.y || -0.78;
+  x.fillStyle = 'rgba(0,0,0,0.28)'; x.beginPath(); x.arc(m - lx * s * 0.05, m - ly * s * 0.05, R, 0, 7); x.arc(m - lx * s * 0.05, m - ly * s * 0.05, r * 0.9, 0, 7, true); x.fill();
+  const body = new Path2D(); body.arc(m, m, R, 0, 7); body.arc(m, m, r, 0, 7, true);
+  const g = x.createLinearGradient(m + lx * R, m + ly * R, m - lx * R, m - ly * R); g.addColorStop(0, shade(col, 0.28)); g.addColorStop(0.45, col); g.addColorStop(1, shade(col, -0.32));
+  x.fillStyle = g; x.fill(body, 'evenodd');
+  const rim = x.createRadialGradient(m, m, r, m, m, R); rim.addColorStop(0, 'rgba(0,0,0,0.22)'); rim.addColorStop(0.25, 'rgba(0,0,0,0)'); rim.addColorStop(0.8, 'rgba(255,255,255,0)'); rim.addColorStop(1, 'rgba(0,0,0,0.18)');
+  x.fillStyle = rim; x.fill(body, 'evenodd');
+  x.strokeStyle = 'rgba(255,255,255,0.55)'; x.lineWidth = Math.max(0.8, s * 0.05); x.lineCap = 'round'; const a0 = Math.atan2(ly, lx);
+  x.beginPath(); x.arc(m, m, (R + r) * 0.55, a0 - 0.55, a0 + 0.35); x.stroke();                                          // the sheen on the rim, towards the light
+  x.strokeStyle = 'rgba(0,0,0,0.3)'; x.lineWidth = Math.max(0.6, s * 0.03); x.beginPath(); x.arc(m, m, r, a0 - 1.2, a0 + 1.2); x.stroke();     // the hole's far wall in shadow
+  if (BEAD.sprites.size > 600) BEAD.sprites.clear(); BEAD.sprites.set(key, c); return c;
+}
 // the riso's drums: the inks of the print, and how far each sits off register (device px), the same for every stroke
 const RISO_PAPER = '#f4efe4', RISO_DRUMS = ['#0078bf', '#ff48b0', '#ffe800'], RISO_REG = [[0, 0], [1.6, -0.9], [-1.1, 1.3]], RISO_SPLIT = new Map();
 // a colour as densities of the three inks over white paper: the multiply of what they let through comes nearest it
@@ -4737,6 +4776,20 @@ const STYLE_DRAW = {
     x.globalAlpha = 0.5; x.fillStyle = paper;      // where the ink missed: a few specks, more near the edge
     for (let k = 0, n = Math.min(160, Math.round(size * size / 500)); k < n; k++) { const px = b.x0 + R() * b.w, py = b.y0 + R() * b.h, r2 = 0.3 + R() * Math.max(0.6, size * 0.006); x.beginPath(); x.arc(px, py, r2, 0, 7); x.fill(); }
     x.restore(); return endOf(q);
+  },
+  beads(x, q, u = 1, dir = 1) {     // fuse beads: the shape filled on the pegboard grid with beads in the nearest real bead colours
+    const [c0, c1, o] = colsOf(q), a = q.args, cell = beadCell(), k = devK(x), cells = [];
+    if (q.t === 'S') {
+      const L = sizeOf(q), P = quadPts(a, 1, dir, Math.max(4, Math.round(L / cell * 2))), w = Math.max(cell * 0.6, a[6] / 2 + cell * 0.2), seen = new Set();
+      P.forEach((p, i) => { const t = i / (P.length - 1); for (let gy = Math.floor((p[1] - w) / cell); gy <= Math.floor((p[1] + w) / cell); gy++) for (let gx = Math.floor((p[0] - w) / cell); gx <= Math.floor((p[0] + w) / cell); gx++) {
+        const cx = (gx + 0.5) * cell, cy = (gy + 0.5) * cell, key = gx + ',' + gy; if (seen.has(key) || Math.hypot(cx - p[0], cy - p[1]) > w) continue; seen.add(key); cells.push([cx, cy, t]); } });
+    } else {
+      const P = SHP.poly({ t: q.t, p: a }), b = boxOf(P);
+      for (let gy = Math.floor(b.y0 / cell); gy <= Math.ceil(b.y1 / cell); gy++) for (let gx = Math.floor(b.x0 / cell); gx <= Math.ceil(b.x1 / cell); gx++) { const cx = (gx + 0.5) * cell, cy = (gy + 0.5) * cell; if (inPoly(P, cx, cy)) cells.push([cx, cy, (cx - b.x0) / Math.max(1, b.w)]); }
+    }
+    x.save(); x.globalAlpha = Math.min(1, o * 1.2);
+    for (const [cx, cy, t] of cells) { if (t > u) continue; const spr = beadSprite(beadOf(t < 0.5 ? c0 : c1), cell * k); x.drawImage(spr, cx - cell / 2, cy - cell / 2, cell, cell); }
+    x.restore(); return q.t === 'S' ? quadPts(a, u, dir, 1)[1] : [a[0], a[1]];
   },
   riso(x, q) {            // risograph (after p5.riso's way of thinking about it): the whole print from three drums of real riso ink — blue, fluorescent pink, yellow — each colour built
     // by overprinting them at the right densities (they multiply, as the inks do), each drum's grain, and each drum a fixed little way off register for the whole sheet
@@ -5322,7 +5375,7 @@ function toothShade(kind) {
   x.putImageData(im, 0, 0); p = x.createPattern(c, 'repeat'); TOOTH.pats.set(key, p); return p;
 }
 // pencil and charcoal go on light drawing paper (pastel keeps a toned ground, as pastel paper is)
-const dryPaper = () => { const v = stylePick.values(); return v.length && v.every(s => s === 'pencil' || s === 'charcoal' || s === 'pen') ? '#f1eee6' : v.length && v.every(s => s === 'riso') ? RISO_PAPER : null; };
+const dryPaper = () => { const v = stylePick.values(); return v.length && v.every(s => s === 'pencil' || s === 'charcoal' || s === 'pen') ? '#f1eee6' : v.length && v.every(s => s === 'riso') ? RISO_PAPER : v.length && v.every(s => s === 'beads') ? '#dedbd4' : null; };
 const toothScale = () => Math.max(0.6, Math.min(3, (typeof outLong === 'function' ? outLong() : 1600) / 1600));       // (paper features at the same size on any output)
 // draw f into a scratch layer, cut it by the paper's tooth there, then onto x (with x's own clip, alpha and blend)
 function toothed(x, q, f, spec, u, dir) {
