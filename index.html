@@ -211,7 +211,10 @@
   header .hr { gap: 10px; }
   #layout { flex: none; }
   header .hr { justify-content: flex-end; }
-  .brand { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 13px; letter-spacing: .32em; white-space: nowrap; }
+  .brand { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 13px; letter-spacing: .32em; white-space: nowrap; cursor: default; }
+  /* the version: only while the title is hovered */
+  .brand-ver { font: 500 9px 'IBM Plex Mono', ui-monospace, monospace; letter-spacing: .08em; color: var(--muted); white-space: nowrap; opacity: 0; transition: opacity .15s; }
+  .brand:hover + .brand-ver, .brand-ver:hover { opacity: 1; }
   .status { display: flex; gap: 16px; }
   .status span { display: flex; align-items: center; gap: 7px; }
   .spacer { flex-grow: 1; }
@@ -376,7 +379,7 @@
 
 <header>
   <div class="hl">
-    <div style="display: flex; align-items: baseline; gap: 12px"><span class="brand" title="Version 4.40.0">CODE PAINTER</span></div>
+    <div style="display: flex; align-items: baseline; gap: 9px"><span class="brand">CODE PAINTER</span><span class="brand-ver" id="appver"></span></div>
     <div id="uimode" class="seg tight" role="group" aria-label="Controls" title="easy: four simple steps and six ready-made looks · console: every control"><button data-m="easy">easy</button><button data-m="console">console</button></div>
     <div class="status" aria-label="Status">
       <span><i class="led" id="ledlive"></i><span class="lbl">live</span></span>
@@ -561,7 +564,7 @@
     <div class="echips" id="epath" title="The path the painter takes">
       <button type="button" data-p="free">free</button><button type="button" data-p="line">one line</button><button type="button" data-p="spiral">spiral out</button><button type="button" data-p="down">top → bottom</button>
     </div>
-    <div class="erow"><span class="lbl">speed</span><input id="espeed" type="range" min="1" max="100" aria-label="Painting speed"></div>
+    <div class="erow"><span class="lbl">speed</span><input id="espeed" type="range" min="1" max="100" value="54" aria-label="Painting speed"></div>
     <button type="button" class="emore" data-go="motion">more motion ▸</button>
   </div>
   <div class="panel estep">
@@ -635,7 +638,7 @@
       <div class="pseg" id="phframe"><button type="button" data-v="portrait">4:5</button><button type="button" data-v="vertical">9:16</button></div>
       <select id="phshapes" class="psel" aria-label="Shapes" style="flex: none; width: 76px"></select>
     </div>
-    <div class="prow"><span class="plbl">speed</span><input id="phspeed" type="range" min="1" max="100" aria-label="Painting speed"><output id="phspeedval"></output></div>
+    <div class="prow"><span class="plbl">speed</span><input id="phspeed" type="range" min="1" max="100" value="54" aria-label="Painting speed"><output id="phspeedval"></output></div>
     <div class="prow">
       <button type="button" class="pkey pgo" id="phgo" title="Paint it again from the start">⟲ restart</button>
       <button type="button" class="pkey prec" id="phrec"><i class="dot"></i>record</button>
@@ -1329,6 +1332,7 @@ let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
 const APP_VERSION = '4.40.0', FOOTER = `Code Painter by Jas Black`;
+{ const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
