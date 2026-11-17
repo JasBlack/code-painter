@@ -141,7 +141,7 @@ swells with the sound, and the colours change with the song's sections.
 
 The movers squash and stretch: they gather in just before a strong note, stretch out on it and settle back with a wobble.
 
-Double-click or right-click a slider to put it back; *reset* puts them all back.
+Double-click a slider to put it back to its default; right-click it to put it back as it was when the page opened; *reset* puts them all back.
 
 The score's colours come from the picture (its strongest colours, its darkest tone for the ink, its lightest for the paper), or from the locked palette when there is one.
 
@@ -271,7 +271,7 @@ They go on before the signal, so a CRT look can sit on top.
 
 Off, colours mix as light on a screen. The difference shows most where two different colours meet or cross: with pigment on, a blue stroke over wet yellow turns green at its tail; with it off, it turns grey.
 
-Right-click any slider in the studio to put it back to its default.
+Right-click any setting in the studio (a knob or slider, a switch, a menu, a ticked key, a colour, the on/off keys such as *pigment*) to put it back as it was when the page opened. Buttons that do something (open, record, restart, save…) keep the browser's menu, a style key's right-click still gives that style its own size, and a preset letter's still empties it. The line of key hints under the stage lists the keyboard shortcuts: space pauses, 1–0 play the playlist's slots, H hides the panels under the painting, Esc closes a pop-up.
 
 The pop-up panels (score shape, signal, colour grade, text bar) can be dragged anywhere by their title bar, and they stay inside the window. Each remembers where you put it; double-click its title bar to put it back.
 

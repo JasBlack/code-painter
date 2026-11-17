@@ -33,10 +33,13 @@
   /* light / dark: the whole console; the stage itself stays dark */
   body[data-ui="light"] { --case: #e7e7e4; --panel: #efefec; --line: #d6d6d2; --key: #fafaf8; --keyon: #ececea; --keyline: #cfcfcb; --keyshadow: #bdbdb8; --press: rgba(0,0,0,.12); --text: #1b1b1d; --muted: #8c8c88; --ledoff: #cdcdc9; --knobtop: #fafaf8; --track: #d0d0cc; --well: #e4e4e1; --ink: #1b1b1d; --inktext: #f2f2ef; }
   body[data-ui="dark"] { --case: #121314; --panel: #18191b; --line: #26272a; --key: #222326; --keyon: #1b1c1e; --keyline: #303135; --keyshadow: #070708; --press: rgba(0,0,0,.5); --text: #e4e4e1; --muted: #6f7074; --ledoff: #34353a; --knobtop: #2c2d31; --track: #2e2f33; --well: #141517; --ink: #e4e4e1; --inktext: #121314; }
-  body { --accent: #39ff88; --accent2: #b36bff; --dim: #6f7074; --fg: var(--text); }
+  /* the family dot grid: a baked 32 px tile drawn at 16 px, fine and faint (never a live CSS gradient: it shimmers on macOS) */
+  body[data-ui="dark"] { --dotgrid: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAATElEQVR42u3OOQrAQAxDUSlp5v6ndROcRhcYM6TJf+DCAi8SAAB/5+lgd9+SVtqy/Uz2XMPjznGnVrJvHjhp9IDtllSSOlXJAADAthcsBBEI93xN9gAAAABJRU5ErkJggg=='); }
+  body[data-ui="light"] { --dotgrid: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAUklEQVR42u3SPQrAMAhA4ZeGDl2a+5+za/qzeIJYWgLvA8FFURQkSZpciRhWE7Ur0IAN6MA10mRJbL7HAjXy8uUAr8mcoMcZbuAAzimfUJKk3z3AAQY6ol938gAAAABJRU5ErkJggg=='); }
+  body { --accent: #39ff88; --accent2: #8b6cff; --dim: #6f7074; --fg: var(--text); }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
-  body { background: var(--case); color: var(--text); font: 11px/1.4 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace; overflow: hidden; }
+  body { background: var(--dotgrid) 0 0/16px 16px, var(--case); color: var(--text); font: 11px/1.4 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace; overflow: hidden; }
   #app { height: calc(100vh / var(--uiz, 1)); padding: 14px; display: grid; grid-template-columns: 292px minmax(0, 1fr) 292px; grid-template-rows: 44px minmax(0, 1fr) auto; gap: 12px; }
   .col { display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--keyline) transparent; }
   .col::-webkit-scrollbar { width: 4px; } .col::-webkit-scrollbar-thumb { background: var(--keyline); border-radius: 2px; }
@@ -239,6 +242,10 @@
   #hintfull { position: absolute; left: 0; bottom: calc(100% + 6px); max-width: min(720px, 100%); z-index: 40; border-radius: 8px; background: #0b0b0c; color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); font-size: 11px; line-height: 1.55; padding: 8px 11px; white-space: normal; box-shadow: 0 6px 24px rgba(0,0,0,.5); pointer-events: none; }
   #hintfull[hidden] { display: none; }
   #hint { flex: 1; min-width: 0; height: 30px; line-height: 18px; }
+  /* the key hints under the stage, as in every JAS.BLACK tool */
+  .keys { flex: none; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 8.5px; color: var(--muted); letter-spacing: .08em; padding: 0 4px; }
+  kbd { display: inline-block; min-width: 14px; padding: 0 4px; margin: 0 1px; border-radius: 3px; border: 1px solid var(--keyline); background: var(--key); box-shadow: 0 1px 0 var(--keyshadow); font: 500 8.5px/14px 'IBM Plex Mono', monospace; color: var(--text); text-align: center; }
+  @media (hover: none) and (pointer: coarse) { .keys { display: none; } }
   /* presets: four small keys next to the message line */
   .presets { display: flex; align-items: center; gap: 6px; flex: none; }
   .key.sm { width: 30px; height: 30px; border-radius: 7px; padding-bottom: 4px; font-size: 9.5px; font-weight: 600; box-shadow: 0 1.5px 0 var(--keyshadow); }
@@ -309,7 +316,7 @@
   #speedval { font-weight: 600; font-size: 18px; color: var(--text); min-width: 0; }
   /* ⛶ and solo: only the stage */
   body.solo #app { grid-template-columns: 1fr; grid-template-rows: 1fr; padding: 0; }
-  body.solo #app > :not(.centre), body.solo .playlist, body.solo .vtl, body.solo .lcdrow { display: none !important; }
+  body.solo #app > :not(.centre), body.solo .playlist, body.solo .vtl, body.solo .lcdrow, body.solo .keys { display: none !important; }
   body.solo main { border-radius: 0; background: #000; }
   main:fullscreen { background: #000; padding: 0; border-radius: 0; }
   /* ── loading: a spinner and a few changing words over the stage while a video / the camera / a feed gets going ── */
@@ -335,7 +342,7 @@
   /* ── phone: the painting with its code on top, a strip of essentials under it (body.phone, set by the script) ── */
   #phone { display: none; }
   body.phone #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; padding: 8px 8px max(8px, env(safe-area-inset-bottom)); gap: 8px; }
-  body.phone header, body.phone aside.col, body.phone footer.deck, body.phone .playlist, body.phone .vtl, body.phone .presets { display: none !important; }
+  body.phone header, body.phone aside.col, body.phone footer.deck, body.phone .playlist, body.phone .vtl, body.phone .presets, body.phone .keys { display: none !important; }
   body.phone .centre { flex: 1; min-height: 0; gap: 8px; }
   body.phone main { flex: 1 1 auto; min-height: 160px; padding: 0; border-radius: 10px; }
   body.phone .lcdrow { flex: none; }
@@ -413,7 +420,7 @@
 
 <aside class="col">
   <div class="panel">
-    <div class="ttl"><b>source</b><span style="display: flex; align-items: center; gap: 6px" title="Theme: two colours for the app's lights and buttons and the studio's highlights, bars and stats (the code and rim colours have their own swatches)">theme <input id="theme1" class="swatch" type="color" value="#39ff88" aria-label="Theme colour 1" title="Theme colour 1 (functions, highlight, rim, lights)"><input id="theme2" class="swatch" type="color" value="#b36bff" aria-label="Theme colour 2" title="Theme colour 2 (numbers, keywords, rim)"></span></div>
+    <div class="ttl"><b>source</b><span style="display: flex; align-items: center; gap: 6px" title="Theme: two colours for the app's lights and buttons and the studio's highlights, bars and stats (the code and rim colours have their own swatches)">theme <input id="theme1" class="swatch" type="color" value="#39ff88" aria-label="Theme colour 1" title="Theme colour 1 (functions, highlight, rim, lights)"><input id="theme2" class="swatch" type="color" value="#8b6cff" aria-label="Theme colour 2" title="Theme colour 2 (numbers, keywords, rim)"></span></div>
     <div class="row">
       <label class="key" title="One picture, several pictures (a playlist) or a video. Or drop them anywhere on the page">open<input id="file" type="file" accept="image/*,video/*,.glb,.gltf,.obj,.stl,.ply" multiple></label>
       <select id="example" class="sel" aria-label="Example images" style="flex: 1"><option value="">examples…</option></select>
@@ -624,6 +631,10 @@
       <button type="button" class="mini" id="preset_reset" title="Reset: every setting back to its default (press twice). Presets A–D are kept">reset</button>
       <input id="pfile" type="file" accept=".json,application/json,.png,.mp4,.m4v,.svg,.html,.htm" hidden>
     </div>
+  </div>
+  <div class="keys" id="shortcuts">
+    <span><kbd>space</kbd> pause &middot; <kbd>1</kbd>&ndash;<kbd>0</kbd> playlist &middot; <kbd>H</kbd> panels &middot; <kbd>esc</kbd> close</span>
+    <span>right-click a setting resets it</span>
   </div>
   <div id="phone" aria-label="Phone controls">
     <div class="prow">
@@ -1315,7 +1326,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.40.0 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.40.1 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1333,12 +1344,12 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.40.0', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.40.1', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
-  neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#b36bff',
+  neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
     fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
-    hi: 'rgba(57,255,136,.11)', hi2: 'rgba(179,107,255,.14)', glow: false, grid: '' }
+    hi: 'rgba(57,255,136,.11)', hi2: 'rgba(139,108,255,.14)', glow: false, grid: '' }
 };
 // stage layouts: 16:9 side by side, or 9:16 for reels / shorts / tiktok (painting top, original middle, code bottom)
 const LAYOUTS = {
@@ -11359,7 +11370,7 @@ function maskLayer() {
   if (S.maskCv) return S.maskCv;
   const { w, h, mask } = S.mask, c = document.createElement('canvas'); c.width = w; c.height = h;
   const x = c.getContext('2d'), id = x.createImageData(w, h), d = id.data;
-  for (let i = 0; i < w * h; i++) { const t = mask[i] / 255; d[i * 4] = 57 + (179 - 57) * (1 - t); d[i * 4 + 1] = 255 + (107 - 255) * (1 - t); d[i * 4 + 2] = 136 + (255 - 136) * (1 - t); d[i * 4 + 3] = 70 + 60 * (1 - t); }
+  for (let i = 0; i < w * h; i++) { const t = mask[i] / 255; d[i * 4] = 57 + (139 - 57) * (1 - t); d[i * 4 + 1] = 255 + (108 - 255) * (1 - t); d[i * 4 + 2] = 136 + (255 - 136) * (1 - t); d[i * 4 + 3] = 70 + 60 * (1 - t); }
   x.putImageData(id, 0, 0);
   return (S.maskCv = c);
 }
@@ -13108,8 +13119,7 @@ async function renderOffline() {
 const PRESET_SKIP = new Set(['example', 'livein', 'replay', 'igguides', 'sendon']);
 const presetEls = () => [...document.querySelectorAll('#app input[id], #app select[id]')].filter(el => !PRESET_SKIP.has(el.id) && el.type !== 'file' && el.type !== 'text');
 const fire = (el, type) => el.dispatchEvent(new Event(type, { bubbles: true }));
-// right-click any slider: back to its default (a slider with a right-click of its own keeps that)
-document.addEventListener('contextmenu', e => { const el = e.target; if (e.defaultPrevented || !el || el.tagName !== 'INPUT' || el.type !== 'range' || el.disabled) return; e.preventDefault(); if (el.value === el.defaultValue) return; el.value = el.defaultValue; fire(el, 'input'); fire(el, 'change'); });
+// (right-clicking any setting puts it back as it was when the page opened: see the console script at the end)
 function presetGet() {
   const v = {}; for (const el of presetEls()) v[el.id] = el.type === 'checkbox' ? el.checked : el.value;
   return { v, styles: stylePick.values(), bgStyles: stylePick.bg(), motions: motionPick.values(), display: DISPLAY, words: WORDS.text };
@@ -13609,14 +13619,14 @@ const stylePick = stylePicker();
   const show = () => $('realwcbtn').classList.toggle('on', WC.on); show();
   $('realwcbtn').onclick = () => { WC.on = !WC.on; store('cp-realwc', WC.on ? '1' : '0'); show(); $('hint').textContent = WC.on ? 'Real paint on: water, wet, wash, oil and acrylic are painted by simulations of the paint. From the next painting.' : 'Real paint off: those styles are drawn. From the next painting.'; };
 }
-// the signal panel (kept in this browser; double-click or right-click a knob for its default)
+// the signal panel (kept in this browser; double-click a knob for its default, right-click for how it opened)
 { const pw = $('perfwin'), panel = pw.closest('.panel');
   pw.insertAdjacentHTML('beforebegin', `<button type="button" class="mini" id="signalbtn" title="Signal: the painting sent down a chain of old video gear — colorizer, noize box, the composite wire (dot crawl, colour bleed), a circuit bend, sync, VHS tape, RF, the TV set, feedback, an oscillator, the tube — with looks and bend points. On the painting as it shows, in recordings and in the saved PNGs and stills">signal</button>`);
   const opt = (a, sel) => a.map(([v, t]) => `<option value="${v}"${v === sel ? ' selected' : ''}>${t}</option>`).join('');
   let open = {}; try { open = JSON.parse(store('cp-sgopen') || '{}') || {}; } catch (e) { /* none */ }
   const secs = SG_SECTIONS.map(([id, name, sub]) => `<div class="sg-sec" data-sec="${id}"><div class="sg-sh" title="${sub} — click to open or close"><span class="sg-ar">▸</span><b>${name}</b><span class="led"></span></div><div class="sg-body"${open[id] ? '' : ' hidden'}>` +
     SG_SEL.filter(q => q[2] === id).map(([k, t, , o]) => `<div class="gp-row"><select id="sgs_${k}" class="sel" aria-label="${t}" title="${t}">${opt(o.map(([v, n]) => [v, t + ': ' + n]), o[0][0])}</select></div>`).join('') +
-    SG_DEF.filter(q => q[2] === id).map(([k, t, , mn]) => `<label title="Double-click or right-click: ${0}"><span>${t}</span><input id="sg_${k}" type="range" min="${mn || 0}" max="100" value="0" aria-label="${t}"><output>0</output></label>`).join('') + `</div></div>`).join('');
+    SG_DEF.filter(q => q[2] === id).map(([k, t, , mn]) => `<label title="Double-click: 0 · right-click: back to how it was when the page opened"><span>${t}</span><input id="sg_${k}" type="range" min="${mn || 0}" max="100" value="0" aria-label="${t}"><output>0</output></label>`).join('') + `</div></div>`).join('');
   panel.querySelector('.ttl').insertAdjacentHTML('afterend', `<div id="signalpop" class="gradepop" hidden><div class="gp-h"><b>signal</b><label class="key" title="Signal on or off: off keeps every setting for later"><input id="sgon" type="checkbox" checked><span class="led"></span>on</label><button type="button" class="mini" id="signalreset" title="Clean signal: every knob back to 0, no tint">clean</button><button type="button" class="mini" id="signalx" title="Close">✕</button></div>` +
     `<div class="gp-row"><select id="sglook" class="sel" aria-label="Look" title="A look sets the knobs together; turn any knob after to make it your own">${opt(SG_LOOK_NAMES, 'custom')}</select><select id="sgtint" class="sel" aria-label="Tint" title="The colours: the picture's own, or one screen's few: green or amber phosphor, blue, the handheld's four greens, cga's cyan / magenta / white, thermal, mono">${opt(SG_TINTS.map(t => [t, t === 'none' ? 'tint: none' : t]), 'none')}</select></div>` +
     `<div class="gp-row"><label class="key" title="On the beat: the sync, the bend, the feedback zoom and the synth colour kick with the bass"><input type="checkbox" id="sgreact" checked><span class="led"></span>on the beat</label><label class="key" title="Bends on the hits: each hit shorts the circuit for a moment at a random bend point"><input type="checkbox" id="sgbeatbend"><span class="led"></span>bend on hits</label></div>` +
@@ -13690,7 +13700,7 @@ const stylePick = stylePicker();
   $('gradebtn').onclick = () => { $('gradepop').hidden = !$('gradepop').hidden; $('wordspop').hidden = $('signalpop').hidden = true; };
 // the grade's looks (beside the colour sliders): vector scope
 { const h = document.querySelector('#gradepop .gp-h');
-  h.insertAdjacentHTML('afterend', `<div class="gp-row"><select id="glook" class="sel" aria-label="Grade look" title="A whole look: vector scope — black, the picture's edges as thin glowing phosphor lines with white-hot cores, its brightest parts as glowing blobs, a crosshair and dashed drops to the axes, like an old vector display"><option value="none">look: normal</option><option value="scope">look: vector scope</option><option value="hatch">look: cross-hatch</option><option value="halftone">look: CMYK halftone</option></select><select id="gscol" class="sel" aria-label="Scope colour" title="The phosphor's colour"><option value="green">green</option><option value="amber">amber</option><option value="cyan">cyan</option><option value="white">white</option><option value="magenta">magenta</option><option value="picture">picture</option></select></div><div class="gp-row" id="gscoperow"><label class="key" title="The crosshair, its 0 and the dashed drops to the axes"><input id="gsaxes" type="checkbox" checked><span class="led"></span>axes</label><label class="key" title="Beam: a real scope's beam traces the picture's lines over and over (after osci-render and woscope): the lines it lingers on burn bright, the jumps between them are faint, and the phosphor's afterglow fades behind it. Off: the edges simply glow, all at once."><input id="gsbeam" type="checkbox" checked><span class="led"></span>beam</label></div><label id="gsdetrow" title="How many of the picture's edges become lines: low, only the strongest (right-click: 50)"><span>detail</span><input id="gsdet" type="range" min="0" max="100" value="50" aria-label="detail"><output>50</output></label><label id="gsfillrow" title="How much the brightest parts glow as blobs (right-click: 35)"><span>blobs</span><input id="gsfill" type="range" min="0" max="100" value="35" aria-label="blobs"><output>35</output></label><label id="gsglowrow" title="Afterglow: how long the phosphor holds the beam's light. Short: a flickering trace; long: a steady picture, with trails on a video (right-click: 40)"><span>afterglow</span><input id="gsglow" type="range" min="0" max="100" value="40" aria-label="afterglow"><output>40</output></label>`);
+  h.insertAdjacentHTML('afterend', `<div class="gp-row"><select id="glook" class="sel" aria-label="Grade look" title="A whole look: vector scope — black, the picture's edges as thin glowing phosphor lines with white-hot cores, its brightest parts as glowing blobs, a crosshair and dashed drops to the axes, like an old vector display"><option value="none">look: normal</option><option value="scope">look: vector scope</option><option value="hatch">look: cross-hatch</option><option value="halftone">look: CMYK halftone</option></select><select id="gscol" class="sel" aria-label="Scope colour" title="The phosphor's colour"><option value="green">green</option><option value="amber">amber</option><option value="cyan">cyan</option><option value="white">white</option><option value="magenta">magenta</option><option value="picture">picture</option></select></div><div class="gp-row" id="gscoperow"><label class="key" title="The crosshair, its 0 and the dashed drops to the axes"><input id="gsaxes" type="checkbox" checked><span class="led"></span>axes</label><label class="key" title="Beam: a real scope's beam traces the picture's lines over and over (after osci-render and woscope): the lines it lingers on burn bright, the jumps between them are faint, and the phosphor's afterglow fades behind it. Off: the edges simply glow, all at once."><input id="gsbeam" type="checkbox" checked><span class="led"></span>beam</label></div><label id="gsdetrow" title="How many of the picture's edges become lines: low, only the strongest (double-click: 50)"><span>detail</span><input id="gsdet" type="range" min="0" max="100" value="50" aria-label="detail"><output>50</output></label><label id="gsfillrow" title="How much the brightest parts glow as blobs (double-click: 35)"><span>blobs</span><input id="gsfill" type="range" min="0" max="100" value="35" aria-label="blobs"><output>35</output></label><label id="gsglowrow" title="Afterglow: how long the phosphor holds the beam's light. Short: a flickering trace; long: a steady picture, with trails on a video (double-click: 40)"><span>afterglow</span><input id="gsglow" type="range" min="0" max="100" value="40" aria-label="afterglow"><output>40</output></label>`);
   let sv = {}; try { sv = JSON.parse(store('cp-scope') || '{}') || {}; } catch (e) { /* none */ }
   if (sv.look) $('glook').value = sv.look; if (sv.col) $('gscol').value = sv.col; if (sv.axes === false) $('gsaxes').checked = false; if (sv.fill != null) $('gsfill').value = sv.fill; if (sv.det != null) $('gsdet').value = sv.det; if (sv.beam === false) $('gsbeam').checked = false; if (sv.glow != null) $('gsglow').value = sv.glow;
   const sync = keep => { SCOPE.on = $('glook').value === 'scope'; LOOK.mode = ['hatch', 'halftone'].includes($('glook').value) ? $('glook').value : null; SCOPE.col = $('gscol').value; SCOPE.axes = $('gsaxes').checked; SCOPE.fill = +$('gsfill').value; $('gsfill').nextElementSibling.textContent = $('gsfill').value; SCOPE.det = +$('gsdet').value; $('gsdet').nextElementSibling.textContent = $('gsdet').value; SCOPE.beam = $('gsbeam').checked; SCOPE.glow = +$('gsglow').value; $('gsglow').nextElementSibling.textContent = $('gsglow').value; SCOPE.path = null;
@@ -14098,7 +14108,7 @@ function applyTheme(a, b, keep = true) {
   if (keep) store('cp-theme', a + ',' + b);
 }
 $('theme1').oninput = $('theme2').oninput = () => applyTheme($('theme1').value, $('theme2').value);
-{ const t = (store('cp-theme') || '').split(','); if (/^#[0-9a-f]{6}$/i.test(t[0] || '') && /^#[0-9a-f]{6}$/i.test(t[1] || '')) { $('theme1').value = t[0]; $('theme2').value = t[1]; applyTheme(t[0], t[1], false); } }
+{ const t = (store('cp-theme') || '').split(','); if ((t[1] || '').toLowerCase() === '#b36bff') t[1] = '#8b6cff';      /* (the family's old purple, saved before it changed: moved on to the new one) */ if (/^#[0-9a-f]{6}$/i.test(t[0] || '') && /^#[0-9a-f]{6}$/i.test(t[1] || '')) { $('theme1').value = t[0]; $('theme2').value = t[1]; applyTheme(t[0], t[1], false); } }
 $('markcol').disabled = !$('marks').checked;
 $('rec').onclick = () => {
   if (S.rec) return stopRecording();
@@ -14305,7 +14315,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.40.0');
+    const V = await import('./viewer3d.js?v=4.40.1');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
@@ -14449,6 +14459,7 @@ window.STUDIO = { S, AU, OFF, VEC, WC, OIL, boltFire, BOLT, LDANCE, tagFile, rea
 // ─────────────────────────────────────────────────────────────
 //  Code Painter console: the controls' look.
 //    - LED-ring knobs over the range inputs (drag up / down, scroll, arrow keys; double- or right-click resets; shift = fine)
+//    - right-click any setting (knob, slider, switch, menu, key, colour): back to how it was when the page opened
 //    - segmented switches and key grids built from <select data-seg> / <select data-keys>
 //    - light / dark, and the live / audio / rec status LEDs
 //  The original inputs stay in the page (hidden) and keep driving studio.js: turning a knob or pressing a
@@ -14463,6 +14474,9 @@ window.STUDIO = { S, AU, OFF, VEC, WC, OIL, boltFire, BOLT, LDANCE, tagFile, rea
   let saved = null; try { saved = localStorage.getItem('cp-ui'); } catch (e) { /* private window */ }
   setUI(saved === 'light' ? 'light' : 'dark');
   $('uitheme').onclick = () => setUI(document.body.dataset.ui === 'dark' ? 'light' : 'dark');
+
+  // ── every setting's value once the page has opened (what right-click goes back to; saved settings included) ──
+  const defs = new WeakMap(), val = el => el.type === 'checkbox' || el.type === 'radio' ? el.checked : el.value;
 
   // ── LED-ring knobs ──
   const N = 11, knobs = [];
@@ -14504,8 +14518,8 @@ window.STUDIO = { S, AU, OFF, VEC, WC, OIL, boltFire, BOLT, LDANCE, tagFile, rea
     const end = () => { if (drag) { drag = null; fire(input, 'change'); } };
     btn.addEventListener('pointerup', end); btn.addEventListener('pointercancel', end);
     btn.addEventListener('wheel', e => { if (input.disabled) return; e.preventDefault(); nudge(e.deltaY < 0 ? 1 : -1); }, { passive: false });
-    // double-click or right-click: back to the default (zoom off, size ×1 …)
-    const reset = e => { e.preventDefault(); if (!input.disabled) set(+input.defaultValue, true); };
+    // double-click or right-click: back to how it was when the page opened
+    const reset = e => { e.preventDefault(); if (!input.disabled) set(defs.has(input) ? +defs.get(input) : +input.defaultValue, true); };
     btn.addEventListener('dblclick', reset); lk.addEventListener('contextmenu', reset);
     btn.addEventListener('keydown', e => { const d = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key]; if (d && !input.disabled) { e.preventDefault(); nudge(d); } });
     input.addEventListener('input', K.render);
@@ -14513,7 +14527,7 @@ window.STUDIO = { S, AU, OFF, VEC, WC, OIL, boltFire, BOLT, LDANCE, tagFile, rea
   }
 
   // ── segmented switches / key grids from selects ──
-  const segs = [];
+  const segs = [], selOf = new WeakMap();
   for (const sel of document.querySelectorAll('select[data-seg], select[data-keys]')) {
     const keys = sel.hasAttribute('data-keys');
     const box = document.createElement('div'); box.className = keys ? 'grid g5' : 'seg' + (sel.hasAttribute('data-tight') ? ' tight' : '');
@@ -14528,7 +14542,7 @@ window.STUDIO = { S, AU, OFF, VEC, WC, OIL, boltFire, BOLT, LDANCE, tagFile, rea
       box.appendChild(b); return { b, o };
     });
     render = () => { for (const { b, o } of items) b.classList.toggle('on', sel.value === o.value); box.classList.toggle('dis', sel.disabled); };
-    sel.classList.add('sr'); sel.tabIndex = -1; sel.after(box);
+    sel.classList.add('sr'); sel.tabIndex = -1; sel.after(box); selOf.set(box, sel);
     sel.addEventListener('change', render); segs.push(render); render();
   }
 
@@ -14536,7 +14550,36 @@ window.STUDIO = { S, AU, OFF, VEC, WC, OIL, boltFire, BOLT, LDANCE, tagFile, rea
   const speed = $('speed');
   const fill = () => speed.style.setProperty('--pct', ((speed.value - speed.min) / (speed.max - speed.min) * 100) + '%');
   speed.addEventListener('input', fill); fill();
-  speed.addEventListener('contextmenu', e => { e.preventDefault(); speed.value = speed.defaultValue; fire(speed, 'input'); fire(speed, 'change'); });
+
+  // ── right-click any setting: back to how it was when the page opened (the family rule). Sliders, knobs, menus and
+  //    the switches and key grids built from them, ticked keys, colours, the display / easy switches and the on/off
+  //    keys. Buttons that do something (open, record, restart, save…) keep the browser's menu; a control with a
+  //    right-click of its own (style keys: their size; preset letters: empty) keeps that.
+  const GROUPS = '#view, #emotion, #epath', TOGGLES = '#pigmentbtn, #realwcbtn';
+  const ACTIONS = new Set(['example', 'eex', 'phex', 'livein', 'replay', 'palpreset', 'demosong']);      // (menus that open something, not settings)
+  const remember = () => {
+    for (const el of document.querySelectorAll('input, select')) if (!defs.has(el)) defs.set(el, val(el));
+    for (const g of document.querySelectorAll(GROUPS)) if (!defs.has(g)) defs.set(g, [...g.querySelectorAll('button')].findIndex(b => b.classList.contains('on')));
+    for (const b of document.querySelectorAll(TOGGLES)) if (!defs.has(b)) defs.set(b, b.classList.contains('on'));
+  };
+  if (document.readyState === 'complete') remember(); else addEventListener('load', remember);
+  const resetInput = el => {
+    if (!el || !defs.has(el) || ACTIONS.has(el.id) || ['file', 'text', 'search', 'button', 'submit'].includes(el.type)) return false;
+    const d = defs.get(el);
+    if (!el.disabled && val(el) !== d) { if (typeof d === 'boolean') el.checked = d; else el.value = d; fire(el, 'input'); fire(el, 'change'); }
+    return true;
+  };
+  const resetAt = t => {
+    for (let n = t; n; n = n.parentElement) if (selOf.has(n)) return resetInput(selOf.get(n));
+    const g = t.closest(GROUPS);
+    if (g) { const b = defs.has(g) && g.querySelectorAll('button')[defs.get(g)]; if (b && !b.classList.contains('on')) b.click(); return !!b; }
+    const tg = t.closest(TOGGLES);
+    if (tg) { if (defs.has(tg) && tg.classList.contains('on') !== defs.get(tg)) tg.click(); return true; }
+    const lab = t.closest('label');
+    return resetInput(t.closest('input, select') || (lab && lab.querySelector('input, select')));
+  };
+  document.addEventListener('contextmenu', e => { if (!e.defaultPrevented && e.target instanceof Element && resetAt(e.target)) e.preventDefault(); });
+
   const led = (id, on, c) => { const el = $(id); const cls = 'led' + (on ? ' ' + c : ''); if (el.className !== cls) el.className = cls; };
   setInterval(() => {
     for (const K of knobs) K.render();
