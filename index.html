@@ -341,44 +341,85 @@
   #stylepick .multipanel { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 7px 6px; }
   #motionpick .multipanel { gap: 8px 8px; }
   #stylepick .multipanel .key, #motionpick .multipanel .key { width: auto; }
-  /* ── phone: the painting with its code on top, a strip of essentials under it (body.phone, set by the script) ── */
-  #phone { display: none; }
-  body.phone #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; padding: 8px 8px max(8px, env(safe-area-inset-bottom)); gap: 8px; }
-  body.phone header, body.phone aside.col, body.phone footer.deck, body.phone .playlist, body.phone .vtl, body.phone .presets, body.phone .keys { display: none !important; }
+  /* ── phone (body.phone, set by the script; after fault's phone layout): a header and the main actions on top, the painting
+     filling the middle with its transport under it, and a bottom sheet — drag its handle to resize, tap it to fold — whose
+     tabs hold the studio's own panels, moved in from the columns and the deck (and put back on a bigger screen) ── */
+  #phone, #phtop { display: none; }
+  body.phone #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; padding: max(8px, env(safe-area-inset-top)) 8px 0; gap: 0; }
+  body.phone header, body.phone aside.col, body.phone footer.deck, body.phone .centre > .playlist, body.phone .centre > .vtl, body.phone .presets, body.phone .keys { display: none !important; }
   body.phone .centre { flex: 1; min-height: 0; gap: 8px; }
-  body.phone main { flex: 1 1 auto; min-height: 160px; padding: 0; border-radius: 10px; }
+  body.phone #phtop { display: flex; flex-direction: column; gap: 8px; flex: none; }
+  body.phone main { flex: 1 1 auto; min-height: 120px; padding: 0; border-radius: 12px; }
   body.phone .lcdrow { flex: none; }
-  body.phone #hint { font-size: 11px; padding: 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  body.phone #phone { display: flex; flex-direction: column; gap: 8px; flex: none; }
-  #phone .prow[hidden] { display: none; }
-  #phone .prow { display: flex; align-items: center; gap: 8px; min-width: 0; }
-  #phone .pkey { flex: none; height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--keyline); background: var(--key); color: var(--text); font: 600 12px 'IBM Plex Mono', monospace; display: inline-flex; align-items: center; justify-content: center; gap: 7px; box-shadow: 0 2px 0 var(--keyshadow); -webkit-tap-highlight-color: transparent; }
-  #phone .pkey:active { transform: translateY(1px); box-shadow: none; }
-  #phone .pgo { flex: 1; background: var(--accent); color: #0b0b0c; border-color: color-mix(in srgb, var(--accent) 80%, #000); box-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 55%, #000); font-weight: 700; font-size: 13px; }
+  body.phone #hint { font-size: 11px; padding: 5px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.phone #phone { display: flex; flex-direction: column; gap: 8px; flex: none; margin: 0 -8px; }
+  #phtop .phbar { display: flex; align-items: center; gap: 6px; height: 38px; }
+  #phtop .phled { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); margin: 0 4px 0 2px; }
+  #phtop .phbrand { font: 800 15px 'Archivo', sans-serif; letter-spacing: .32em; color: var(--text); white-space: nowrap; }
+  #phtop .phsp { flex: 1; }
+  .prow[hidden] { display: none !important; }
+  #phtop .prow, #phone .prow { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  #phtrans { padding: 0 8px; }
+  #phtop .pkey, #phone .pkey { flex: none; height: 44px; padding: 0 14px; border-radius: 11px; border: 1px solid var(--keyline); background: var(--key); color: var(--text); font: 600 12.5px 'IBM Plex Mono', monospace; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 0 var(--keyshadow); -webkit-tap-highlight-color: transparent; white-space: nowrap; text-decoration: none; cursor: pointer; }
+  #phtop .pkey:active, #phone .pkey:active { transform: translateY(1px); box-shadow: none; }
+  #phtop .pico, #phone .pico { width: 44px; padding: 0; font-size: 15px; }
+  #phtop .phbar .pico.ptxt { width: auto; padding: 0 13px; font-size: 12px; }
+  #phtop .phbar .pkey { height: 36px; }
+  #phtop .phbar .pico { width: 38px; }
+  #phtop .pmain { flex: 1.7; min-width: 0; background: var(--accent); color: #0b0b0c; border-color: color-mix(in srgb, var(--accent) 80%, #000); box-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 55%, #000); font-weight: 700; font-size: 13px; }
+  #phtop #phcam, #phtop .prec { flex: 1; min-width: 0; padding: 0 8px; }
+  #phtop .dot { width: 9px; height: 9px; border-radius: 50%; background: #e0e0dc; flex: none; }
+  #phtop .dot.cam { background: var(--muted); }
+  #phtop .prec { background: #e6e4dc; color: #111113; border-color: #c9c6bc; }
+  #phtop .prec .dot { background: #8a8a86; }
+  #phtop .prec.on { background: #2a1214; color: var(--text); border-color: #ff4d5e; } #phtop .prec.on .dot { background: #ff3048; box-shadow: 0 0 8px #ff3048; }
+  #phone .pgo { flex: none; background: var(--accent); color: #0b0b0c; border-color: color-mix(in srgb, var(--accent) 80%, #000); box-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 55%, #000); font-weight: 700; }
   #phone .pgo.off { opacity: .45; }
-  #phone .prec { flex: 1; } #phone .prec .dot { width: 9px; height: 9px; border-radius: 50%; background: #e0e0dc; }
-  #phone .prec.on { background: #2a1214; border-color: #ff4d5e; } #phone .prec.on .dot { background: #ff3048; box-shadow: 0 0 8px #ff3048; }
-  #phone .psel { flex: 1; min-width: 0; height: 40px; border-radius: 10px; border: 1px solid var(--keyline); background: var(--well); color: var(--text); font: 500 13px 'IBM Plex Mono', monospace; padding: 0 8px; }
-  #phone input.psel { font-size: 16px; }      /* (typed into: 16px, or iPhones zoom in) */
-  #phone .pkey { white-space: nowrap; }
-  #phone .pmain { flex: 1; padding: 0 10px; }
-  #phone .pex { flex: 0 1 124px; min-width: 76px; height: 34px; font-size: 12px; color: var(--muted); padding: 0 4px 0 8px; }
-  #phone .pnote { margin: 0; text-align: center; font: 500 10.5px 'IBM Plex Mono', monospace; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #phone .pchips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 2px 0; }
-  #phone .pchips::-webkit-scrollbar { display: none; }
-  #phone .pchips button { flex: none; height: 34px; padding: 0 12px; border-radius: 17px; border: 1px solid var(--keyline); background: var(--key); color: var(--muted); font: 500 12px 'IBM Plex Mono', monospace; }
-  #phone .pchips button.on { color: var(--text); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
-  #phone .pseg { flex: none; display: inline-flex; border: 1px solid var(--keyline); border-radius: 10px; padding: 2px; background: var(--well); }
-  #phone .pseg button { height: 34px; padding: 0 11px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font: 500 12px 'IBM Plex Mono', monospace; }
-  #phone .pseg button.on { background: var(--key); color: var(--text); box-shadow: 0 1px 0 var(--keyshadow); }
   #phone .plbl { flex: none; font: 500 11px 'IBM Plex Mono', monospace; color: var(--muted); }
+  #phone .plbl2 { margin: 6px 2px -2px; font: 600 9.5px 'IBM Plex Mono', monospace; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
   #phone input[type=range] { flex: 1; min-width: 0; accent-color: var(--accent); }
-  #phone output { flex: none; width: 44px; text-align: right; font: 600 12px 'IBM Plex Mono', monospace; color: var(--text); }
-  @media (orientation: landscape) {      /* a phone on its side: the painting left, the controls right */
-    body.phone .centre { display: grid; grid-template-columns: minmax(0, 1fr) 330px; grid-template-rows: auto minmax(0, 1fr); }
-    body.phone main { grid-column: 1; grid-row: 1 / span 2; min-height: 0; }
-    body.phone .lcdrow { grid-column: 2; grid-row: 1; }
-    body.phone #phone { grid-column: 2; grid-row: 2; overflow-y: auto; min-height: 0; }
+  #phone output { flex: none; width: 42px; text-align: right; font: 600 12px 'IBM Plex Mono', monospace; color: var(--text); }
+  #phone .psel { flex: 1; min-width: 0; height: 42px; border-radius: 10px; border: 1px solid var(--keyline); background: var(--well); color: var(--text); font: 500 13px 'IBM Plex Mono', monospace; padding: 0 10px; }
+  #phone input.psel { font-size: 16px; }      /* (typed into: 16px, or iPhones zoom in) */
+  #phone .pchips { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0; }
+  #phone .pchips button { flex: none; height: 36px; padding: 0 13px; border-radius: 18px; border: 1px solid var(--keyline); background: var(--key); color: var(--muted); font: 500 12px 'IBM Plex Mono', monospace; }
+  #phone .pchips button.on { color: var(--text); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  #phone .pgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  #phone .pgrid button { height: 52px; padding: 0 6px; border-radius: 11px; border: 1px solid var(--keyline); background: var(--key); box-shadow: 0 2px 0 var(--keyshadow); color: var(--text); font: 600 11.5px 'IBM Plex Mono', monospace; line-height: 1.2; white-space: normal; }
+  #phone .pgrid button.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset, 0 0 14px color-mix(in srgb, var(--accent) 30%, transparent); }
+  #phone .pseg { flex: none; display: inline-flex; border: 1px solid var(--keyline); border-radius: 11px; padding: 3px; background: var(--well); }
+  #phone .pseg.pfull { display: flex; } #phone .pseg.pfull button { flex: 1; }
+  #phone .pseg button { height: 36px; padding: 0 11px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font: 500 12px 'IBM Plex Mono', monospace; }
+  #phone .pseg button.on { background: var(--key); color: var(--text); box-shadow: 0 1px 0 var(--keyshadow); }
+  /* the sheet */
+  #sheet { display: flex; flex-direction: column; height: var(--sheet, 46dvh); background: var(--panel); border: 1px solid var(--line); border-bottom: 0; border-radius: 18px 18px 0 0; box-shadow: 0 -10px 24px #0006; overflow: hidden; transition: height .18s; }
+  #sheet.dragging { transition: none; }
+  .sheet-grab { flex: none; height: 22px; display: grid; place-items: center; cursor: grab; touch-action: none; }
+  .sheet-grab::before { content: ''; width: 40px; height: 4px; border-radius: 2px; background: var(--keyline); }
+  .sheet-tabs { flex: none; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin: 0 10px 8px; padding: 4px; border: 1px solid var(--keyline); border-radius: 13px; background: var(--well); }
+  .sheet-tabs button { min-width: 0; height: 32px; padding: 0 2px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--muted); font: 600 9px 'IBM Plex Mono', monospace; letter-spacing: .12em; text-transform: uppercase; -webkit-tap-highlight-color: transparent; }
+  .sheet-tabs button.on { background: var(--key); border-color: var(--accent); color: var(--text); box-shadow: 0 1px 0 var(--keyshadow); }
+  #sheetBody { flex: 1; min-height: 0; overflow-y: auto; padding: 0 10px max(16px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 8px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  #sheetBody > * { display: none !important; }
+  #sheetBody > .sec-on { display: flex !important; }
+  #sheetBody > .sheet-sec { flex-direction: column; gap: 8px; }
+  /* the studio's panels in the sheet: full width, and a third bigger, so their keys and sliders are easy to hit */
+  #sheetBody > .panel { width: auto !important; min-width: 0 !important; flex: none !important; zoom: 1.3; border-radius: 10px; }
+  #sheetBody > .playlist, #sheetBody > .vtl { flex-wrap: wrap; zoom: 1.15; }
+  #sheetBody .ttl { flex-wrap: wrap; white-space: normal; row-gap: 6px; } #sheetBody .ttl > span { flex-wrap: wrap; overflow: visible; }      /* (a panel's row of keys wraps rather than runs off the phone) */
+  #sheetBody .row { flex-wrap: wrap !important; } #sheetBody .ph { white-space: normal; height: auto; padding: 8px 10px; }
+  body.phone.easy #recmode, body.phone.easy .presets { display: revert !important; }
+  /* pop-ups (signal, grade, text…) on a phone: docked over the painting, full width, scrolling inside — the sheet under them stays in reach */
+  body.phone .gradepop { position: fixed !important; left: 8px !important; right: 8px !important; top: max(8px, env(safe-area-inset-top)) !important; bottom: auto !important; width: auto !important; max-width: none !important; max-height: calc(100dvh - var(--sheet, 46dvh) - 16px); min-height: 160px; overflow-y: auto; overscroll-behavior: contain; zoom: 1.12; z-index: 60; }
+  body.phone .gradepop .gp-h { position: sticky; top: -12px; z-index: 1; background: var(--panel); }
+  @media (orientation: landscape) {      /* a phone on its side: the painting left, the header, the transport and the sheet right */
+    body.phone .centre { display: grid; grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: auto auto minmax(0, 1fr); column-gap: 8px; }
+    body.phone #phtop { grid-column: 2; grid-row: 1; }
+    body.phone main { grid-column: 1; grid-row: 1 / span 3; min-height: 0; margin-bottom: 8px; }
+    body.phone .lcdrow { grid-column: 2; grid-row: 2; }
+    body.phone #phone { grid-column: 2; grid-row: 3; min-height: 0; margin: 0; }
+    body.phone #sheet { flex: 1; height: auto; min-height: 0; border-radius: 14px 14px 0 0; }
+    body.phone .sheet-grab { display: none; }
   }
   #sendon, #sendcode, #sendsize { display: none !important; }
   a.mini { text-decoration: none; }
@@ -594,6 +635,19 @@
 </aside>
 
 <section class="centre">
+  <div id="phtop" aria-label="Phone header">
+    <div class="phbar">
+      <i class="phled"></i><b class="phbrand">CODE PAINTER</b><span class="phsp"></span>
+      <a class="pkey pico ptxt" id="phguide" href="https://github.com/JasBlack/code-painter/blob/main/docs/GUIDE.md" target="_blank" rel="noopener" title="How it works">guide</a>
+      <button type="button" class="pkey pico" id="phfull" title="Full screen" aria-label="Full screen"><svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 5V1h4M9 1h4v4M1 9v4h4M13 9v4H9"/></svg></button>
+      <button type="button" class="pkey pico" id="phtheme" title="Light / dark" aria-label="Light or dark"><svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="5.5"/><path d="M7 1.5v11A5.5 5.5 0 0 0 7 1.5z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="prow">
+      <label class="pkey pmain" title="A picture or a video from your phone (or take one)">＋ photo / video<input id="phfile" type="file" accept="image/*,video/*" multiple hidden></label>
+      <button type="button" class="pkey" id="phcam" title="Paint the camera live"><i class="dot cam"></i>camera</button>
+      <button type="button" class="pkey prec" id="phrec"><i class="dot"></i>record</button>
+    </div>
+  </div>
   <main><div id="stagewrap">
     <canvas id="stage" width="1920" height="1080" aria-label="The painting being built, the original image, and the code that paints it"></canvas>
     <div id="guides" hidden aria-hidden="true"><div class="g top"><span>Instagram header</span></div><div class="g bottom"><span>username · caption · audio</span></div><div class="g right"><span>buttons</span></div></div>
@@ -639,27 +693,34 @@
     <span>right-click a setting resets it</span>
   </div>
   <div id="phone" aria-label="Phone controls">
-    <div class="prow">
-      <label class="pkey pmain" title="A picture or a video from your phone (or take one)">＋ photo/video<input id="phfile" type="file" accept="image/*,video/*" multiple hidden></label>
-      <select id="phex" class="psel pex" aria-label="Examples"></select>
-      <button type="button" class="pkey" id="phcam" title="Paint the camera live">camera</button>
-    </div>
-    <div class="prow" id="phtextrow" hidden><input id="phtextin" class="psel" type="text" maxlength="80" enterkeyhint="go" placeholder="type a word · | = new line" aria-label="Text to paint"><button type="button" class="pkey" id="phtextgo">paint</button><button type="button" class="pkey" id="phtextx" aria-label="Close">✕</button></div>
-    <div class="pchips" id="phlooks" aria-label="Looks"></div>
-    <div class="prow"><span class="plbl">path</span><div class="pseg" id="phpath" style="flex: 1"><button type="button" data-p="free">free</button><button type="button" data-p="line">one line</button><button type="button" data-p="spiral">spiral</button><button type="button" data-p="down">top ↓</button></div></div>
-    <div class="pchips" id="phstyles" aria-label="Style"></div>
-    <div class="prow">
-      <div class="pseg" id="phview"><button type="button" data-v="duo">+code</button><button type="button" data-v="painting">paint</button></div>
-      <div class="pseg" id="phframe"><button type="button" data-v="portrait">4:5</button><button type="button" data-v="vertical">9:16</button></div>
-      <select id="phshapes" class="psel" aria-label="Shapes" style="flex: none; width: 76px"></select>
-    </div>
-    <div class="prow"><span class="plbl">speed</span><input id="phspeed" type="range" min="1" max="100" value="54" aria-label="Painting speed"><output id="phspeedval"></output></div>
-    <div class="prow">
+    <div class="prow" id="phtrans">
+      <button type="button" class="pkey pico" id="phplay" title="Pause / resume" aria-label="Pause or resume">⏸</button>
       <button type="button" class="pkey pgo" id="phgo" title="Paint it again from the start">⟲ restart</button>
-      <button type="button" class="pkey prec" id="phrec"><i class="dot"></i>record</button>
-      <button type="button" class="pkey" id="phsave" title="Save the last recording (or, before one, the painting as a picture)">⬇ save</button>
+      <span class="plbl">speed</span><input id="phspeed" type="range" min="1" max="100" value="54" aria-label="Painting speed"><output id="phspeedval"></output>
+      <button type="button" class="pkey pico" id="phsave" title="Save the last recording (or, before one, the painting as a picture)" aria-label="Save">⬇</button>
     </div>
-    <p class="pnote">more controls: visit on your computer</p>
+    <div id="sheet">
+      <div class="sheet-grab" title="Drag to resize the controls · tap to fold them away" aria-label="Drag to resize the controls"></div>
+      <div class="sheet-tabs" role="tablist" aria-label="Control sections"></div>
+      <div id="sheetBody">
+        <div class="sheet-sec" data-sec="looks">
+          <div class="prow"><select id="phex" class="psel" aria-label="Examples"></select></div>
+          <div class="prow" id="phtextrow" hidden><input id="phtextin" class="psel" type="text" maxlength="80" enterkeyhint="go" placeholder="type a word · | = new line" aria-label="Text to paint"><button type="button" class="pkey" id="phtextgo">paint</button><button type="button" class="pkey" id="phtextx" aria-label="Close">✕</button></div>
+          <p class="plbl2">looks</p>
+          <div class="pgrid" id="phlooks" aria-label="Looks"></div>
+          <p class="plbl2">path</p>
+          <div class="pseg pfull" id="phpath"><button type="button" data-p="free">free</button><button type="button" data-p="line">one line</button><button type="button" data-p="spiral">spiral</button><button type="button" data-p="down">top ↓</button></div>
+          <p class="plbl2">one style</p>
+          <div class="pchips" id="phstyles" aria-label="Style"></div>
+          <p class="plbl2">view · frame · shapes</p>
+          <div class="prow">
+            <div class="pseg" id="phview"><button type="button" data-v="duo">+code</button><button type="button" data-v="painting">paint</button></div>
+            <div class="pseg" id="phframe"><button type="button" data-v="portrait">4:5</button><button type="button" data-v="vertical">9:16</button></div>
+            <select id="phshapes" class="psel" aria-label="Shapes" style="flex: 1"></select>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -13795,7 +13856,7 @@ $('file').onchange = e => { openFiles([...e.target.files]); e.target.value = '';
   function set(on) {
     document.body.classList.toggle('phonesize', phoneSize());
     if (on === P.on) return;
-    P.on = on; document.body.classList.toggle('phone', on);
+    P.on = on; document.body.classList.toggle('phone', on); placeSheet(on);
     if (on) { P.keep = { layout: document.body.dataset.layout, display: DISPLAY }; apply(); }
     else if (P.keep) { setLayout(P.keep.layout, false); setDisplay(P.keep.display, false); }
     fitStage();
@@ -13841,6 +13902,40 @@ $('file').onchange = e => { openFiles([...e.target.files]); e.target.value = '';
     if ($('savepng').disabled) { $('hint').textContent = 'Nothing to save yet: pick a picture first.'; return; }
     const keep = $('bigres').value; $('bigres').value = '3840'; $('savepng').click(); $('bigres').value = keep;
   };
+  // the header's keys and the transport drive the studio's own
+  $('phfull').onclick = () => $('fullscreen').click(); $('phtheme').onclick = () => $('uitheme').click();
+  $('phplay').onclick = () => $('play').click();
+  const playOn = () => { $('phplay').disabled = $('play').disabled; $('phplay').textContent = /resume|▶/.test($('play').textContent) ? '▶' : '⏸'; $('phplay').style.opacity = $('play').disabled ? 0.45 : ''; };
+  new MutationObserver(playOn).observe($('play'), { attributes: true, childList: true, subtree: true, characterData: true }); playOn();
+  // ── the sheet: one tab per section; each holds the studio's own panels, moved in from the columns and the deck while
+  // this is a phone (and put back where they were when it isn't), so every control is here, not a cut-down copy ──
+  const panelOf = name => [...document.querySelectorAll('.panel')].find(el => { const b = el.querySelector(':scope > .ttl > b'); return b && b.textContent.trim() === name; });
+  const SECS = [['looks', []], ['style', ['style']], ['brush', ['brush']], ['source', ['source', '#slots', '#vtl']], ['motion', ['motion', 'speed']],
+    ['path', ['path']], ['frame', ['frame', 'camera']], ['music', ['music']], ['rec', ['rec']], ['out', ['out', '#presets']]];
+  const sheet = $('sheet'), body = $('sheetBody'), tabs = sheet.querySelector('.sheet-tabs'), homes = new Map(); let sec = 'looks';
+  const els = s => s.map(n => n[0] === '#' ? $(n.slice(1)) : panelOf(n)).filter(Boolean);
+  for (const [name] of SECS) { const b = document.createElement('button'); b.type = 'button'; b.textContent = name; b.dataset.sec = name; b.onclick = () => showSec(name); tabs.appendChild(b); }
+  function showSec(name) {
+    sec = name; const want = new Set(els(SECS.find(x => x[0] === name)[1]));
+    for (const el of body.children) el.classList.toggle('sec-on', el.classList.contains('sheet-sec') ? el.dataset.sec === name : want.has(el));
+    for (const b of tabs.children) b.classList.toggle('on', b.dataset.sec === name);
+    body.scrollTop = 0; if (sheet.offsetHeight < 140) sheet.style.removeProperty('--sheet');
+    try { localStorage.setItem('cp-phsec', name); } catch (e) { /* storage off */ }
+  }
+  function placeSheet(on) {
+    for (const [, list] of SECS) for (const el of els(list)) {
+      if (on) { if (!homes.has(el)) homes.set(el, { parent: el.parentNode, next: el.nextSibling }); body.appendChild(el); }
+      else if (homes.has(el)) { const h = homes.get(el); h.parent.insertBefore(el, h.next); el.classList.remove('sec-on'); homes.delete(el); }
+    }
+    if (on) showSec(sec);
+  }
+  try { const v = localStorage.getItem('cp-phsec'); if (SECS.some(x => x[0] === v)) sec = v; } catch (e) { /* storage off */ }
+  // drag the handle to make the sheet taller or shorter; a tap folds it down to its tabs, or opens it again
+  { const grab = sheet.querySelector('.sheet-grab'); let y0 = 0, h0 = 0, moved = false;
+    grab.addEventListener('pointerdown', e => { y0 = e.clientY; h0 = sheet.offsetHeight; moved = false; sheet.classList.add('dragging'); grab.setPointerCapture(e.pointerId); });
+    grab.addEventListener('pointermove', e => { if (!sheet.classList.contains('dragging')) return; const d = y0 - e.clientY; if (Math.abs(d) > 4) moved = true; if (moved) { sheet.style.setProperty('--sheet', Math.max(78, Math.min(innerHeight * 0.82, h0 + d)) + 'px'); fitStage(); } });
+    const up = () => { if (!sheet.classList.contains('dragging')) return; sheet.classList.remove('dragging'); if (!moved) { if (sheet.offsetHeight > 140) sheet.style.setProperty('--sheet', '78px'); else sheet.style.removeProperty('--sheet'); } setTimeout(fitStage, 200); };
+    grab.addEventListener('pointerup', up); grab.addEventListener('pointercancel', up); }
   sizeQ.addEventListener('change', () => set(wanted()));
   set(wanted());
 }
