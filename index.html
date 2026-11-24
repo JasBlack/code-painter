@@ -3148,7 +3148,7 @@ ${zb ? `window.OPSB=new Uint8Array(await r('${zb}').arrayBuffer());\n` : ''}for(
 <\/script>\n`;
 }
 // the strokes as bytes (for a deflated program). Brush strokes ('S', most of any painting) go into columns — where
-// they start, where their middle and end are from there (in 2 px steps), width, angle (1/128 turn), colour (64
+// they start, where they end from there and their middle from halfway (in 2 px steps), width (6% steps), angle (1/128 turn), colour (64
 // levels a channel, the second only when it differs), alpha — which deflate packs to ~10 bytes a stroke (text:
 // ~19). Any other shape: its arguments exactly (to 1/100), colours in full; one with a brush (or anything else)
 // as JSON. The program decodes it with OPS_DEC.
@@ -3166,8 +3166,9 @@ function binOps(list) {
     if (isS) {
       const x0 = Math.round(a[0] / 2), y0 = Math.round(a[1] / 2);
       vi(B.x, x0); vi(B.y, y0);
-      for (const k of [2, 4]) { vi(B.d, Math.round(a[k] / 2) - x0); vi(B.d, Math.round(a[k + 1] / 2) - y0); }
-      vi(B.w, Math.round(a[6] * 2)); B.n.push(Math.round(((a[7] % TAU) + TAU) % TAU / TAU * 128) & 127);
+      const x2 = Math.round(a[4] / 2), y2 = Math.round(a[5] / 2);      // (the end from the start, the middle from halfway between)
+      vi(B.d, x2 - x0); vi(B.d, y2 - y0); vi(B.d, Math.round(a[2] / 2) - Math.floor((x0 + x2) / 2)); vi(B.d, Math.round(a[3] / 2) - Math.floor((y0 + y2) / 2));
+      vi(B.w, Math.round(Math.log(Math.max(0.5, a[6])) * 16));       // (width in steps of 1/16 of an e-fold: ~6%) B.n.push(Math.round(((a[7] % TAU) + TAU) % TAU / TAU * 128) & 127);
       B.c.push(...rgb(a[8]).map(v => v >> 2)); const same = a[9].toLowerCase() === a[8].toLowerCase(); B.f.push(same ? 0 : 1); if (!same) B.c.push(...rgb(a[9]).map(v => v >> 2));
       B.a.push(Math.max(0, Math.min(255, Math.round(a[10] * 200))));
     } else {
@@ -3187,7 +3188,7 @@ const OPS_DEC = `(u, M) => {
     const t = by(S.h); if (t === 255) { out.push(M.json[vi(S.h)]); continue; }
     const ty = M.types[t], st = M.sts[by(S.h)];
     if (ty === 'S*') {
-      const x0 = vi(S.x), y0 = vi(S.y), x1 = x0 + vi(S.d), y1 = y0 + vi(S.d), x2 = x0 + vi(S.d), y2 = y0 + vi(S.d), w = vi(S.w) / 2, an = by(S.n) / 128 * Math.PI * 2, c0 = c6(), c1 = by(S.f) ? c6() : c0;
+      const x0 = vi(S.x), y0 = vi(S.y), x2 = x0 + vi(S.d), y2 = y0 + vi(S.d), x1 = vi(S.d) + Math.floor((x0 + x2) / 2), y1 = vi(S.d) + Math.floor((y0 + y2) / 2), w = Math.round(Math.exp(vi(S.w) / 16) * 100) / 100, an = by(S.n) / 128 * Math.PI * 2, c0 = c6(), c1 = by(S.f) ? c6() : c0;
       out.push({ t: 'S', args: [x0 * 2, y0 * 2, x1 * 2, y1 * 2, x2 * 2, y2 * 2, w, an, c0, c1, by(S.a) / 200], st, brush: null });
     } else {
       const n = vi(S.g), args = [];
