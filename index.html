@@ -1390,7 +1390,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.43.0 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.44.0 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1408,7 +1408,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.43.0', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.44.0', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -3049,7 +3049,8 @@ async function styledProgram(o) {
   const shp = await sourceWith('const SHP = (() =>', 'CP_WORKER_SRC'), main = await sourceWith(MK + 'begin');
   const a = main.indexOf(MK + 'begin'), b = main.indexOf(MK + 'end');
   if (!shp || a < 0 || b < a) return null;
-  const W = S.out.width, H = S.out.height, ops = JSON.stringify((o.ops || S.drawn).map(d => ({ t: d.t, args: d.args, st: d.st, brush: d.brush === 'custom' ? null : d.brush })));
+  const W = S.out.width, H = S.out.height, list = (o.ops || S.drawn).map(d => ({ t: d.t, args: d.args, st: d.st, brush: d.brush === 'custom' ? null : d.brush }));
+  const ops = o.pack ? compactOps(list) : JSON.stringify(list);
   const prelude = `'use strict';
 const c = document.getElementById('c').getContext('2d'), W = ${W}, H = ${H}, BGC = '${S.bgHex}', OPS = ${ops};
 const $ = id => document.getElementById(id), store = () => null, clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v, easeInOut = u => (1 - Math.cos(Math.PI * u)) / 2, easeOut2 = u => 1 - (1 - u) ** 2;
@@ -3096,13 +3097,48 @@ function FRAME(t) {
 }`;
   let player = o.animate ? playerJS(o.player) : 'bg();for(const f of P)f();SHOW();';
   player = player.replace('while(i<n&&i<N)P[i++]();', 'while(i<n&&i<N)GO(i++,t);FRAME(t);').replace('while(i<N)P[i++]();return', 'DONE();while(i<N)P[i++]();SHOW();return').replace('if(i<N)raf=', 'if(i<N||LIVE.length)raf=').replace(/\bbg\(BG\)/g, 'bg()');
-  return `<!doctype html>\n<meta charset="utf-8">\n<title>${S.name} — Code Painter by JAS.BLACK</title>\n<style>html,body{margin:0;height:100%;background:#000;display:grid;place-items:center}canvas{max-width:100vw;max-height:100vh}</style>\n<canvas id="c" width="${W}" height="${H}"></canvas>\n<script>\n${shp}\n<\/script>\n<script>\n${prelude}\n${main.slice(a, b).replace(/<\/script/gi, '<\\/script')}\n${after}\n${player}\n<\/script>\n`;
+  const head = `<!doctype html>\n<meta charset="utf-8">\n<title>${S.name} — Code Painter by JAS.BLACK</title>\n<style>html,body{margin:0;height:100%;background:#000;display:grid;place-items:center}canvas{max-width:100vw;max-height:100vh}</style>\n<canvas id="c" width="${W}" height="${H}"></canvas>\n`;
+  const body = `${prelude}\n${main.slice(a, b)}\n${after}\n${player}`;
+  if (o.pack) return head + await packedScripts([shp, body], o.player && o.player.audio);
+  return `${head}<script>\n${shp}\n<\/script>\n<script>\n${body.replace(/<\/script/gi, '<\\/script')}\n<\/script>\n`;
 }
 let overhead = {};
 function codeSize() {   // size of the static program the ⬇ code button would save
   if (S.mode !== 'auto') return S.codeBytes;
   if (S.fmt === 'readable') return (overhead.readable ??= wrapper(`bg('#000000');\n`).length) + S.codeBytes;
   return (overhead.packed ??= wrapper(`${SHP.DECODER}\nbg('#000000');for(const[f,a]of D('',[${SHP.MODES.packed}]))f(...a);`).length) + SHP.packedLen(S.bits);
+}
+// the program's scripts, deflated: it unpacks itself when it opens (the browser's own DecompressionStream) and runs
+// them in order. The song (already compressed) stays outside, as SONG. About a quarter of the size of the plain text.
+const packWanted = () => $('export').value !== 'readable' && typeof CompressionStream !== 'undefined';
+async function deflateB64(text) {
+  const u = new Uint8Array(await new Response(new Blob([text]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()); let bin = '';
+  for (let i = 0; i < u.length; i += 8192) bin += String.fromCharCode.apply(null, u.subarray(i, i + 8192));
+  return btoa(bin);
+}
+async function packedScripts(parts, song) {
+  if (song) parts = parts.map(t => t.split(`'${song}'`).join('SONG'));
+  const z = [];
+  for (const t of parts) z.push(await deflateB64(t));
+  return `${song ? `<script>var SONG='${song}';<\/script>\n` : ''}<script>
+// Code Painter: this program's code is deflated below (to keep the file small); it unpacks itself and runs.
+(async()=>{const u=s=>new Response(new Blob([Uint8Array.from(atob(s),c=>c.charCodeAt(0))]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+for(const s of ${JSON.stringify(z)}){const e=document.createElement('script');e.textContent=await u(s);document.body.appendChild(e)}})();
+<\/script>\n`;
+}
+// the strokes, compact (for a deflated program): one line each — its type, its style (a number into the list of
+// styles), then its arguments, a colour as #rrggbb and '=' for the same colour again; a stroke with a brush (or
+// anything else) is written as JSON. Lossless; about a fifth smaller than JSON once deflated.
+function compactOps(list) {
+  const stn = [...new Set(list.map(q => q.st))];
+  const tok = v => typeof v === 'number' ? (Number.isFinite(v) ? String(v) : null) : typeof v === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v) ? v : null;
+  const lines = list.map(q => {
+    if (q.brush || !Array.isArray(q.args) || /[\s{]/.test(q.t)) return JSON.stringify(q);
+    const w = [q.t, stn.indexOf(q.st)]; let prev = null;
+    for (const v of q.args) { const k = tok(v); if (k == null) return JSON.stringify(q); w.push(typeof v === 'string' && v === prev ? '=' : k); if (typeof v === 'string') prev = v; }
+    return w.join(' ');
+  });
+  return `((R, N) => R.split('\\n').map(l => { if (l[0] === '{') return JSON.parse(l); const w = l.split(' '), args = []; let p = null; for (let i = 2; i < w.length; i++) { const v = w[i]; if (v[0] === '#') { args.push(v); p = v; } else if (v === '=') args.push(p); else args.push(+v); } return { t: w[0], args, st: N[+w[1]], brush: null }; }))(${JSON.stringify(lines.join('\n'))}, ${JSON.stringify(stn)})`;
 }
 async function songDataUrl() {
   const bytes = new Uint8Array(await AU.file.arrayBuffer()); let bin = '';
@@ -3122,7 +3158,7 @@ async function videoProgram(opts) {
     o.steps = steps; o.dur = Math.max(1000, last);
     if (song) { o.tin = AU.in; o.tout = Math.max(AU.out, AU.in + last / 1000); o.audio = await songDataUrl(); }
   }
-  const html = await styledProgram({ animate: !!opts.animate, player: o, ops });
+  const html = await styledProgram({ animate: !!opts.animate, player: o, ops, pack: packWanted() });
   if (html) return html;
   const P = `const P=[\n${ops.map(q => '()=>' + SHP.lineOf(q)).join(',\n')}];`;
   return wrapper(opts.animate ? `${P}\n${playerJS(o)}` : `${P}\nbg('${S.bgHex}');for(const f of P)f();`);
@@ -3130,7 +3166,7 @@ async function videoProgram(opts) {
 async function autoProgram(opts = {}) {
   if (S.vrec && S.vrec.length && S.endless.on) return videoProgram(opts);
   const styled = usesStyles() && !opts.plain;
-  if (styled && !opts.animate) { const html = await styledProgram({ animate: false }); if (html) return html; }
+  if (styled && !opts.animate) { const html = await styledProgram({ animate: false, pack: packWanted() }); if (html) return html; }
   if (!opts.animate) {
     if (S.fmt === 'readable') return wrapper(`bg('${S.bgHex}');\n${S.lines.join(';\n')};`);
     return wrapper(`${SHP.DECODER}\nbg('${S.bgHex}');for(const[f,a]of D('${SHP.pack(S.items)}',[${SHP.MODES[S.fmt]}]))f(...a);`);
@@ -3144,7 +3180,7 @@ async function autoProgram(opts = {}) {
     else o.curve = Array.from({ length: 256 }, (_, j) => paceWarp(audioProgress(AU.in + j / 255 * len * FIT), S.count));
     o.audio = await songDataUrl();
   }
-  if (styled) { const html = await styledProgram({ animate: true, player: o }); if (html) return html; }
+  if (styled) { const html = await styledProgram({ animate: true, player: o, pack: packWanted() }); if (html) return html; }
   return wrapper(`${callList()}\n${playerJS(o)}`);
 }
 // render the finished picture big (auto: redraw the recorded calls at scale; replay: re-run the piece at scale)
@@ -14534,7 +14570,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.43.0');
+    const V = await import('./viewer3d.js?v=4.44.0');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
