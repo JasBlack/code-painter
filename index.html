@@ -776,7 +776,7 @@
     </div>
     <div class="row" style="justify-content: space-between">
       <div class="row" style="gap: 6px"><span class="lbl">rim</span><input id="rimc1" class="swatch" type="color" value="#39ff88" title="Rim colour 1" aria-label="Rim colour 1"><input id="rimc2" class="swatch" type="color" value="#b36bff" title="Rim colour 2" aria-label="Rim colour 2"></div>
-      <div class="row" style="gap: 6px"><span class="lbl">code</span><input id="codec1" class="swatch" type="color" value="#b36bff" title="Code colour (numbers, keywords)" aria-label="Code colour 1"><input id="codec2" class="swatch" type="color" value="#39ff88" title="Code colour (functions, highlight)" aria-label="Code colour 2"></div>
+      <div class="row" style="gap: 6px"><span class="lbl">code</span><input id="codec1" class="swatch" type="color" value="#ffffff" title="Code colour (numbers, keywords)" aria-label="Code colour 1"><input id="codec2" class="swatch" type="color" value="#39ff88" title="Code colour (functions, highlight)" aria-label="Code colour 2"></div>
       <label class="key p" title="Frame and rim move with the music (swell, wobble, flare on the bass)"><input id="framereact" type="checkbox" checked><span class="led"></span>react</label>
     </div>
   </div>
@@ -1412,7 +1412,7 @@ const APP_VERSION = '4.45.0', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
-    fn: '#39ff88', num: '#b36bff', str: '#d8d8de', kw: '#b36bff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
+    fn: '#39ff88', num: '#ffffff', str: '#d8d8de', kw: '#ffffff', com: '#4d4d57', punct: '#8c8c96', ident: '#ececf0',
     hi: 'rgba(57,255,136,.11)', hi2: 'rgba(139,108,255,.14)', glow: false, grid: '' }
 };
 // stage layouts: 16:9 side by side, or 9:16 for reels / shorts / tiktok (painting top, original middle, code bottom)
@@ -14188,7 +14188,8 @@ $('brushfile').onchange = async e => {
   if (b && b !== 'default') setBrush(b);
 })();
 // code colours (remembered)
-{ const c = (store('cp-codec') || '').split(','); if (/^#[0-9a-f]{6}$/i.test(c[0] || '')) $('codec1').value = c[0]; if (/^#[0-9a-f]{6}$/i.test(c[1] || '')) $('codec2').value = c[1]; setCodeColours(); }
+{ const c = (store('cp-codec') || '').split(','); if (/^#[0-9a-f]{6}$/i.test(c[0] || '') && c[0].toLowerCase() !== '#b36bff') $('codec1').value = c[0];      // (the old purple default is now white)
+  if (/^#[0-9a-f]{6}$/i.test(c[1] || '')) $('codec2').value = c[1]; setCodeColours(); }
 $('codec1').oninput = $('codec2').oninput = setCodeColours;
 // mouse on the recording (choices remembered)
 { const m = (store('cp-mouse') || '').split(','); if (m[0] === '1') $('mouseon').checked = true; if (m[1]) $('mouseicon').value = m[1]; if (/^#[0-9a-f]{6}$/i.test(m[2] || '')) $('mousecol').value = m[2]; if (m[3] === '0') $('mousetrail').checked = false; updateMouseCursor(); }
