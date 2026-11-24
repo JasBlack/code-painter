@@ -810,6 +810,7 @@
     <div class="ttl"><b>speed</b><button type="button" id="speedfit" class="mini" hidden title="With a song (hits / flow) the speed sets how much of the song the painting takes: at ×3 the last stroke lands with the song's end, faster finishes sooner, slower leaves the rest for after it. Click: back to ×3, so it fits the song"></button></div>
     <output id="speedval" for="speed">×1</output>
     <input id="speed" class="fad" type="range" min="1" max="100" value="54" aria-label="Painting speed">
+    <div class="row" style="flex-wrap: nowrap"><span class="lbl">pace</span><select id="pacing" data-seg aria-label="Pacing" title="even change: what you see changes at an even pace all the way through — the big early strokes (most of the picture) get the time and the fine finish goes by quickly, so the end of a video is never just tiny details · by strokes: the strokes themselves are spread evenly (most of the picture is there early)"><option value="even" selected>even change</option><option value="strokes">by strokes</option></select></div>
     <div class="row" style="flex-wrap: nowrap"><select id="replay" class="sel" aria-label="Replay a piece" style="flex: 1; min-width: 0"><option value="">replay…</option></select><button type="button" id="replaylayer" class="mini" style="flex: none" title="Layer: the premade pieces in a random order, each one replayed over the last instead of on a fresh canvas (its background left out, so only its marks land), with live strokes mixed in (+live; turned up to 35% if it is off). Press again for a new order; pick anything else to stop">layer ⤮</button></div>
     <div class="row" id="layerrow" style="flex-wrap: nowrap; gap: 6px" title="Layering: the frame every piece is placed in, which pieces go in it, and how each one fits">
       <select id="layerfmt" class="sel" aria-label="Layer frame" title="The frame for the whole layered show: the first piece's shape, or a fixed one" style="flex: 1; min-width: 0"><option value="first" selected>first</option><option value="5:7">5:7</option><option value="1:1">1:1</option><option value="4:5">4:5</option><option value="9:16">9:16</option><option value="16:9">16:9</option><option value="7:5">7:5</option></select>
@@ -1389,7 +1390,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.41.0 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.42.0 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1407,7 +1408,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.41.0', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.42.0', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -1786,9 +1787,14 @@ function beatNow() {
 // (looping: only the hits of its first 72%, so the painting is finished in time to go back to empty)
 function hitPlan(total) {
   const H = hitsInSel().filter(h => h.t <= AU.in + (AU.out - AU.in) * (loopOn() ? 0.72 : 1) + 0.01); if (!H.length || !total) return null;
-  const sect = $('sections').checked && AU.sections, w = H.map(h => (Math.pow(h.s, 1.3) + 0.05) * (sect ? 0.4 + 1.2 * secAt(h.t).e : 1)), W = w.reduce((a, b) => a + b, 0);
+  // (with music in the paint, the louder the hit and the louder the passage round it, the bigger its flurry: the strokes
+  // come in waves that follow the song's dynamics — at 0 the plain share by hit strength)
+  const sect = $('sections').checked && AU.sections, amt = musicAmt(), ex = 1.3 + 1.7 * amt;
+  let eMax = 1e-6; const eAt = t => AU.rms && AU.rms.length ? AU.rms[Math.max(0, Math.min(AU.rms.length - 1, Math.round(t / AU.hop)))] : 0.5;
+  for (const h of H) eMax = Math.max(eMax, eAt(h.t));
+  const w = H.map(h => (Math.pow(h.s, ex) + 0.05 * (1 - 0.6 * amt)) * (1 + amt * (1.6 * eAt(h.t) / eMax - 0.6)) * (sect ? 0.4 + 1.2 * secAt(h.t).e : 1)), W = w.reduce((a, b) => a + b, 0);
   let acc = 0, prev = 0;
-  const n = H.map((h, i) => { acc += w[i]; const c = Math.round(total * acc / W), k = c - prev; prev = c; return k; });
+  const n = H.map((h, i) => { acc += w[i]; const c = Math.round(total * paceWarp(acc / W, total)), k = c - prev; prev = c; return k; });
   return { t: H.map(h => h.t), s: H.map(h => h.s), n, i: 0 };
 }
 // "follow energy": fraction of the painting that should be visible at time t (within the selection)
@@ -1899,6 +1905,14 @@ function onBeat(h) {
   if (S.mode === 'auto' && S.running && S.endless.on && musicMode() === 'hits') { S.debt += Math.max(1, Math.round(+$('perhit').value * (0.5 + h.s))); }
 }
 const react = () => +$('react').value / 100;
+// the beat's stroke in a bolder colour than the picture asks for (more saturated, more contrast: the harder the beat and
+// the more music in the paint, the bolder), so a beat still shows late in the painting, where a true-colour stroke vanishes
+function beatColour(s) {
+  const a = musicAmt() * (S.hit ? S.hit.s : 0.6); if (!(a > 0)) return;
+  const bold = c => { if (!Array.isArray(c) || c.length < 3) return c; const m = (c[0] + c[1] + c[2]) / 3, sat = 1 + 0.9 * a, con = 1 + 0.35 * a;
+    return c.map((v, i) => i > 2 ? v : Math.max(0, Math.min(255, Math.round(128 + (m + (v - m) * sat - 128) * con)))); };
+  s.c0 = bold(s.c0); s.c1 = bold(s.c1);
+}
 // how much the song changes the painting itself (0..1); and the extras on the beat: splash · branch · glow
 const musicAmt = () => +$('musicamt').value / 100;
 { const v = store('cp-musicamt'); if (v != null) $('musicamt').value = v; $('musicamt').addEventListener('input', () => store('cp-musicamt', $('musicamt').value)); }
@@ -2284,7 +2298,7 @@ worker.onmessage = (e) => {
   if (m.type === 'mask') { S.mask = m; S.maskCv = null; return; }
   if (m.type === 'bg') { S.bgHex = S.loopBg = WC.wc ? WC.paper : dryPaper() || SHP.hex(m.c);      // (real watercolour: on white watercolour paper)
     if (!S.count) { paintBg(S.outX); S.snaps = []; snapMaybe(0); } S.sim = m.sim; S.bgSet = true; }
-  else if (m.type === 'shape' && m.acc) { S.accWant = null; S.wCount = m.count; if (S.running && styleOkFor(m)) S.accN = (S.accN || 0) + 1, reveal(m, { k: 1, max: 130 + 40 * (1 - musicAmt()) }); }   // the beat's stroke: down at once, snapped on in a flash
+  else if (m.type === 'shape' && m.acc) { S.accWant = null; S.wCount = m.count; if (S.running && styleOkFor(m)) { beatColour(m.s); S.accN = (S.accN || 0) + 1; reveal(m, { k: 1, max: 130 + 40 * (1 - musicAmt()) }); } }   // the beat's stroke: down at once, snapped on in a flash
   else if (m.type === 'accent-none') S.accWant = null;
   else if (m.type === 'shape') { if (S.wr) S.wr.made++; S.wCount = m.count; if ((!S.endless.on || m.L !== undefined) && styleOkFor(m)) S.queue.push(m); }   // once endless, only shapes made for a view
   else if (m.type === 'done') { S.workerDone = true; S.finalSim = m.sim; }
@@ -2567,7 +2581,17 @@ const finiteRun = () => S.mode === 'replay' || (S.mode === 'auto' && !S.endless.
 // timed to the reel's length (no song): the painting is finished at 88% of it (72% when it loops back afterwards)
 const fitOn = () => reelLen() > 0 && !audioActive() && !AU.live && finiteRun();
 const fitBuild = () => reelLen() * (loopOn() ? 0.72 : 0.88);
-const fitCurve = u => u <= 0 ? 0 : u >= 1 ? 1 : (Math.exp(1.6 * u) - 1) / (Math.exp(1.6) - 1);   // a slow start for the big washes
+// pacing. The painter fixes the biggest mistake first, so most of the picture is there after the first few % of the
+// strokes and the rest is ever finer detail. 'even change' spreads what you SEE evenly over the run instead: the
+// strokes come on an exponential curve (slow for the big early ones, racing through the fine finish), its steepness
+// from how many strokes there are (the picture's change goes roughly with the log of the stroke count).
+// 'by strokes' is the old pacing: the strokes evenly (with a song), or a gentle slow start (timed to a length).
+const pacingEven = () => $('pacing').value === 'even';
+{ const v = store('cp-pacing'); if (v === 'even' || v === 'strokes') $('pacing').value = v; $('pacing').addEventListener('change', () => store('cp-pacing', $('pacing').value)); }
+const paceB = n => Math.min(5, Math.max(1.6, Math.log(1 + (n || 1000) / 8)));
+const expCurve = (u, b) => u <= 0 ? 0 : u >= 1 ? 1 : (Math.exp(b * u) - 1) / (Math.exp(b) - 1);
+const paceWarp = (u, n) => pacingEven() ? expCurve(u, paceB(n)) : Math.min(1, Math.max(0, u));       // with a song: its progress → the strokes' share
+const fitCurve = (u, n = S.total) => expCurve(u, pacingEven() ? paceB(n) : 1.6);   // timed to a length (a slow start for the big washes)
 function pace(dt) {
   commitLandings(clock());
   if (S.mode !== 'auto' || !S.running || S.dz > 0) return;     // (looping back to empty: nothing more lands)
@@ -2610,7 +2634,7 @@ function pace(dt) {
     const burst = S.debt, beatMs = AU.bpm ? 60000 / AU.bpm : 500, stagger = Math.min(12, 120 / burst); let j = 0;
     while (S.debt > 0 && S.queue.length) { const delay = j++ * stagger; reveal(S.queue.shift(), { delay, max: Math.max(120, beatMs * 0.85 - delay) }); S.debt--; }
   } else if (mode === 'flow' && !AU.ended) {
-    const target = Math.floor(S.total * Math.min(1, audioProgress(aTime()) * songK()));
+    const target = Math.floor(S.total * paceWarp(Math.min(1, audioProgress(aTime()) * songK()), S.total));
     while (S.count < target && S.queue.length) reveal(S.queue.shift(), { max: 650 });
   } else {
     const f = AU.ended && !((mode === 'hits' || mode === 'flow') && songK() < 0.95) ? Infinity : speedFactor();      // (a slow speed with a song: the rest after it, at that pace)
@@ -2903,8 +2927,8 @@ function musicSize(dt) {
   if (playing) { const L = S.loud, k = 1 - Math.exp(-dt / 20000); S.loudLo = S.loudLo == null ? L : L < S.loudLo ? L : S.loudLo + (L - S.loudLo) * k; S.loudHi = S.loudHi == null ? L : L > S.loudHi ? L : S.loudHi + (L - S.loudHi) * k; }
   const x = playing ? Math.min(1, Math.max(0, (S.loud - S.loudLo) / Math.max(0.15, S.loudHi - S.loudLo))) : 0.5;
   // (when the painter falls behind the song, no bigger than usual: big strokes take it longer to find)
-  if (amt > 0) mul *= 1 + (0.45 + 1.15 * x - 1) * amt * (S.debt > 24 && x > 0.5 ? 0.3 : 1);
-  mul = Math.min(2.2, Math.max(0.3, mul));
+  if (amt > 0) mul *= 1 + (0.3 + 1.9 * x - 1) * amt * (S.debt > 24 && x > 0.5 ? 0.3 : 1);      // (quiet: down to a third the size; loud: up to twice)
+  mul = Math.min(2.8, Math.max(0.25, mul));
   if (Math.abs(mul - (S.sizeMul || 1)) > 0.07 * mul) { S.sizeMul = mul; const k = sizeK() * mul, rand = sizeRand(); worker.postMessage({ type: 'size', k, rand }); helpersPost({ type: 'size', k, rand }); }
 }
 function paceEndless(dt) {
@@ -3062,7 +3086,7 @@ async function autoProgram(opts = {}) {
     const len = AU.out - AU.in, plan = musicMode() === 'hits' ? hitPlan(S.count) : null;
     o.tin = AU.in; o.tout = AU.out; o.dur = len * FIT * 1000;
     if (plan) { let n = 0; o.steps = []; plan.t.forEach((t, j) => { n += plan.n[j]; if (plan.n[j]) o.steps.push(Math.round((t - AU.in) * 1000), n); }); }
-    else o.curve = Array.from({ length: 256 }, (_, j) => audioProgress(AU.in + j / 255 * len * FIT));
+    else o.curve = Array.from({ length: 256 }, (_, j) => paceWarp(audioProgress(AU.in + j / 255 * len * FIT), S.count));
     const bytes = new Uint8Array(await AU.file.arrayBuffer()); let bin = '';
     for (let i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
     o.audio = `data:${AU.file.type || 'audio/mpeg'};base64,${btoa(bin)}`;
@@ -3333,7 +3357,7 @@ async function replaySteps(gen) {
       if (target <= S.step) { await wait(25); continue; }
       S.step = target - 1;
     } else if (fitted) {                // timed to the reel's length
-      const target = Math.ceil(S.sched.length * fitCurve(elapsed() / fitBuild()));
+      const target = Math.ceil(S.sched.length * fitCurve(elapsed() / fitBuild(), S.sched.length));
       if (target <= S.step) { await wait(20); continue; }
       S.step = target - 1;
     } else if (audioActive() && AU.ended) S.step = S.sched.length - 1;
@@ -13031,7 +13055,7 @@ function musicHold(need) {
   // (enough for what the song asks for in the next second and a half: a hit's flurry is never kept waiting)
   let ahead = 0; const t = OFF.on ? OFF.aT : aTime(), m0 = musicMode();
   if (on && m0 === 'hits' && S.plan) { for (let i = S.plan.i; i < S.plan.t.length && S.plan.t[i] <= t + 1.5; i++) ahead += S.plan.n[i]; }
-  else if (on && m0 === 'flow') ahead = S.total * (audioProgress(Math.min(AU.out, t + 1.5)) - audioProgress(t));
+  else if (on && m0 === 'flow') ahead = S.total * (paceWarp(audioProgress(Math.min(AU.out, t + 1.5)), S.total) - paceWarp(audioProgress(t), S.total));
   // (and enough that the busiest stretch still to come can be met at the painter's own measured pace: the song's
   // plan is known in advance, so a big drop is prepared for during the quiet part before it)
   const now = performance.now(), W = S.wr || (S.wr = { t: now, made: 0, run: 0, r: 40 });
@@ -13041,7 +13065,7 @@ function musicHold(need) {
   if (on && !OFF.on) {
     const r = Math.max(5, W.r * 0.6);
     if (m0 === 'hits' && S.plan) { let cum = 0; for (let i = S.plan.i; i < S.plan.t.length && S.plan.t[i] <= t + 40; i++) { cum += S.plan.n[i]; req = Math.max(req, cum - r * (S.plan.t[i] - t)); } }
-    else if (m0 === 'flow') for (let u = 0.5; u <= 40 && t + u <= AU.out + 0.5; u += 0.5) req = Math.max(req, S.total * (audioProgress(Math.min(AU.out, t + u)) - audioProgress(t)) - r * u);
+    else if (m0 === 'flow') for (let u = 0.5; u <= 40 && t + u <= AU.out + 0.5; u += 0.5) req = Math.max(req, S.total * (paceWarp(audioProgress(Math.min(AU.out, t + u)), S.total) - paceWarp(audioProgress(t), S.total)) - r * u);
   }
   const cap = Math.max(24, need + 8 + Math.ceil(ahead || 0), Math.ceil(req));
   const hurry = on && S.debt > 12 ? 2.2 : 1;      // (behind the song: the painter looks a little less hard for each stroke)
@@ -14446,7 +14470,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.41.0');
+    const V = await import('./viewer3d.js?v=4.42.0');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
