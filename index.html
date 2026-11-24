@@ -1390,7 +1390,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.42.2 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.43.0 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1408,7 +1408,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.42.2', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.43.0', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -1591,7 +1591,7 @@ function setButtons() {
   const active = S.mode !== 'idle';
   $('play').disabled = !active || (S.done && !audioActive()); $('restart').disabled = !active; $('rec').disabled = !active;
   // while zooming endlessly there is no finished program to save (⬇ png saves the current view)
-  $('savecode').disabled = S.mode !== 'auto' || !S.count || S.endless.on || !!(S.dg && S.dg.phase !== 'paint') || !!S.sa; $('savepng').disabled = !active;
+  $('savecode').disabled = S.mode !== 'auto' || !S.count || (S.endless.on && !(S.vrec && S.vrec.length)) || !!(S.dg && S.dg.phase !== 'paint') || !!S.sa; $('savepng').disabled = !active;
   $('savesvg').disabled = S.mode !== 'auto' || !S.count;      // (live / zoom / video: the view as it is now, see liveSvg)
   $('savestills').disabled = $('savesheet').disabled = !stillsOk(); $('savecover').disabled = !active;
   $('embedmusic').disabled = !AU.el;
@@ -2165,7 +2165,8 @@ async function startAuto(src, name, fileName = '', opts = {}) {
   S.list = opts.list || [{ el: img, name }]; S.li = opts.first || 0; S.fromSlots = !!opts.slots; S.video = opts.video || null;
   if (VS.el && VS.el !== S.video) { keepOff(); S.vsound = 'off'; } vsoundShow(); S.holdT = 0; S.wantNext = false;
   S.startArgs = [src, name, fileName, opts];
-  S.mode = 'auto'; S.name = name; S.orig = img; S.done = false; S.lines = []; S.items = []; S.drawn = []; S.liveDrawn = []; S.bits = 0; S.count = 0; S.sim = null; S.recent = [];
+  S.mode = 'auto'; S.name = name; S.orig = img; S.done = false; S.lines = []; S.items = []; S.drawn = []; S.liveDrawn = [];
+  S.vrec = S.video && !S.video.srcObject && !S.fromSlots && S.list.length <= 1 && !zoomWanted() ? [] : null; S.vrecCut = false;     // (a video clip: every stroke with its moment, for ⬇ code) S.bits = 0; S.count = 0; S.sim = null; S.recent = [];
   S.queue = []; S.acc = 0; S.workerDone = false; const pk = !liveRun() || (!zoomWanted() && !S.video); S.line = pk ? lineSpec() : null; S.order = pk ? $('order').value : 'free'; S.picN = 0;     // (an order / one line: a still picture, or a playlist without zoom) S.lineSeed = 1 + Math.floor(Math.random() * 1e6); if (S.line) S.line.seed = S.lineSeed;
   S.pen = !!S.line && S.line.kind === 'pen'; S.fr = null; S.dg = null; DG.on = false; if (DG.wk) DG.wk.postMessage({ type: 'stop' }); S.sa = null; if (SA.wk) SA.wk.postMessage({ type: 'stop' }); S.penCut = false; S.penEnd = 0; S.penEnds = {}; S.hit = null; S.tipGlow = null; S.accWant = null; S.held = false; S.until = null; S.wCount = 0; S.hurry = 1; S.wr = null; S.loud = 0; S.loudLo = S.loudHi = null; S.penLen = 0; S.fmt = $('export').value; S.codeBytes = 0; S.landing = []; S.big = null; S.debt = 0; S.brush = null;
   S.endless = newEndless();
@@ -2382,6 +2383,7 @@ function penMusicK() {
   if (want != null) k *= Math.min(6, Math.max(0.06, Math.exp((want - S.count) / Math.max(12, S.total * 0.02))));     // (ahead of the song: it slows right down; behind: it hurries)
   return Math.min(9, k);          // (never so fast that a burst of strokes lands in one frame)
 }
+const VREC_MAX = 80000;      // (strokes a video's code keeps: about 8 MB of program)
 function reveal(m, anim) {
   // every shape picks one of the ticked motions
   let mo = motion();
@@ -2430,6 +2432,13 @@ function reveal(m, anim) {
   S.brush = q.t === 'S' ? (anim && S.landing[S.landing.length - 1].dir < 0 ? [q.args[0], q.args[1]] : [q.args[4], q.args[5]]) : c;
   const line = S.fmt === 'readable' || E.on ? SHP.code(s, S.k) : SHP.lineOf(q);
   S.lines.push(line); S.count++; S.sim = m.sim;
+  // a video clip: every stroke, with when it landed (the run's clock, and the song's), so ⬇ code can play the video's
+  // painting back in time (a canvas that moves — zoom — can't be: then nothing is kept)
+  if (S.vrec) {
+    if (E.travel || zoomWanted()) S.vrec = null;
+    else if (S.vrec.length >= VREC_MAX) S.vrecCut = true;
+    else S.vrec.push({ t: q.t, args: q.args, st: q.st, brush: q.brush, e: Math.round(elapsed() * 1000), a: audioActive() && S.songOn && AU.el !== S.video ? Math.round((aTime() - AU.in) * 1000) : null });
+  }
   if (E.on) {           // endless: only the recent code is kept, and the recent strokes (for an svg of the view)
     if (S.lines.length > 400) S.lines.splice(0, S.lines.length - 300);
     (S.liveDrawn || (S.liveDrawn = [])).push({ t: q.t, args: q.args, st: q.st, brush: q.brush }); if (S.liveDrawn.length > 12000) S.liveDrawn.splice(0, 2000);
@@ -3040,7 +3049,7 @@ async function styledProgram(o) {
   const shp = await sourceWith('const SHP = (() =>', 'CP_WORKER_SRC'), main = await sourceWith(MK + 'begin');
   const a = main.indexOf(MK + 'begin'), b = main.indexOf(MK + 'end');
   if (!shp || a < 0 || b < a) return null;
-  const W = S.out.width, H = S.out.height, ops = JSON.stringify(S.drawn.map(d => ({ t: d.t, args: d.args, st: d.st, brush: d.brush === 'custom' ? null : d.brush })));
+  const W = S.out.width, H = S.out.height, ops = JSON.stringify((o.ops || S.drawn).map(d => ({ t: d.t, args: d.args, st: d.st, brush: d.brush === 'custom' ? null : d.brush })));
   const prelude = `'use strict';
 const c = document.getElementById('c').getContext('2d'), W = ${W}, H = ${H}, BGC = '${S.bgHex}', OPS = ${ops};
 const $ = id => document.getElementById(id), store = () => null, clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v, easeInOut = u => (1 - Math.cos(Math.PI * u)) / 2, easeOut2 = u => 1 - (1 - u) ** 2;
@@ -3095,7 +3104,31 @@ function codeSize() {   // size of the static program the ⬇ code button would 
   if (S.fmt === 'readable') return (overhead.readable ??= wrapper(`bg('#000000');\n`).length) + S.codeBytes;
   return (overhead.packed ??= wrapper(`${SHP.DECODER}\nbg('#000000');for(const[f,a]of D('',[${SHP.MODES.packed}]))f(...a);`).length) + SHP.packedLen(S.bits);
 }
+async function songDataUrl() {
+  const bytes = new Uint8Array(await AU.file.arrayBuffer()); let bin = '';
+  for (let i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+  return `data:${AU.file.type || 'audio/mpeg'};base64,${btoa(bin)}`;
+}
+// a video clip's painting as a program: every stroke the painter made over the video's frames, played back at the
+// moment it landed (on the song's clock when the song goes with it, else the run's), click to play again; without
+// "animate" it is the canvas as it is now. Only the paint: the video itself (under the strokes) isn't in it.
+async function videoProgram(opts) {
+  const R = S.vrec, song = !!(opts.animate && opts.music && AU.file && AU.el && AU.el !== S.video && R.some(r => r.a != null));
+  const rd = v => typeof v === 'number' ? Math.round(v * 100) / 100 : v;      // (hundredths of a pixel / radian: plenty, and a third smaller)
+  const ops = R.map(r => ({ t: r.t, args: r.args.map(rd), st: r.st, brush: r.brush })), o = {};
+  if (opts.animate) {
+    const steps = []; let last = 0;
+    R.forEach((r, i) => { const ms = Math.max(last, Math.round(song ? (r.a == null ? 0 : r.a) : r.e)); last = ms; const L = steps.length; if (L && steps[L - 2] === ms) steps[L - 1] = i + 1; else steps.push(ms, i + 1); });
+    o.steps = steps; o.dur = Math.max(1000, last);
+    if (song) { o.tin = AU.in; o.tout = Math.max(AU.out, AU.in + last / 1000); o.audio = await songDataUrl(); }
+  }
+  const html = await styledProgram({ animate: !!opts.animate, player: o, ops });
+  if (html) return html;
+  const P = `const P=[\n${ops.map(q => '()=>' + SHP.lineOf(q)).join(',\n')}];`;
+  return wrapper(opts.animate ? `${P}\n${playerJS(o)}` : `${P}\nbg('${S.bgHex}');for(const f of P)f();`);
+}
 async function autoProgram(opts = {}) {
+  if (S.vrec && S.vrec.length && S.endless.on) return videoProgram(opts);
   const styled = usesStyles() && !opts.plain;
   if (styled && !opts.animate) { const html = await styledProgram({ animate: false }); if (html) return html; }
   if (!opts.animate) {
@@ -3109,9 +3142,7 @@ async function autoProgram(opts = {}) {
     o.tin = AU.in; o.tout = AU.out; o.dur = len * FIT * 1000;
     if (plan) { let n = 0; o.steps = []; plan.t.forEach((t, j) => { n += plan.n[j]; if (plan.n[j]) o.steps.push(Math.round((t - AU.in) * 1000), n); }); }
     else o.curve = Array.from({ length: 256 }, (_, j) => paceWarp(audioProgress(AU.in + j / 255 * len * FIT), S.count));
-    const bytes = new Uint8Array(await AU.file.arrayBuffer()); let bin = '';
-    for (let i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
-    o.audio = `data:${AU.file.type || 'audio/mpeg'};base64,${btoa(bin)}`;
+    o.audio = await songDataUrl();
   }
   if (styled) { const html = await styledProgram({ animate: true, player: o }); if (html) return html; }
   return wrapper(`${callList()}\n${playerJS(o)}`);
@@ -3271,7 +3302,7 @@ function startMix(info) {
   const steps = Math.max(1, Math.round(S.sched.length * (1 - +$('mixfin').value / 100)));   // strokes land in these steps; the rest is the code finishing
   S.mix = { busy: false, debt: 0, done: 0, strokeSteps: steps, per: shapesWanted() * mixAmount() / steps, prev: null, cv: document.createElement('canvas'), tmp: null };
   S.mix.cv.width = S.ww; S.mix.cv.height = S.wh; S.mix.cx = S.mix.cv.getContext('2d', { willReadFrequently: true });
-  S.queue = []; S.landing = []; S.recent = []; S.lines = []; S.items = []; S.drawn = []; S.liveDrawn = []; S.bits = 0; S.brush = null; S.endless = newEndless(); S.fmt = 'readable';
+  S.queue = []; S.landing = []; S.recent = []; S.lines = []; S.items = []; S.drawn = []; S.liveDrawn = []; S.vrec = null; S.bits = 0; S.brush = null; S.endless = newEndless(); S.fmt = 'readable';
   const x = S.mix.cx; origInto(x, S.ww, S.wh);
   let data = x.getImageData(0, 0, S.ww, S.wh).data;
   if (abstractOn()) data = abstractWarp(data, S.ww, S.wh, 0, 0);
@@ -14378,7 +14409,8 @@ $('savecode').onclick = async () => {
   const animate = $('animate').checked, music = animate && $('embedmusic').checked && !!AU.file;
   const html = await autoProgram({ animate, music });
   download(new Blob([html], { type: 'text/html' }), `${safeName()}-${animate ? 'self-painting' : 'painted-in-code'}.html`);
-  $('hint').textContent = `Saved ${animate ? 'self-painting ' : ''}program: ${(html.length / 1024).toFixed(1)} KB${music ? ' (song included)' : ''}.`;
+  const vid = S.vrec && S.vrec.length && S.endless.on;
+  $('hint').textContent = `Saved ${animate ? 'self-painting ' : ''}program${vid ? ` of the video's painting (${S.vrec.length} strokes${S.vrecCut ? ', the first ' + VREC_MAX + ' only' : ''}; the paint only, not the video)` : ''}: ${(html.length / 1024).toFixed(1)} KB${music ? ' (song included)' : ''}.`;
 };
 $('savesvg').onclick = () => download(new Blob([S.sa ? saSvg() : S.dg && S.dg.phase !== 'paint' ? dgSvg() : S.endless.on ? liveSvg() : SHP.svg(S.drawn, S.out.width, S.out.height, S.bgHex)], { type: 'image/svg+xml' }), `${safeName()}-painted.svg`);
 // a live input / video / zoom never finishes, and its strokes aren't all kept: its svg is the view as it is now — the
@@ -14502,7 +14534,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.42.2');
+    const V = await import('./viewer3d.js?v=4.43.0');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
