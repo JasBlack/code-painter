@@ -1390,7 +1390,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.42.1 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.42.2 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1408,7 +1408,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.42.1', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.42.2', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -1711,7 +1711,7 @@ function analyse(buf) {
   for (let f = 0; f < frames; f++) { rms[f] /= mr; on[f] /= mo; }
   const cum = new Float32Array(frames + 1);
   for (let f = 0; f < frames; f++) cum[f + 1] = cum[f] + 0.04 + Math.pow(rms[f], 1.3) + 1.5 * on[f];
-  AU.rms = rms; AU.on = on; AU.cum = cum; AU.hop = hop / sr;
+  AU.rms = rms; AU.rmsMax = 0; AU.on = on; AU.cum = cum; AU.hop = hop / sr;
 }
 // hits: peaks of the onset curve that stand out from their ±0.4 s neighbourhood; sensitivity trades how many
 function detectHits() {
@@ -2921,17 +2921,36 @@ function cameraStep(dt) {
 }
 // the brush size follows the song: sections (bolder in the drops, finer in the breaks) and, with music in the paint,
 // the loudness right now — loud parts paint with broad brushes, quiet parts with fine ones
+// a render: the song's time at which the next stroke the painter makes will land (the strokes made so far, against the
+// song's plan: its hits, or its energy curve), and the song's loudness there (0..1 of its loudest)
+function landT() {
+  const g = S.count + S.queue.length, k = songK(), m0 = musicMode();
+  if (m0 === 'hits' && S.plan) { let cum = 0; for (let i = 0; i < S.plan.t.length; i++) { cum += S.plan.n[i] * k; if (cum > g) return S.plan.t[i]; } return AU.out; }
+  let a = Math.max(AU.in, OFF.aT || AU.in), b = AU.out;
+  if (S.total * paceWarp(Math.min(1, audioProgress(b) * k), S.total) <= g) return b;
+  for (let j = 0; j < 24; j++) { const m = (a + b) / 2; if (S.total * paceWarp(Math.min(1, audioProgress(m) * k), S.total) > g) b = m; else a = m; }
+  return b;
+}
+function loudAt(t) {
+  if (!AU.rmsMax) { let m = 1e-6; for (const v of AU.rms) m = Math.max(m, v); AU.rmsMax = m; }
+  const i = Math.max(0, Math.min(AU.rms.length - 1, Math.round(t / AU.hop)));
+  let v = 0; for (let j = Math.max(0, i - 2); j <= Math.min(AU.rms.length - 1, i + 2); j++) v = Math.max(v, AU.rms[j]);
+  return Math.min(1, v / AU.rmsMax);
+}
 function musicSize(dt) {
   const playing = S.mode === 'auto' && ((audioActive() && !AU.ended && !aPaused()) || !!AU.live), amt = playing ? musicAmt() : 0;
-  const e = playing ? Math.min(1, 0.6 * AU.bass + 0.4 * AU.mid) : 0;
+  // (a render knows the whole song: the loudness where the painter's next stroke will land, so it can paint ahead)
+  const e = !playing ? 0 : OFF.on && AU.rms && AU.rms.length ? loudAt(landT()) : Math.min(1, 0.6 * AU.bass + 0.4 * AU.mid);
   S.loud = (S.loud || 0) + (e - (S.loud || 0)) * (1 - Math.exp(-dt / (e > (S.loud || 0) ? 300 : 1600)));     // (the passage, not each kick: the beat has its own stroke)
   let mul = sectOn() ? 0.6 + 0.9 * S.secE - (S.sec && S.sec.kind === 'break' ? 0.1 : 0) : 1;
   // (loud and quiet for this song: measured against its own quietest and loudest so far, so any track gets the full range)
   if (playing) { const L = S.loud, k = 1 - Math.exp(-dt / 20000); S.loudLo = S.loudLo == null ? L : L < S.loudLo ? L : S.loudLo + (L - S.loudLo) * k; S.loudHi = S.loudHi == null ? L : L > S.loudHi ? L : S.loudHi + (L - S.loudHi) * k; }
   const x = playing ? Math.min(1, Math.max(0, (S.loud - S.loudLo) / Math.max(0.15, S.loudHi - S.loudLo))) : 0.5;
-  // (when the painter falls behind the song, no bigger than usual: big strokes take it longer to find)
-  if (amt > 0) mul *= 1 + (0.3 + 1.9 * x - 1) * amt * (S.debt > 24 && x > 0.5 ? 0.3 : 1);      // (quiet: down to a third the size; loud: up to twice)
-  mul = Math.min(2.8, Math.max(0.25, mul));
+  // (when the painter falls behind the song — or a render keeps waiting for it — no bigger than usual: big strokes take
+  // it longer to find; and the louder-is-bigger fades as the painting fills in, where a big stroke rarely helps)
+  const behind = S.debt > 24 || (OFF.on && (OFF.lag || 0) > 120), prog = S.total ? Math.min(1, S.count / S.total) : 0;
+  if (amt > 0) { const d = (0.3 + 1.9 * x - 1) * amt; mul *= 1 + (d > 0 ? d * (behind ? 0.3 : 1) * (1 - 0.6 * prog) : d); }      // (quiet: down to a third the size; loud: up to twice)
+  mul = Math.min(2.2, Math.max(0.25, mul));
   if (Math.abs(mul - (S.sizeMul || 1)) > 0.07 * mul) { S.sizeMul = mul; const k = sizeK() * mul, rand = sizeRand(); worker.postMessage({ type: 'size', k, rand }); helpersPost({ type: 'size', k, rand }); }
 }
 function paceEndless(dt) {
@@ -13056,9 +13075,9 @@ function musicHold(need) {
   const on = S.mode === 'auto' && S.running && !S.waitAudio && !S.endless.on && !S.workerDone && musicAmt() > 0 && audioActive() && !AU.ended;
   if (!(need >= 0)) need = 0;
   // (enough for what the song asks for in the next second and a half: a hit's flurry is never kept waiting)
-  let ahead = 0; const t = OFF.on ? OFF.aT : aTime(), m0 = musicMode();
-  if (on && m0 === 'hits' && S.plan) { for (let i = S.plan.i; i < S.plan.t.length && S.plan.t[i] <= t + 1.5; i++) ahead += S.plan.n[i]; }
-  else if (on && m0 === 'flow') ahead = S.total * (paceWarp(audioProgress(Math.min(AU.out, t + 1.5)), S.total) - paceWarp(audioProgress(t), S.total));
+  let ahead = 0; const t = OFF.on ? OFF.aT : aTime(), m0 = musicMode(), look = OFF.on ? 8 : 1.5;      // (a render: sizes come from where each stroke lands (landT), so the painter works on while the frames are drawn)
+  if (on && m0 === 'hits' && S.plan) { for (let i = S.plan.i; i < S.plan.t.length && S.plan.t[i] <= t + look; i++) ahead += S.plan.n[i] * (OFF.on ? songK() : 1); }
+  else if (on && m0 === 'flow') ahead = S.total * (paceWarp(audioProgress(Math.min(AU.out, t + look)), S.total) - paceWarp(audioProgress(t), S.total)) * (OFF.on ? songK() : 1);
   // (and enough that the busiest stretch still to come can be met at the painter's own measured pace: the song's
   // plan is known in advance, so a big drop is prepared for during the quiet part before it)
   const now = performance.now(), W = S.wr || (S.wr = { t: now, made: 0, run: 0, r: 40 });
@@ -13085,7 +13104,10 @@ async function feedPainter(dt) {
     const need = demand(dt);
     musicHold(need);
     if (need <= 0) return;
+    const T1 = performance.now();
     await until(() => S.mode !== 'auto' || S.queue.length >= need || (!S.endless.on && S.workerDone), 8000, S.endless.on ? () => sendFrame() : null);
+    // (a render never falls behind the song, it waits: how long it waited is how far behind the painter is — see musicSize)
+    OFF.lag = (OFF.lag || 0) * 0.9 + 0.1 * (performance.now() - T1);
   } else if (S.mode === 'replay' && S.mix && S.running && S.mix.debt >= 1) {
     await until(() => !S.mix || S.queue.length >= Math.min(48, Math.ceil(S.mix.debt)), 4000, () => { if (S.mix && !S.mix.busy) sendMixFrame(); });
   }
@@ -13142,7 +13164,7 @@ async function renderOffline() {
     }
     R = await MP4REC.startOffline(stage, { fps, bitrate: Math.round(16e6 * Math.max(0.5, RS * RS)), audioRate: pcm ? pcm.rate : vpcm ? vpcm.rate : SND.on ? audioCtx().sampleRate : 0 });
   } catch (e) { document.body.classList.remove('rendering'); recIdle(); $('hint').textContent = `Offline render couldn't start: ${e.message}`; return false; }
-  Object.assign(OFF, { on: true, t: performance.now(), frame: 0, fps, aT: 0, aPlaying: false, aStarted: false, aStart: 0, aEnd: -1, timers: [], parked: 0, endAt: Infinity, vCur: null, vOnce: false, pcm });
+  Object.assign(OFF, { on: true, lag: 0, t: performance.now(), frame: 0, fps, aT: 0, aPlaying: false, aStarted: false, aStart: 0, aEnd: -1, timers: [], parked: 0, endAt: Infinity, vCur: null, vOnce: false, pcm });
   if (FFT.mag) FFT.mag.fill(0);
   SND.log = []; SND.bedLog = []; SND.voices = []; SND.bedT = -1; SND.rate = 0; SND.tokens = 3; SND.tokT = null;
   S.rec = { offline: true };
@@ -14480,7 +14502,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.42.1');
+    const V = await import('./viewer3d.js?v=4.42.2');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
