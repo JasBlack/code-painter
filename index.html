@@ -13365,7 +13365,7 @@ async function renderOffline() {
   if (failed) { $('hint').textContent = 'Offline render failed: ' + failed.message; return false; }
   const name = recName('mp4'), st = MP4REC.stats;
   S.lastRec = { blob, name }; $('savevid').disabled = false; download(blob, name);
-  $('hint').textContent = `${bt}Rendered ${name}: ${(frames / fps).toFixed(1)} s, ${fps} fps, every frame exact (${(blob.size / 1e6).toFixed(1)} MB, H.264${st && st.audio ? ' + AAC' : ', no sound'}; took ${((performance.now() - wall) / 1000).toFixed(0)} s). No download? Click ⬇ video.`;
+  $('hint').textContent = `${bt}Rendered ${name}: ${(frames / fps).toFixed(1)} s, ${fps} fps, every frame exact (${(blob.size / 1e6).toFixed(1)} MB, H.264${st && st.audio ? ' + AAC' : ', no sound'}; took ${((performance.now() - wall) / 1000).toFixed(0)} s). No download? Click ⬇ video.${S.vrec && S.vrec.length && S.endless.on ? ` ⬇ code saves this painting as code (${S.vrec.length} strokes, at the render's pace).` : ''}`;
   return true;
 }
 
