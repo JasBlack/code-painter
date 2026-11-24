@@ -89,7 +89,8 @@ Load a song, pick one of the 10 **demo ♪** songs (house, boom bap, drum & bass
 
 - **hits**: strokes land on the song's hits.
 - **flow**: the painting follows the song's energy.
-- With **hits** and **flow** (and with *one line*), the **speed** slider sets how much of the song the painting takes. At its default (×3) the last stroke lands at the song's end; faster finishes sooner, with more strokes on each hit; slower leaves the rest to be painted after the song, at that pace.
+- With **hits** and **flow** (and with *one line*), the **speed** slider sets how much of the song the painting takes. At its default (×3) the last stroke lands at the song's end; faster finishes sooner, with more strokes on each hit; slower leaves the rest to be painted after the song, at that pace. The speed panel says how it lines up (*♪ fits the song*, *♪ done ~40% in*, *♪ ends after the song*); click it to go back to ×3.
+- **The song's timeline**: click to jump the song there (stopped, it plays from there so you can listen), drag the white playhead to scrub, drag across to choose the part to paint to, drag the green handles to adjust, double-click for the whole song.
 - **free**: hits throw bursts of strokes.
 - **sections**: drops paint bolder, breaks paint calmer.
 - **music in the paint** (*amount*): how much the song changes the painting itself. At 0 the music only sets the pace.
@@ -167,7 +168,7 @@ It works in the studio, simple, +code and editor displays, shows in recordings, 
 - **⬇ code**: a small web page that paints the picture again by itself, stroke by stroke, in the same styles (self-playing, with the song if you like).
 - **svg**, **png 1K / 4K / 8K**, **stills**, **contact sheet**, **cover**. With a live input, a video, a zoom or a playlist (which never finish), **svg** saves the view as it is now. The canvas is traced into flat colour shapes, with the most recent strokes over them as vector strokes.
 - **window**: open the painting on its own, for a projector or a second screen.
-- **length** (under *free / 15 / 30 / 60*): a slider from 0 to 100 seconds, **12 s** by default. The painting is timed to fit it, a song's part is trimmed to it, and a recording is exactly that long. 0 means free: the run takes as long as it takes. The four buttons set the slider, and right-click puts it back to 12 s.
+- **length** (under *free / 15 / 30 / 60*): a slider from 0 to 100 seconds, **12 s** by default. The painting is timed to fit it, a song's part is trimmed to it, and a recording is exactly that long. 0 means free: the run takes as long as it takes. Dropping in a video clip switches it to free, so a recording runs the clip's chosen part once through; the next picture gets your length back. The four buttons set the slider, and right-click puts it back to 12 s.
 - **Displays** (above the stage): *studio*, *simple*, *paint*, *+code* and *editor*. *editor* puts the painting beside its code in an editor window (painting.js, window dots, big line numbers, the current line highlighted, "Code Painter by Jas Black" along the bottom). In 16:9 they sit side by side. In the tall frames the painting is as big as it fits, with a thin black trim, and the editor sits under it, lined up with its edges.
 
 ## Colour grade

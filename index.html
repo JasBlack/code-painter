@@ -807,7 +807,7 @@
     <div class="row" style="flex-wrap: nowrap"><span class="lbl">loop</span><select id="loop" data-seg aria-label="Loop" title="The painting builds, holds, then goes back to empty, so the video loops cleanly (without recording it keeps looping). fade: dissolves away · rewind: un-paints itself"><option value="off" selected>off</option><option value="fade">fade</option><option value="rewind">rewind</option></select></div>
   </div>
   <div class="panel" style="width: 216px">
-    <div class="ttl"><b>speed</b></div>
+    <div class="ttl"><b>speed</b><button type="button" id="speedfit" class="mini" hidden title="With a song (hits / flow) the speed sets how much of the song the painting takes: at ×3 the last stroke lands with the song's end, faster finishes sooner, slower leaves the rest for after it. Click: back to ×3, so it fits the song"></button></div>
     <output id="speedval" for="speed">×1</output>
     <input id="speed" class="fad" type="range" min="1" max="100" value="54" aria-label="Painting speed">
     <div class="row" style="flex-wrap: nowrap"><select id="replay" class="sel" aria-label="Replay a piece" style="flex: 1; min-width: 0"><option value="">replay…</option></select><button type="button" id="replaylayer" class="mini" style="flex: none" title="Layer: the premade pieces in a random order, each one replayed over the last instead of on a fresh canvas (its background left out, so only its marks land), with live strokes mixed in (+live; turned up to 35% if it is off). Press again for a new order; pick anything else to stop">layer ⤮</button></div>
@@ -823,7 +823,7 @@
     <div class="ttl"><b>music</b><span style="display: flex; align-items: center; gap: 6px; min-width: 0"><span id="audioname"></span><button id="audiox" class="mini bigx" title="Remove the music" aria-label="Remove the music" disabled>✕</button></span><span><span id="tlsel" class="tlnum"></span> <span id="tlhits" class="tlnum2"></span></span></div>
     <div class="ph">load or drop a song · the painting follows its hits</div>
     <div id="timeline" hidden>
-      <canvas id="tl" title="Drag to choose the part of the song to paint to · drag the green handles to adjust · double-click for the whole song" aria-label="Song timeline"></canvas>
+      <canvas id="tl" title="Click to jump the song there · drag the white playhead to scrub · drag across to choose the part to paint to · drag the green handles to adjust · double-click for the whole song" aria-label="Song timeline"></canvas>
     </div>
     <div class="row">
       <label class="key w" title="Load a song or audio clip (or drop it on the page)">load<input id="audio" type="file" accept="audio/*"></label>
@@ -1389,7 +1389,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.40.1 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.41.0 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1407,7 +1407,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.40.1', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.41.0', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -2081,21 +2081,36 @@ function drawTimeline() {
   if (AU.el) { const px = x(aTime()); TX.fillStyle = '#fff'; TX.fillRect(px - 0.5, 0, 1.5, h); }
 }
 const tlTime = e => { const r = TL.getBoundingClientRect(); return clamp01((e.clientX - r.left) / r.width) * AU.dur; };
+// jump the song to t (kept inside the chosen part): playing, it plays on from there; stopped, it plays from there to listen (like ▶ listen)
+function jumpSong(t) {
+  if (!AU.el || OFF.on || !AU.dur) return;
+  t = Math.max(AU.in, Math.min(AU.out - 0.05, t));
+  if (AU.el === S.video) { AU.ended = false; jumpVideo(S.video, t); }
+  else { AU.el.currentTime = t; AU.hi = 0; while (AU.hi < AU.hits.length && AU.hits[AU.hi].t < t) AU.hi++; AU.ended = false; }
+  if (AU.resumeAt != null && !AU.preview) AU.resumeAt = t;
+  if (aPaused() && !AU.preview && (!S.running || !S.songOn)) { if (S.running) $('play').click(); AU.preview = true; AU.resumeAt = null; setListen(); AU.ctx.resume(); AU.el.play().catch(() => {}); }   // (▶ then paints on from wherever the song is)
+  drawTimeline();
+}
 TL.addEventListener('pointerdown', e => {
   if (!AU.dur) return;
-  const r = TL.getBoundingClientRect(), px = e.clientX - r.left, xi = AU.in / AU.dur * r.width, xo = AU.out / AU.dur * r.width;
-  tlDrag = Math.abs(px - xi) < 9 ? 'in' : Math.abs(px - xo) < 9 ? 'out' : { from: tlTime(e) };
+  const r = TL.getBoundingClientRect(), px = e.clientX - r.left, xi = AU.in / AU.dur * r.width, xo = AU.out / AU.dur * r.width, xp = aTime() / AU.dur * r.width;
+  tlDrag = Math.abs(px - xi) < 9 ? 'in' : Math.abs(px - xo) < 9 ? 'out' : AU.el && Math.abs(px - xp) < 8 ? 'head' : { from: tlTime(e) };
+  if (tlDrag === 'head') jumpSong(tlTime(e));
   TL.setPointerCapture(e.pointerId);
 });
 TL.addEventListener('pointermove', e => {
-  if (!tlDrag) { if (AU.dur) { const r = TL.getBoundingClientRect(), px = e.clientX - r.left; TL.style.cursor = Math.abs(px - AU.in / AU.dur * r.width) < 9 || Math.abs(px - AU.out / AU.dur * r.width) < 9 ? 'ew-resize' : 'crosshair'; } return; }
+  if (!tlDrag) { if (AU.dur) { const r = TL.getBoundingClientRect(), px = e.clientX - r.left; TL.style.cursor = Math.abs(px - AU.in / AU.dur * r.width) < 9 || Math.abs(px - AU.out / AU.dur * r.width) < 9 ? 'ew-resize' : AU.el && Math.abs(px - aTime() / AU.dur * r.width) < 8 ? 'grab' : 'pointer'; } return; }
   const t = tlTime(e);
+  if (tlDrag === 'head') { jumpSong(t); return; }
   if (tlDrag === 'in') AU.in = Math.min(t, AU.out - 0.5);
   else if (tlDrag === 'out') AU.out = Math.max(t, AU.in + 0.5);
-  else if (Math.abs(t - tlDrag.from) > 0.3) { AU.in = Math.min(t, tlDrag.from); AU.out = Math.max(t, tlDrag.from); }
+  else if (tlDrag.moved || Math.abs(t - tlDrag.from) > 0.3) { tlDrag.moved = true; AU.in = Math.min(t, tlDrag.from); AU.out = Math.max(t, tlDrag.from); }
   updateSelectionInfo();
 });
-TL.addEventListener('pointerup', () => { tlDrag = null; });
+TL.addEventListener('pointerup', e => {
+  if (tlDrag && tlDrag.from != null && !tlDrag.moved) jumpSong(tlTime(e));    // a click: jump there
+  tlDrag = null;
+});
 TL.addEventListener('dblclick', () => { AU.in = 0; AU.out = AU.dur; updateSelectionInfo(); });
 
 // ═════════════════════════════════════════════════════════════
@@ -2128,6 +2143,7 @@ async function startAuto(src, name, fileName = '', opts = {}) {
     return;
   }
   if (token !== loadToken) return;              // a newer picture was dropped while this one was loading
+  reelAuto(opts.video || null);
   stopAll(); applyReelLen(); newRun();
   S.list = opts.list || [{ el: img, name }]; S.li = opts.first || 0; S.fromSlots = !!opts.slots; S.video = opts.video || null;
   if (VS.el && VS.el !== S.video) { keepOff(); S.vsound = 'off'; } vsoundShow(); S.holdT = 0; S.wantNext = false;
@@ -12635,7 +12651,7 @@ function frameBody(now) {
   const t0 = performance.now(), dt = Math.min(100, now - lastNow); lastNow = now;
   reliefFlush();
   if (!OFF.on) { step(now, dt); sendOut(now); }
-  drawTimeline(); drawVT(); perfDraw();
+  drawTimeline(); drawVT(); perfDraw(); speedFit();
   LAG.ema = LAG.ema * 0.9 + (performance.now() - t0) * 0.1;
   if (!LAG.lite && LAG.ema > 26) { LAG.lite = true; if (S.mode === 'auto' && S.running) $('hint').textContent = 'This is a lot to draw: the heavy styles are drawn in with a plain motion to keep up (a lighter style, fewer shapes or the fast detail also help).'; }
   else if (LAG.lite && LAG.ema < 13) LAG.lite = false;
@@ -14138,6 +14154,15 @@ $('play').onclick = () => {
 };
 $('restart').onclick = restart;
 $('speed').oninput = showSpeed; showSpeed();
+// with a song: how the painting lines up with it at this speed (see songK), and a click back to the speed that fits
+function speedFit() {
+  const b = $('speedfit'), m = musicMode(), on = !!AU.el && AU.dur > 0 && (m === 'hits' || m === 'flow');
+  let t = '';
+  if (on) { const k = songK(); t = Math.abs(k - 1) < 0.06 ? '♪ fits the song' : k > 1 ? `♪ done ~${Math.round(FIT / k * 100)}% in · fit` : '♪ ends after the song · fit'; }
+  if (b.hidden !== !on) b.hidden = !on;
+  if (b.textContent !== t) b.textContent = t;
+}
+$('speedfit').onclick = () => { const s = $('speed'); if (+s.value === 54) return; s.value = 54; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })); };
 // (settings files, presets and the phone view set the slider directly: the label follows whatever set it)
 { let last = $('speed').value; setInterval(() => { const v = $('speed').value; if (v !== last) { last = v; showSpeed(); } }, 250); }
 // zoom: moving the slider on a finished painting starts the endless zoom from there
@@ -14220,6 +14245,15 @@ recIdle();
 // the length slider and its presets: a preset moves the slider; the slider lights the preset it lands on (none in between)
 const reelShow = () => { const v = $('reelsec').value; $('reelsecv').textContent = +v ? v + ' s' : 'free'; const sel = $('reellen'); sel.value = [...sel.options].some(o => o.value === v) ? v : ''; sel.dispatchEvent(new Event('change')); };
 $('reelsec').oninput = reelShow;
+// (a reload can bring the slider back where it was without telling anyone: show what it really is)
+addEventListener('pageshow', () => { if (($('reelsecv').textContent === 'free') !== !+$('reelsec').value || $('reellen').value !== ([...$('reellen').options].some(o => o.value === $('reelsec').value) ? $('reelsec').value : '')) reelShow(); });
+// a dropped video clip records free (its part, once through) unless you pick a length for it; the next picture gets your length back
+function reelAuto(v) {
+  const clip = v && !v.srcObject ? v : null; if (clip === (S.reelFor || null)) return; S.reelFor = clip;
+  const rs = $('reelsec');
+  if (clip) { if (+rs.value) { S.reelPrev = rs.value; rs.value = 0; reelShow(); } }
+  else if (S.reelPrev != null) { if (+rs.value === 0) { rs.value = S.reelPrev; reelShow(); } S.reelPrev = null; }
+}
 { const sel = $('reellen'); sel.value = [...sel.options].some(o => o.value === $('reelsec').value) ? $('reelsec').value : ''; }
 $('reellen').onchange = () => { if ($('reellen').value !== '' && $('reellen').value !== $('reelsec').value) { $('reelsec').value = $('reellen').value; $('reelsecv').textContent = +$('reelsec').value ? $('reelsec').value + ' s' : 'free'; }
   applyReelLen(); const L = reelLen(); $('hint').textContent = L ? `Length ${L} s: ${audioActive() ? "the song's part is trimmed to it" : 'the painting is timed to fit'}; a recording is exactly that long. ${S.mode === 'idle' ? '' : '⟲ restart to paint it that way.'}` : 'Free length: the run takes as long as it takes.'; };
@@ -14412,7 +14446,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.40.1');
+    const V = await import('./viewer3d.js?v=4.41.0');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
