@@ -1390,7 +1390,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.44.0 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.45.0 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1408,7 +1408,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.44.0', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.45.0', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -2383,7 +2383,7 @@ function penMusicK() {
   if (want != null) k *= Math.min(6, Math.max(0.06, Math.exp((want - S.count) / Math.max(12, S.total * 0.02))));     // (ahead of the song: it slows right down; behind: it hurries)
   return Math.min(9, k);          // (never so fast that a burst of strokes lands in one frame)
 }
-const VREC_MAX = 80000;      // (strokes a video's code keeps: about 8 MB of program)
+const VREC_MAX = 200000;      // (strokes a video's code keeps: about 2 MB of program)
 function reveal(m, anim) {
   // every shape picks one of the ticked motions
   let mo = motion();
@@ -3050,7 +3050,7 @@ async function styledProgram(o) {
   const a = main.indexOf(MK + 'begin'), b = main.indexOf(MK + 'end');
   if (!shp || a < 0 || b < a) return null;
   const W = S.out.width, H = S.out.height, list = (o.ops || S.drawn).map(d => ({ t: d.t, args: d.args, st: d.st, brush: d.brush === 'custom' ? null : d.brush }));
-  const ops = o.pack ? compactOps(list) : JSON.stringify(list);
+  const bin = o.pack ? binOps(list) : null, ops = bin ? `(${OPS_DEC})(OPSB, ${JSON.stringify(bin.meta)})` : JSON.stringify(list);
   const prelude = `'use strict';
 const c = document.getElementById('c').getContext('2d'), W = ${W}, H = ${H}, BGC = '${S.bgHex}', OPS = ${ops};
 const $ = id => document.getElementById(id), store = () => null, clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v, easeInOut = u => (1 - Math.cos(Math.PI * u)) / 2, easeOut2 = u => 1 - (1 - u) ** 2;
@@ -3098,8 +3098,15 @@ function FRAME(t) {
   let player = o.animate ? playerJS(o.player) : 'bg();for(const f of P)f();SHOW();';
   player = player.replace('while(i<n&&i<N)P[i++]();', 'while(i<n&&i<N)GO(i++,t);FRAME(t);').replace('while(i<N)P[i++]();return', 'DONE();while(i<N)P[i++]();SHOW();return').replace('if(i<N)raf=', 'if(i<N||LIVE.length)raf=').replace(/\bbg\(BG\)/g, 'bg()');
   const head = `<!doctype html>\n<meta charset="utf-8">\n<title>${S.name} — Code Painter by JAS.BLACK</title>\n<style>html,body{margin:0;height:100%;background:#000;display:grid;place-items:center}canvas{max-width:100vw;max-height:100vh}</style>\n<canvas id="c" width="${W}" height="${H}"></canvas>\n`;
-  const body = `${prelude}\n${main.slice(a, b)}\n${after}\n${player}`;
-  if (o.pack) return head + await packedScripts([shp, body], o.player && o.player.audio);
+  // (the real-paint engines are most of the runtime: a program with no watercolour / oil strokes leaves them out)
+  let rt = main.slice(a, b);
+  for (const [n, used, stub] of [['wc', list.some(q => WC_ST.has(q.st)), 'function wcLib() { return null; }'], ['oil', list.some(q => OIL_ST.has(q.st)), 'function oilLib() { return null; }']]) {
+    const E = '// ' + '\u27e6engine:' + n + '\u27e7 ', i = rt.indexOf(E + 'begin'), j = rt.indexOf(E + 'end');
+    if (!used && i >= 0 && j > i) rt = rt.slice(0, i) + stub + rt.slice(j + E.length + 3);
+  }
+  if (o.pack) rt = stripJs(rt);
+  const body = `${prelude}\n${rt}\n${after}\n${player}`;
+  if (o.pack) return head + await packedScripts([stripJs(shp), body], o.player && o.player.audio, bin.bytes);
   return `${head}<script>\n${shp}\n<\/script>\n<script>\n${body.replace(/<\/script/gi, '<\\/script')}\n<\/script>\n`;
 }
 let overhead = {};
@@ -3111,35 +3118,86 @@ function codeSize() {   // size of the static program the ⬇ code button would 
 // the program's scripts, deflated: it unpacks itself when it opens (the browser's own DecompressionStream) and runs
 // them in order. The song (already compressed) stays outside, as SONG. About a quarter of the size of the plain text.
 const packWanted = () => $('export').value !== 'readable' && typeof CompressionStream !== 'undefined';
+// (bytes as text: base 85 in characters that are safe in an HTML script and a JS string — a quarter bigger, where
+// base 64 is a third; written as 'length:characters')
+const B85 = '!#%()*+,-./0123456789;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz{|}~';
+async function deflate85(data) {
+  const u = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer());
+  const m = Math.ceil(u.length / 4) * 4, p = new Uint8Array(m); p.set(u); let out = '';
+  for (let i = 0; i < m; i += 4) { let v = ((p[i] << 24) >>> 0) + (p[i + 1] << 16) + (p[i + 2] << 8) + p[i + 3]; const c = []; for (let k = 0; k < 5; k++) { c.push(B85[v % 85]); v = Math.floor(v / 85); } out += c.reverse().join(''); }
+  return u.length + ':' + out;
+}
 async function deflateB64(text) {
   const u = new Uint8Array(await new Response(new Blob([text]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()); let bin = '';
   for (let i = 0; i < u.length; i += 8192) bin += String.fromCharCode.apply(null, u.subarray(i, i + 8192));
   return btoa(bin);
 }
-async function packedScripts(parts, song) {
+// (a program's own comments and indents are left out of a deflated one: whole comment lines only, so no code changes)
+const stripJs = t => t.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('//')).join('\n');
+async function packedScripts(parts, song, bytes) {
   if (song) parts = parts.map(t => t.split(`'${song}'`).join('SONG'));
   const z = [];
-  for (const t of parts) z.push(await deflateB64(t));
+  for (const t of parts) z.push(await deflate85(t));
+  const zb = bytes ? await deflate85(bytes) : '';
   return `${song ? `<script>var SONG='${song}';<\/script>\n` : ''}<script>
 // Code Painter: this program's code is deflated below (to keep the file small); it unpacks itself and runs.
-(async()=>{const u=s=>new Response(new Blob([Uint8Array.from(atob(s),c=>c.charCodeAt(0))]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
-for(const s of ${JSON.stringify(z)}){const e=document.createElement('script');e.textContent=await u(s);document.body.appendChild(e)}})();
+(async()=>{const A='${B85}',L=new Uint8Array(128);for(let i=0;i<85;i++)L[A.charCodeAt(i)]=i;
+const d=s=>{const n=+s.slice(0,s.indexOf(':')),t=s.slice(s.indexOf(':')+1),o=new Uint8Array(t.length/5*4);for(let i=0,j=0;i<t.length;i+=5){let v=0;for(let k=0;k<5;k++)v=v*85+L[t.charCodeAt(i+k)];o[j++]=v>>>24;o[j++]=v>>>16&255;o[j++]=v>>>8&255;o[j++]=v&255}return o.subarray(0,n)};
+const r=s=>new Response(new Blob([d(s)]).stream().pipeThrough(new DecompressionStream('deflate-raw'))),u=s=>r(s).text();
+${zb ? `window.OPSB=new Uint8Array(await r('${zb}').arrayBuffer());\n` : ''}for(const s of ${JSON.stringify(z)}){const e=document.createElement('script');e.textContent=await u(s);document.body.appendChild(e)}})();
 <\/script>\n`;
 }
-// the strokes, compact (for a deflated program): one line each — its type, its style (a number into the list of
-// styles), then its arguments, a colour as #rrggbb and '=' for the same colour again; a stroke with a brush (or
-// anything else) is written as JSON. Lossless; about a fifth smaller than JSON once deflated.
-function compactOps(list) {
-  const stn = [...new Set(list.map(q => q.st))];
-  const tok = v => typeof v === 'number' ? (Number.isFinite(v) ? String(v) : null) : typeof v === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v) ? v : null;
-  const lines = list.map(q => {
-    if (q.brush || !Array.isArray(q.args) || /[\s{]/.test(q.t)) return JSON.stringify(q);
-    const w = [q.t, stn.indexOf(q.st)]; let prev = null;
-    for (const v of q.args) { const k = tok(v); if (k == null) return JSON.stringify(q); w.push(typeof v === 'string' && v === prev ? '=' : k); if (typeof v === 'string') prev = v; }
-    return w.join(' ');
-  });
-  return `((R, N) => R.split('\\n').map(l => { if (l[0] === '{') return JSON.parse(l); const w = l.split(' '), args = []; let p = null; for (let i = 2; i < w.length; i++) { const v = w[i]; if (v[0] === '#') { args.push(v); p = v; } else if (v === '=') args.push(p); else args.push(+v); } return { t: w[0], args, st: N[+w[1]], brush: null }; }))(${JSON.stringify(lines.join('\n'))}, ${JSON.stringify(stn)})`;
+// the strokes as bytes (for a deflated program). Brush strokes ('S', most of any painting) go into columns — where
+// they start, where they end from there and their middle from halfway (in 2 px steps), width (6% steps), angle (1/128 turn), colour (64
+// levels a channel, the second only when it differs), alpha — which deflate packs to ~10 bytes a stroke (text:
+// ~19). Any other shape: its arguments exactly (to 1/100), colours in full; one with a brush (or anything else)
+// as JSON. The program decodes it with OPS_DEC.
+function binOps(list) {
+  const TAU = Math.PI * 2, types = [], sts = [], json = [];
+  const K = ['h', 'x', 'y', 'd', 'w', 'n', 'c', 'f', 'a', 'g', 't'], B = Object.fromEntries(K.map(k => [k, []]));
+  const vi = (b, n) => { n = n < 0 ? -2 * n - 1 : 2 * n; while (n >= 128) { b.push(n % 128 + 128); n = Math.floor(n / 128); } b.push(n); };
+  const ix = (arr, v) => { let i = arr.indexOf(v); if (i < 0) { i = arr.length; arr.push(v); } return i; };
+  const hex = v => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v), rgb = v => [1, 3, 5].map(k => parseInt(v.slice(k, k + 2), 16));
+  for (const q of list) {
+    const a = q.args;
+    const isS = q.t === 'S' && Array.isArray(a) && a.length === 11 && a.slice(0, 8).every(Number.isFinite) && hex(a[8]) && hex(a[9]) && Number.isFinite(a[10]);
+    if (q.brush || !Array.isArray(a) || types.length > 250 || sts.length > 250 || (!isS && !a.every(v => Number.isFinite(v) || hex(v)))) { B.h.push(255); vi(B.h, json.length); json.push(q); continue; }
+    B.h.push(ix(types, isS ? 'S*' : q.t), ix(sts, q.st));
+    if (isS) {
+      const x0 = Math.round(a[0] / 2), y0 = Math.round(a[1] / 2);
+      vi(B.x, x0); vi(B.y, y0);
+      const x2 = Math.round(a[4] / 2), y2 = Math.round(a[5] / 2);      // (the end from the start, the middle from halfway between)
+      vi(B.d, x2 - x0); vi(B.d, y2 - y0); vi(B.d, Math.round(a[2] / 2) - Math.floor((x0 + x2) / 2)); vi(B.d, Math.round(a[3] / 2) - Math.floor((y0 + y2) / 2));
+      vi(B.w, Math.round(Math.log(Math.max(0.5, a[6])) * 16));       // (width in steps of 1/16 of an e-fold: ~6%) B.n.push(Math.round(((a[7] % TAU) + TAU) % TAU / TAU * 128) & 127);
+      B.c.push(...rgb(a[8]).map(v => v >> 2)); const same = a[9].toLowerCase() === a[8].toLowerCase(); B.f.push(same ? 0 : 1); if (!same) B.c.push(...rgb(a[9]).map(v => v >> 2));
+      B.a.push(Math.max(0, Math.min(255, Math.round(a[10] * 200))));
+    } else {
+      vi(B.g, a.length);
+      for (const v of a) if (typeof v === 'number') { B.t.push(0); vi(B.g, Math.round(v * 100)); } else { B.t.push(1); B.g.push(...rgb(v)); }
+    }
+  }
+  const len = {}, all = []; for (const k of K) { len[k] = B[k].length; for (const v of B[k]) all.push(v); }
+  return { bytes: new Uint8Array(all), meta: { n: list.length, types, sts, json, keys: K, len } };
 }
+const OPS_DEC = `(u, M) => {
+  let o = 0; const S = {}; for (const k of M.keys) { S[k] = { b: u.subarray(o, o + M.len[k]), i: 0 }; o += M.len[k]; }
+  const by = s => s.b[s.i++], vi = s => { let n = 0, m = 1, b; do { b = s.b[s.i++]; n += (b & 127) * m; m *= 128; } while (b & 128); return n % 2 ? -(n + 1) / 2 : n / 2; };
+  const hx = (r, g, b) => '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1), c6 = () => { const r = by(S.c), g = by(S.c), b = by(S.c); return hx(r << 2 | r >> 4, g << 2 | g >> 4, b << 2 | b >> 4); };
+  const out = [];
+  for (let k = 0; k < M.n; k++) {
+    const t = by(S.h); if (t === 255) { out.push(M.json[vi(S.h)]); continue; }
+    const ty = M.types[t], st = M.sts[by(S.h)];
+    if (ty === 'S*') {
+      const x0 = vi(S.x), y0 = vi(S.y), x2 = x0 + vi(S.d), y2 = y0 + vi(S.d), x1 = vi(S.d) + Math.floor((x0 + x2) / 2), y1 = vi(S.d) + Math.floor((y0 + y2) / 2), w = Math.round(Math.exp(vi(S.w) / 16) * 100) / 100, an = by(S.n) / 128 * Math.PI * 2, c0 = c6(), c1 = by(S.f) ? c6() : c0;
+      out.push({ t: 'S', args: [x0 * 2, y0 * 2, x1 * 2, y1 * 2, x2 * 2, y2 * 2, w, an, c0, c1, by(S.a) / 200], st, brush: null });
+    } else {
+      const n = vi(S.g), args = [];
+      for (let i = 0; i < n; i++) args.push(by(S.t) ? hx(by(S.g), by(S.g), by(S.g)) : vi(S.g) / 100);
+      out.push({ t: ty, args, st, brush: null });
+    }
+  }
+  return out;
+}`;
 async function songDataUrl() {
   const bytes = new Uint8Array(await AU.file.arrayBuffer()); let bin = '';
   for (let i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
@@ -5963,6 +6021,7 @@ const WC_ST = new Set(['watercolour', 'wet', 'wash', 'ink', 'sumi']);      // (i
 const oilSt = st => OIL.live && OIL_ST.has(st);     // (real oil / acrylic: not a relief)
 const realSt = st => WC.live && !RLF.on && ((WC.wc && WC_ST.has(st)) || (OIL.live && OIL_ST.has(st)));
 // the engine's code, run the first time it is wanted (so a browser without WebGL 2 never even loads it)
+// ⟦engine:wc⟧ begin — a saved program without any wc strokes leaves this engine out
 function wcLib() {
   if (WC.lib !== undefined) return WC.lib;
   try { WC.lib = (function () {
@@ -6558,6 +6617,7 @@ ${ae()}
     return WCEngine; })(); } catch (e) { WC.lib = null; }
   return WC.lib;
 }
+// ⟦engine:wc⟧ end
 function wcOk() {
   if (WC.ok !== undefined) return WC.ok;
   try { const g = document.createElement('canvas').getContext('webgl2'); WC.ok = !!(g && g.getExtension('EXT_color_buffer_float') && wcLib()); if (g) { const l = g.getExtension('WEBGL_lose_context'); if (l) l.loseContext(); } } catch (e) { WC.ok = false; }
@@ -6722,6 +6782,7 @@ function wcFrame() {
 // ─────────────────────────────────────────────────────────────
 const OIL = { lib: undefined, ok: undefined, E: null, size: '', live: false, q: [], cur: null, fresh: false, tmp: null, tx: null, img: null };
 const OIL_ST = new Set(['oil', 'acrylic', 'knife']);      // (the palette knife: the same wet paint, laid with a broad, heavily loaded blade)
+// ⟦engine:oil⟧ begin — a saved program without any oil strokes leaves this engine out
 function oilLib() {
   if (OIL.lib !== undefined) return OIL.lib;
   try { OIL.lib = (function () {
@@ -9381,6 +9442,7 @@ return FluidPaint;
     return FluidPaint; })(); } catch (e) { OIL.lib = null; }
   return OIL.lib;
 }
+// ⟦engine:oil⟧ end
 // a canvas of paint the painting's shape (about 1200 texels on its long side) and the look of the medium
 function oilBegin(sts) {
   if (OIL.ok === false || !oilLib()) return false;
@@ -13304,7 +13366,7 @@ async function renderOffline() {
   if (failed) { $('hint').textContent = 'Offline render failed: ' + failed.message; return false; }
   const name = recName('mp4'), st = MP4REC.stats;
   S.lastRec = { blob, name }; $('savevid').disabled = false; download(blob, name);
-  $('hint').textContent = `${bt}Rendered ${name}: ${(frames / fps).toFixed(1)} s, ${fps} fps, every frame exact (${(blob.size / 1e6).toFixed(1)} MB, H.264${st && st.audio ? ' + AAC' : ', no sound'}; took ${((performance.now() - wall) / 1000).toFixed(0)} s). No download? Click ⬇ video.`;
+  $('hint').textContent = `${bt}Rendered ${name}: ${(frames / fps).toFixed(1)} s, ${fps} fps, every frame exact (${(blob.size / 1e6).toFixed(1)} MB, H.264${st && st.audio ? ' + AAC' : ', no sound'}; took ${((performance.now() - wall) / 1000).toFixed(0)} s). No download? Click ⬇ video.${S.vrec && S.vrec.length && S.endless.on ? ` ⬇ code saves this painting as code (${S.vrec.length} strokes, at the render's pace).` : ''}`;
   return true;
 }
 
@@ -14570,7 +14632,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.44.0');
+    const V = await import('./viewer3d.js?v=4.45.0');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
