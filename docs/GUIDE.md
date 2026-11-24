@@ -93,9 +93,11 @@ Load a song, pick one of the 10 **demo ♪** songs (house, boom bap, drum & bass
 - **The song's timeline**: click to jump the song there (stopped, it plays from there so you can listen), drag the white playhead to scrub, drag across to choose the part to paint to, drag the green handles to adjust, double-click for the whole song.
 - **free**: hits throw bursts of strokes.
 - **sections**: drops paint bolder, breaks paint calmer.
+- **pace** (speed panel): *even change* (the default) spreads what you see evenly over the run, with or without a song. The painter fixes the biggest mistakes first, so most of the picture appears in the first few strokes; *even change* gives those big strokes the time and lets the fine finish go by quickly, so the end of a video isn't just tiny details. *by strokes* is the old pacing.
 - **music in the paint** (*amount*): how much the song changes the painting itself. At 0 the music only sets the pace.
-  - Every beat lands **one big, bold stroke**, snapped down on the beat. With *one line*, the line swells on the beat instead.
-  - **Loud parts paint with broad brushes, quiet parts with fine ones.** Loud and quiet are measured against the song itself, so any track gets the full range.
+  - Every beat lands **one big, bold stroke**, snapped down on the beat, in a **bolder colour** than the picture asks for (more saturated, more contrast; the harder the beat, the bolder), so beats still show late in the painting. With *one line*, the line swells on the beat instead.
+  - **Loud parts paint with broad brushes (up to twice the size), quiet parts with fine ones (down to a third).** Loud and quiet are measured against the song itself, so any track gets the full range.
+  - With **hits**, **loud hits throw big flurries of strokes and quiet ones only a few**: the louder the hit and the passage round it, the bigger its share, so the strokes come in waves that follow the song.
   - On the **3D styles** (oil, acrylic, metals, glass…), **every beat flares the surface**: the light snaps to one side and rakes low, then settles and holds still until the next beat.
 - Extras on the beat:
   - *splash*: the brushes being drawn flick drops of their paint off the tip.
