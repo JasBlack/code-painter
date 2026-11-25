@@ -424,6 +424,12 @@
   #sendon, #sendcode, #sendsize { display: none !important; }
   a.mini { text-decoration: none; }
   #speedfit[hidden] { display: none; }
+  .fitnote { display: block; margin: 8px 0 2px; padding: 0; border: 0; background: none; color: var(--muted); font: 500 10px 'IBM Plex Mono', monospace; letter-spacing: .02em; text-align: left; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .fitnote:hover { color: var(--accent); }
+  .panel.outp .row { flex-wrap: nowrap; align-items: center; }
+  .panel.outp .olbl { flex: none; width: 40px; }
+  .panel.outp .ochips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+  .panel.outp .ochips .mini { height: 26px; padding: 0 11px; font-size: 9.5px; }
 </style>
 </head>
 <body data-ui="dark" data-layout="landscape">
@@ -808,9 +814,10 @@
     <div class="row" style="flex-wrap: nowrap"><span class="lbl">loop</span><select id="loop" data-seg aria-label="Loop" title="The painting builds, holds, then goes back to empty, so the video loops cleanly (without recording it keeps looping). fade: dissolves away · rewind: un-paints itself"><option value="off" selected>off</option><option value="fade">fade</option><option value="rewind">rewind</option></select></div>
   </div>
   <div class="panel" style="width: 216px">
-    <div class="ttl"><b>speed</b><button type="button" id="speedfit" class="mini" hidden title="With a length set (rec panel), the painting is timed to it and this slider only sets how the brushes move: click to set the length free, so the slider sets the pace. With a song (hits / flow) the speed sets how much of the song the painting takes: at ×3 the last stroke lands with the song's end, faster finishes sooner, slower leaves the rest for after it. Click: back to ×3, so it fits the song"></button></div>
+    <div class="ttl"><b>speed</b></div>
     <output id="speedval" for="speed">×1</output>
     <input id="speed" class="fad" type="range" min="1" max="100" value="54" aria-label="Painting speed">
+    <button type="button" id="speedfit" class="fitnote" hidden title="With a length set (rec panel), the painting is timed to it and this slider only sets how the brushes move: click to set the length free, so the slider sets the pace. With a song (hits / flow) the speed sets how much of the song the painting takes: at ×3 the last stroke lands with the song's end, faster finishes sooner, slower leaves the rest for after it. Click: back to ×3, so it fits the song"></button>
     <div class="row" style="flex-wrap: nowrap"><span class="lbl">pace</span><select id="pacing" data-seg aria-label="Pacing" title="strokes (the default): the strokes come at an even pace, the big ones first, so most of the picture is there early · even: what you see changes at an even pace all the way through — the big early strokes (most of the picture) get the time and the fine finish goes by quickly, so the end of a video is never just tiny details "><option value="strokes" selected>strokes</option><option value="even">even</option></select></div>
     <div class="row" style="flex-wrap: nowrap"><select id="replay" class="sel" aria-label="Replay a piece" style="flex: 1; min-width: 0"><option value="">replay…</option></select><button type="button" id="replaylayer" class="mini" style="flex: none" title="Layer: the premade pieces in a random order, each one replayed over the last instead of on a fresh canvas (its background left out, so only its marks land), with live strokes mixed in (+live; turned up to 35% if it is off). Press again for a new order; pick anything else to stop">layer ⤮</button></div>
     <div class="row" id="layerrow" style="flex-wrap: nowrap; gap: 6px" title="Layering: the frame every piece is placed in, which pieces go in it, and how each one fits">
@@ -851,25 +858,27 @@
       <select id="score" class="sel" aria-label="Score" title="score: the song as a moving score, like producers' visuals. The spine down the middle is now: the notes still to come drift in from the right as small dots, fire as they reach it (rings flare on the low hits, stems drop on the mids, sprigs and strands fly off on the highs) and scroll away to the left, glowing. clean: crisp lines, rings and dots · brush: the same score drawn loose in your ticked styles and brush, no clean shapes · organic: the same score as liquid blobs that run together, drips and splats, with a grain · nature: living things — cells, plants, spores or bones — wander over the picture's dots, waking them into painted marks on the beats · motion only: none of it drawn — the strokes of the painting swell out on the hits and the painting smears with the bass" style="flex: none; width: 92px"><option value="off" selected>score: off</option><option value="paper">score · clean</option><option value="brush">score · brush</option><option value="organic">score · organic</option><option value="nature">score · nature</option><option value="vector">score · vector</option><option value="motion">score · motion only</option></select>
     </div>
   </div>
-  <div class="panel">
+  <div class="panel outp">
     <div class="ttl"><b>out</b><span style="display: flex; align-items: center; gap: 6px"><button type="button" class="mini" id="perfwin" title="Performance window: the stage alone in its own window — drag it to any monitor or projector, resize it, double-click it (or press F) for full screen. Choose paint or +code for a clean picture">window</button><a class="mini" id="getlocal" href="download/code-painter-local.zip" download title="Resolume — the painting and its code out as Syphon / Spout sources, and Syphon / Spout in as a live input — needs the local version: a free download for Mac and Windows. Unzip it and double-click start">resolume ↓</a><button type="button" class="mini" id="sendon" title="Send the painting live to Resolume (or any VJ app): a Syphon source on a Mac, a Spout source on Windows, called Code Painter. Start the bridge app first: send → send-to-resolume in the studio's folder">send</button><button type="button" class="mini" id="sendcode" title="Send the code too, as its own source (Code Painter code): white and coloured text on black, to layer over the painting in Resolume with Add or Screen">code</button><button type="button" class="mini" id="sendsize" data-v="paint" title="The size sent (click to change): paint = the painting's own shape, 1920 on its long side · 16:9 = 1920×1080 · 9:16 = 1080×1920 · 1:1 = 1080×1080 (the painting fitted in, black around it)">paint</button></span></div>
-    <div class="row">
+    <div class="row"><span class="lbl olbl">save</span>
       <button id="savecode" class="key" disabled title="Save the painting as a standalone HTML program">code</button>
       <button id="savesvg" class="key" disabled title="Vector file: prints sharp at any size">svg</button>
       <button id="savepng" class="key" disabled>png</button>
       <select id="bigres" data-seg aria-label="PNG size"><option value="1">1k</option><option value="3840">4k</option><option value="7680" selected>8k</option></select>
     </div>
-    <div class="row">
+    <div class="row"><span class="lbl olbl">code</span>
       <select id="export" data-seg title="How ⬇ code saves the program" aria-label="Code format"><option value="packed" selected>packed</option><option value="tiny">tiny</option><option value="readable">text</option></select>
       <label class="key" title="The saved file paints itself stroke by stroke when opened (click it to replay)"><input id="animate" type="checkbox" checked><span class="led"></span>self</label>
       <label class="key p" title="Embed the song so the saved file paints to the music (adds the song's size)"><input id="embedmusic" type="checkbox" disabled><span class="led"></span>+♪</label>
     </div>
-    <div class="row">
+    <div class="row"><span class="lbl olbl">posts</span>
       <button id="savestills" class="key" disabled title="The painting at evenly spaced moments of its build, as numbered PNGs in a zip (for a carousel post)">stills</button>
       <button id="savesheet" class="key" disabled title="The same moments side by side on one contact sheet (PNG)">sheet</button>
       <button id="savecover" class="key" disabled title="A cover for the reel: the finished painting in the frame's shape (9:16, 4:5, 1:1 or 16:9) — saved twice, clean and with its title">cover</button>
       <select id="stillsn" data-seg aria-label="How many stills"><option value="6">6</option><option value="9" selected>9</option><option value="12">12</option></select>
     </div>
+    <div class="row"><span class="lbl olbl">look</span><span class="ochips" id="outlook"></span></div>
+    <div class="row"><span class="lbl olbl">live</span><span class="ochips" id="outlive"></span></div>
 
   </div>
 </footer>
@@ -1391,7 +1400,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.45.7 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.45.8 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1409,7 +1418,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.45.7', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.45.8', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -14663,7 +14672,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.45.7');
+    const V = await import('./viewer3d.js?v=4.45.8');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
@@ -14813,6 +14822,10 @@ window.STUDIO = { S, AU, OFF, VEC, WC, OIL, boltFire, BOLT, LDANCE, tagFile, rea
 //  The original inputs stay in the page (hidden) and keep driving studio.js: turning a knob or pressing a
 //  switch sets the input and fires the same 'input' / 'change' events a slider or menu would.
 // ─────────────────────────────────────────────────────────────
+// the out panel's chips into its rows: looks (signal, grade, text) and live out (window, Resolume)
+{ const L = document.getElementById('outlook'), V = document.getElementById('outlive');
+  if (L && V) { for (const id of ['signalbtn', 'gradebtn', 'wordsbtn']) { const e = document.getElementById(id); if (e) L.appendChild(e); }
+    for (const id of ['perfwin', 'getlocal', 'sendon', 'sendcode', 'sendsize']) { const e = document.getElementById(id); if (e) V.appendChild(e); } } }
 (() => {
   const $ = id => document.getElementById(id);
   const fire = (el, type) => el.dispatchEvent(new Event(type, { bubbles: true }));
