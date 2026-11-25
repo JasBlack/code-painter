@@ -1390,7 +1390,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.45.2 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.45.3 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1408,7 +1408,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.45.2', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.45.3', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -2423,7 +2423,10 @@ function reveal(m, anim) {
     const nL = S.landing.length;
     if (fp && mo !== 'off') {            // a filled patch: its passes land one after another, each drawn once it is down (no redrawing them all every frame)
       const lens = fp.map(p => Math.hypot(p.args[4] - p.args[0], p.args[5] - p.args[1]) + 1), tot = lens.reduce((a, b) => a + b, 0); let t = L.t0;
-      fp.forEach((p, i) => { const d = Math.max(S.pen ? 0.5 : 16, L.dur * lens[i] / tot), P = { q: p, c: centreOf(p), dir: 1, from: null, mode: 'draw', t0: t, dur: d, seed: L.seed, more: i < fp.length - 1 }; S.landing.push(P); t += d; });
+      // (a paper-tooth style — pen, pencil…: the passes wait on the stage, plain, and the whole stroke goes onto the painting
+      // at its last pass, cut by the tooth once — cutting every pass on its own was most of the time)
+      const grp = TOOTH_RAW[q.st] && !RLF.on && !realSt(q.st) ? { q, parts: [] } : null;
+      fp.forEach((p, i) => { const d = Math.max(S.pen ? 0.5 : 16, L.dur * lens[i] / tot), P = { q: p, c: centreOf(p), dir: 1, from: null, mode: 'draw', t0: t, dur: d, seed: L.seed, more: i < fp.length - 1, grp }; S.landing.push(P); t += d; });
       end = t; if (S.pen && S.mode === 'auto') S.penEnd = t;
     } else { S.landing.push(L); end = L.t0 + dur; }
     if (realSt(q.st)) for (let i = nL; i < S.landing.length; i++) { const P = S.landing[i]; wcAdd(P.q, P.t0, P.dur, P.dir); P.q.wcFed = 1; P.wc = 1; }     // (real watercolour: the engine paints it as the painter draws)
@@ -2451,7 +2454,13 @@ function reveal(m, anim) {
   sndStroke(q, anim ? anim.delay || 0 : 0);
   if (S.recent.length > 40) S.recent.shift();
 }
-function commitLandings(now) { while (S.landing && S.landing.length && now >= S.landing[0].t0 + S.landing[0].dur) { const L = S.landing.shift(); if (L.more) putShape(L.q); else commitShape(L.q); } }
+function commitLandings(now) {
+  while (S.landing && S.landing.length && now >= S.landing[0].t0 + S.landing[0].dur) {
+    const L = S.landing.shift(), G = L.grp;
+    if (G) { if (L.more) G.parts.push(L.q); else { G.parts = []; commitShape(G.q); } }      // (a tooth style's passes: the whole stroke at its last pass)
+    else if (L.more) putShape(L.q); else commitShape(L.q);
+  }
+}
 const pendingN = () => S.landing.reduce((n, L) => n + (L.more ? 0 : 1), 0);     // (shapes still arriving: a filled patch's passes count once)
 function flushLandings() { commitLandings(Infinity); }
 // the first u (0..1) of a quadratic brush stroke, coloured with the whole stroke's gradient (same maths as the runtime's S)
@@ -3807,7 +3816,12 @@ function fillUpTo(parts, u) {
   return { done, cur: null, f: 1 };
 }
 function drawQ(x, q) {
-  const fp = fillParts(q); if (fp) { for (const p of fp) drawQ(x, p); return; }
+  const fp = fillParts(q);
+  if (fp) {
+    // (a filled stroke in a paper-tooth style: all its passes into one layer, cut by the tooth once — not once a pass)
+    if (TOOTH_RAW[q.st] && !TOOTH.live) { toothed(x, q, s => { const was = TOOTH.live; TOOTH.live = s !== x; try { for (const p of fp) drawQ(s, p); } finally { TOOTH.live = was; } }, TOOTH_ST[q.st]); return; }      // (too big for one layer: each pass cut on its own, as before)
+    for (const p of fp) drawQ(x, p); return;
+  }
   const was = PIGMENT.k; PIGMENT.k = PIGMENT.on && PIGMENT_WET[q.st] != null; try { drawQ1(x, q); } finally { PIGMENT.k = was; }
 }
 function drawQ1(x, q) {
@@ -3907,12 +3921,18 @@ function spray(x, q, u = 1, dir = 1) {
     const tn = s => { const dx = 2 * (1 - s) * (x1 - x0) + 2 * s * (x2 - x1), dy = 2 * (1 - s) * (y1 - y0) + 2 * s * (y2 - y1), d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; };
     const [ex, ey] = pt(u), C = CAPS[capOf(w)], len = Math.hypot(x1 - x0, y1 - y0) + Math.hypot(x2 - x1, y2 - y1);
     // the mist first, then the body: stamps of droplets along the path, each at a random turn
+    // (a filling pass still in motion on the live stage: a third of the droplets and no mist — it is gone in a moment,
+    // and goes onto the painting in full. Offline and in saved programs every frame is exact)
+    const lite = q.sub && TOOTH.live && !OFF.on;
     const stamps = (kind, D, step, al) => {
+      if (lite) { if (kind === 'mist') return; step *= 3; }
       const n = sprayTint(kind, spSize(x, D), colour), cnt = Math.max(2, Math.min(240, Math.ceil(len * u / step) + 1));
-      x.globalAlpha = o * al; const M0 = x.getTransform();
+      x.globalAlpha = o * al; const M0 = x.getTransform(), ma = M0.a, mb = M0.b, mc = M0.c, md = M0.d, me = M0.e, mf = M0.f;
       for (let i = 0; i < cnt; i++) {
         const s = u * (cnt > 1 ? i / (cnt - 1) : 0), [px, py] = pt(s), [tx, ty] = tn(s), j = g() * w * 0.06, dd = D * (0.9 + R() * 0.2), an = R() * 6.2832;
-        x.setTransform(M0); x.translate(px - ty * j, py + tx * j); x.rotate(an); x.drawImage(n, -dd / 2, -dd / 2, dd, dd);
+        // (the stamp's place and turn as one matrix, set in one call: M0 · translate · rotate)
+        const ox = px - ty * j, oy = py + tx * j, co = Math.cos(an), si = Math.sin(an);
+        x.setTransform(ma * co + mc * si, mb * co + md * si, mc * co - ma * si, md * co - mb * si, ma * ox + mc * oy + me, mb * ox + md * oy + mf); x.drawImage(n, -dd / 2, -dd / 2, dd, dd);
       }
       x.setTransform(M0);
     };
@@ -5697,7 +5717,8 @@ function toothed(x, q, f, spec, u, dir) {
   x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(c, 0, 0, w, h, x0, y0, w, h); x.restore();
   return r;
 }
-for (const [st, spec] of Object.entries(TOOTH_ST)) { const f = STYLE_DRAW[st]; if (f) STYLE_DRAW[st] = (x, q, u, dir) => toothed(x, q, f, spec, u, dir); }
+const TOOTH_RAW = {};
+for (const [st, spec] of Object.entries(TOOTH_ST)) { const f = STYLE_DRAW[st]; if (f) { TOOTH_RAW[st] = f; STYLE_DRAW[st] = (x, q, u, dir) => toothed(x, q, f, spec, u, dir); } }
 const STITCH = 7;   // the fabric grid, in painting pixels (1000 across the long side)
 // points along (the first part of) a quadratic stroke, for the media that build a stroke out of several lines
 // a layer of its own for one stroke (so parts of it can be cut away without cutting into the canvas under it): covers the
@@ -11706,6 +11727,7 @@ function paintContent(b, now, r) {
     const L = SHP.lib(X), tips = [];
     X.save(); X.translate(b.x, b.y); X.scale(b.k, b.k);
     const tg = tipGlowNow(), lit = [];
+    { const seen = new Set(); TOOTH.live = true; try { for (const it of S.landing) { const g = it.grp; if (g && g.parts.length && !seen.has(g)) { seen.add(g); for (const p of g.parts) drawQ(X, p); } } } finally { TOOTH.live = false; } }     // (passes waiting for their stroke's last one)
     for (const it of S.landing) {
       if (now < it.t0 || it.wc) continue;
       const u = clamp01((now - it.t0) / it.dur), n0 = tips.length; TOOTH.live = true; try { drawMotion(it, u, L, tips); } finally { TOOTH.live = false; }      // (no paper tooth while a stroke is still going on: it is cut by the tooth once, when it lands)
@@ -14634,7 +14656,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.45.2');
+    const V = await import('./viewer3d.js?v=4.45.3');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
