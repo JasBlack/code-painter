@@ -1390,7 +1390,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.45.1 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.45.2 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1408,7 +1408,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.45.1', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.45.2', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -5680,6 +5680,7 @@ const dryPaper = () => { const v = stylePick.values(); return v.length && v.ever
 const toothScale = () => Math.max(0.6, Math.min(3, (typeof outLong === 'function' ? outLong() : 1600) / 1600));       // (paper features at the same size on any output)
 // draw f into a scratch layer, cut it by the paper's tooth there, then onto x (with x's own clip, alpha and blend)
 function toothed(x, q, f, spec, u, dir) {
+  if (TOOTH.live) return f(x, q, u, dir);
   const m = x.getTransform(), a = q.args, P = SHP.poly({ t: q.t, p: a }), pad = (q.t === 'S' ? a[6] * 1.6 : 4) + 6;
   let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
   for (let i = 0; i < P.length; i += 2) for (const [dx, dy] of [[-pad, -pad], [pad, -pad], [-pad, pad], [pad, pad]]) { const X_ = m.a * (P[i] + dx) + m.c * (P[i + 1] + dy) + m.e, Y_ = m.b * (P[i] + dx) + m.d * (P[i + 1] + dy) + m.f; if (X_ < x0) x0 = X_; if (X_ > x1) x1 = X_; if (Y_ < y0) y0 = Y_; if (Y_ > y1) y1 = Y_; }
@@ -11707,7 +11708,7 @@ function paintContent(b, now, r) {
     const tg = tipGlowNow(), lit = [];
     for (const it of S.landing) {
       if (now < it.t0 || it.wc) continue;
-      const u = clamp01((now - it.t0) / it.dur), n0 = tips.length; drawMotion(it, u, L, tips);
+      const u = clamp01((now - it.t0) / it.dur), n0 = tips.length; TOOTH.live = true; try { drawMotion(it, u, L, tips); } finally { TOOTH.live = false; }      // (no paper tooth while a stroke is still going on: it is cut by the tooth once, when it lands)
       if (tg > 0.01 && u < 1 && tips.length > n0) lit.push([it, u, tips[tips.length - 1], it.q.t === 'S' ? it.q.args[6] : sizeOf(it.q) * 0.25]);
     }
     // (the biggest few brushes in flight glow — never a field of dots)
@@ -14633,7 +14634,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.45.1');
+    const V = await import('./viewer3d.js?v=4.45.2');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
