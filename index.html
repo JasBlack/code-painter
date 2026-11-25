@@ -1391,7 +1391,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.45.5 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.45.6 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1409,7 +1409,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.45.5', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.45.6', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -2167,7 +2167,8 @@ async function startAuto(src, name, fileName = '', opts = {}) {
   if (VS.el && VS.el !== S.video) { keepOff(); S.vsound = 'off'; } vsoundShow(); S.holdT = 0; S.wantNext = false;
   S.startArgs = [src, name, fileName, opts];
   S.mode = 'auto'; S.name = name; S.orig = img; S.done = false; S.lines = []; S.items = []; S.drawn = []; S.liveDrawn = [];
-  S.vrec = S.video && !S.video.srcObject && !S.fromSlots && S.list.length <= 1 && !zoomWanted() ? [] : null; S.vrecCut = false;     // (a video clip: every stroke with its moment, for ⬇ code) S.bits = 0; S.count = 0; S.sim = null; S.recent = [];
+  S.bits = 0; S.count = 0; S.sim = null; S.recent = [];
+  S.vrec = S.video && !S.video.srcObject && !S.fromSlots && S.list.length <= 1 && !zoomWanted() ? [] : null; S.vrecCut = false;     // (a video clip: every stroke with its moment, for ⬇ code)
   S.queue = []; S.acc = 0; S.workerDone = false; const pk = !liveRun() || (!zoomWanted() && !S.video); S.line = pk ? lineSpec() : null; S.order = pk ? $('order').value : 'free'; S.picN = 0;     // (an order / one line: a still picture, or a playlist without zoom) S.lineSeed = 1 + Math.floor(Math.random() * 1e6); if (S.line) S.line.seed = S.lineSeed;
   S.pen = !!S.line && S.line.kind === 'pen'; S.fr = null; S.dg = null; DG.on = false; if (DG.wk) DG.wk.postMessage({ type: 'stop' }); S.sa = null; if (SA.wk) SA.wk.postMessage({ type: 'stop' }); S.penCut = false; S.penEnd = 0; S.penEnds = {}; S.hit = null; S.tipGlow = null; S.accWant = null; S.held = false; S.until = null; S.wCount = 0; S.hurry = 1; S.wr = null; S.loud = 0; S.loudLo = S.loudHi = null; S.penLen = 0; S.fmt = $('export').value; S.codeBytes = 0; S.landing = []; S.big = null; S.debt = 0; S.brush = null;
   S.endless = newEndless();
@@ -14660,7 +14661,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.45.5');
+    const V = await import('./viewer3d.js?v=4.45.6');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
