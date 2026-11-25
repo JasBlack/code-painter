@@ -808,7 +808,7 @@
     <div class="row" style="flex-wrap: nowrap"><span class="lbl">loop</span><select id="loop" data-seg aria-label="Loop" title="The painting builds, holds, then goes back to empty, so the video loops cleanly (without recording it keeps looping). fade: dissolves away · rewind: un-paints itself"><option value="off" selected>off</option><option value="fade">fade</option><option value="rewind">rewind</option></select></div>
   </div>
   <div class="panel" style="width: 216px">
-    <div class="ttl"><b>speed</b><button type="button" id="speedfit" class="mini" hidden title="With a song (hits / flow) the speed sets how much of the song the painting takes: at ×3 the last stroke lands with the song's end, faster finishes sooner, slower leaves the rest for after it. Click: back to ×3, so it fits the song"></button></div>
+    <div class="ttl"><b>speed</b><button type="button" id="speedfit" class="mini" hidden title="With a length set (rec panel), the painting is timed to it and this slider only sets how the brushes move: click to set the length free, so the slider sets the pace. With a song (hits / flow) the speed sets how much of the song the painting takes: at ×3 the last stroke lands with the song's end, faster finishes sooner, slower leaves the rest for after it. Click: back to ×3, so it fits the song"></button></div>
     <output id="speedval" for="speed">×1</output>
     <input id="speed" class="fad" type="range" min="1" max="100" value="54" aria-label="Painting speed">
     <div class="row" style="flex-wrap: nowrap"><span class="lbl">pace</span><select id="pacing" data-seg aria-label="Pacing" title="strokes (the default): the strokes come at an even pace, the big ones first, so most of the picture is there early · even: what you see changes at an even pace all the way through — the big early strokes (most of the picture) get the time and the fine finish goes by quickly, so the end of a video is never just tiny details "><option value="strokes" selected>strokes</option><option value="even">even</option></select></div>
@@ -1391,7 +1391,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.45.6 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.45.7 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1409,7 +1409,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.45.6', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.45.7', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -14370,13 +14370,15 @@ $('restart').onclick = restart;
 $('speed').oninput = showSpeed; showSpeed();
 // with a song: how the painting lines up with it at this speed (see songK), and a click back to the speed that fits
 function speedFit() {
-  const b = $('speedfit'), m = musicMode(), on = !!AU.el && AU.dur > 0 && (m === 'hits' || m === 'flow');
+  const b = $('speedfit'), m = musicMode(), song = !!AU.el && AU.dur > 0 && (m === 'hits' || m === 'flow'), timed = !song && S.mode === 'auto' && fitOn(), on = song || timed;
   let t = '';
-  if (on) { const k = songK(); t = Math.abs(k - 1) < 0.06 ? '♪ fits the song' : k > 1 ? `♪ done ~${Math.round(FIT / k * 100)}% in · fit` : '♪ ends after the song · fit'; }
+  if (song) { const k = songK(); t = Math.abs(k - 1) < 0.06 ? '♪ fits the song' : k > 1 ? `♪ done ~${Math.round(FIT / k * 100)}% in · fit` : '♪ ends after the song · fit'; }
+  else if (timed) t = `⏱ timed to ${reelLen()} s · free`;      // (a length is set: it sets the pace, not this slider — a click: length free)
+  b.dataset.k = song ? 'song' : 'len';
   if (b.hidden !== !on) b.hidden = !on;
   if (b.textContent !== t) b.textContent = t;
 }
-$('speedfit').onclick = () => { const s = $('speed'); if (+s.value === 54) return; s.value = 54; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })); };
+$('speedfit').onclick = () => { if ($('speedfit').dataset.k === 'len') { const r = $('reelsec'); r.value = 0; r.dispatchEvent(new Event('input', { bubbles: true })); $('hint').textContent = 'Length: free — the speed slider sets the pace now. Press ⟲ restart.'; return; } const s = $('speed'); if (+s.value === 54) return; s.value = 54; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })); };
 // (settings files, presets and the phone view set the slider directly: the label follows whatever set it)
 { let last = $('speed').value; setInterval(() => { const v = $('speed').value; if (v !== last) { last = v; showSpeed(); } }, 250); }
 // zoom: moving the slider on a finished painting starts the endless zoom from there
@@ -14661,7 +14663,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.45.6');
+    const V = await import('./viewer3d.js?v=4.45.7');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
