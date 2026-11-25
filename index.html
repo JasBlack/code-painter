@@ -423,6 +423,7 @@
   }
   #sendon, #sendcode, #sendsize { display: none !important; }
   a.mini { text-decoration: none; }
+  #speedfit[hidden] { display: none; }
 </style>
 </head>
 <body data-ui="dark" data-layout="landscape">
@@ -810,7 +811,7 @@
     <div class="ttl"><b>speed</b><button type="button" id="speedfit" class="mini" hidden title="With a song (hits / flow) the speed sets how much of the song the painting takes: at ×3 the last stroke lands with the song's end, faster finishes sooner, slower leaves the rest for after it. Click: back to ×3, so it fits the song"></button></div>
     <output id="speedval" for="speed">×1</output>
     <input id="speed" class="fad" type="range" min="1" max="100" value="54" aria-label="Painting speed">
-    <div class="row" style="flex-wrap: nowrap"><span class="lbl">pace</span><select id="pacing" data-seg aria-label="Pacing" title="even change: what you see changes at an even pace all the way through — the big early strokes (most of the picture) get the time and the fine finish goes by quickly, so the end of a video is never just tiny details · by strokes: the strokes themselves are spread evenly (most of the picture is there early)"><option value="even" selected>even change</option><option value="strokes">by strokes</option></select></div>
+    <div class="row" style="flex-wrap: nowrap"><span class="lbl">pace</span><select id="pacing" data-seg aria-label="Pacing" title="strokes (the default): the strokes come at an even pace, the big ones first, so most of the picture is there early · even: what you see changes at an even pace all the way through — the big early strokes (most of the picture) get the time and the fine finish goes by quickly, so the end of a video is never just tiny details "><option value="strokes" selected>strokes</option><option value="even">even</option></select></div>
     <div class="row" style="flex-wrap: nowrap"><select id="replay" class="sel" aria-label="Replay a piece" style="flex: 1; min-width: 0"><option value="">replay…</option></select><button type="button" id="replaylayer" class="mini" style="flex: none" title="Layer: the premade pieces in a random order, each one replayed over the last instead of on a fresh canvas (its background left out, so only its marks land), with live strokes mixed in (+live; turned up to 35% if it is off). Press again for a new order; pick anything else to stop">layer ⤮</button></div>
     <div class="row" id="layerrow" style="flex-wrap: nowrap; gap: 6px" title="Layering: the frame every piece is placed in, which pieces go in it, and how each one fits">
       <select id="layerfmt" class="sel" aria-label="Layer frame" title="The frame for the whole layered show: the first piece's shape, or a fixed one" style="flex: 1; min-width: 0"><option value="first" selected>first</option><option value="5:7">5:7</option><option value="1:1">1:1</option><option value="4:5">4:5</option><option value="9:16">9:16</option><option value="16:9">16:9</option><option value="7:5">7:5</option></select>
@@ -1390,7 +1391,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.45.3 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.45.4 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1408,7 +1409,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.45.3', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.45.4', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -2608,8 +2609,8 @@ const fitBuild = () => reelLen() * (loopOn() ? 0.72 : 0.88);
 // from how many strokes there are (the picture's change goes roughly with the log of the stroke count).
 // 'by strokes' is the old pacing: the strokes evenly (with a song), or a gentle slow start (timed to a length).
 const pacingEven = () => $('pacing').value === 'even';
-{ const v = store('cp-pacing'); if (v === 'even' || v === 'strokes') $('pacing').value = v; $('pacing').addEventListener('change', () => store('cp-pacing', $('pacing').value)); }
-const paceB = n => Math.min(5, Math.max(1.6, Math.log(1 + (n || 1000) / 8)));
+{ const v = store('cp-pacing2'); if (v === 'even' || v === 'strokes') $('pacing').value = v; $('pacing').addEventListener('change', () => store('cp-pacing2', $('pacing').value)); }     // (a new key: the old default, even, is forgotten once)
+const paceB = n => Math.min(3.2, Math.max(1.6, Math.log(1 + (n || 1000) / 8)));      // (no steeper: the start must never look empty)
 const expCurve = (u, b) => u <= 0 ? 0 : u >= 1 ? 1 : (Math.exp(b * u) - 1) / (Math.exp(b) - 1);
 const paceWarp = (u, n) => pacingEven() ? expCurve(u, paceB(n)) : Math.min(1, Math.max(0, u));       // with a song: its progress → the strokes' share
 const fitCurve = (u, n = S.total) => expCurve(u, pacingEven() ? paceB(n) : 1.6);   // timed to a length (a slow start for the big washes)
@@ -14656,7 +14657,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.45.3');
+    const V = await import('./viewer3d.js?v=4.45.4');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
