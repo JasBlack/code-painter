@@ -426,6 +426,13 @@
   #speedfit[hidden] { display: none; }
   .fitnote { display: block; margin: 8px 0 2px; padding: 0; border: 0; background: none; color: var(--muted); font: 500 10px 'IBM Plex Mono', monospace; letter-spacing: .02em; text-align: left; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   .fitnote:hover { color: var(--accent); }
+  .mixbar { display: flex; align-items: stretch; height: 26px; margin: 10px 0 4px; border-radius: 7px; overflow: hidden; border: 1px solid var(--keyline); background: var(--key); user-select: none; touch-action: none; }
+  .mixbar[hidden] { display: none; }
+  .mixseg { min-width: 0; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--c) 22%, transparent); border-top: 2px solid var(--c); }
+  .mixseg span { font: 600 9px 'IBM Plex Mono', monospace; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
+  .mixdiv { flex: none; width: 8px; margin: 0 -4px; z-index: 1; cursor: ew-resize; position: relative; }
+  .mixdiv::after { content: ''; position: absolute; left: 3px; top: 3px; bottom: 3px; width: 2px; border-radius: 1px; background: var(--text); opacity: .55; }
+  .mixdiv:hover::after { opacity: 1; background: var(--accent); }
   .panel.outp .row { flex-wrap: nowrap; align-items: center; }
   .panel.outp .olbl { flex: none; width: 40px; }
   .panel.outp .ochips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
@@ -1400,7 +1407,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.45.8 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.46.0 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1418,7 +1425,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.45.8', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.46.0', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -2205,7 +2212,7 @@ async function startAuto(src, name, fileName = '', opts = {}) {
   if (S.line && S.line.kind === 'growth') { dgStart(data, ww, wh); S.waitAudio = audioActive() && !vidSound; S.waitSince = clock(); setButtons(); return; }
   const FM = await faceMsgAsync(data, ww, wh);
   if (vbaseOn() && !S.video) S.total = Math.max(60, Math.round(S.total * (0.2 + 0.8 * (SCP.vpaint ?? 0.6))));       // (over a vector base: fewer strokes, the details — more of them with paint over)
-  worker.postMessage({ type: 'start', ...FM, gen: S.gen, w: ww, h: wh, data, ...(vbaseOn() && !S.video ? { current: vecBaseImage(data, ww, wh), detail: SCP.vpaint ?? 0.6 } : {}), shapes: S.total, styles: stylePick.values(), bgStyles: stylePick.bg(), smart: true, abstract: abstractOn(), lines: linesOn(), outline: pieceOn() ? 'last' : outlineMode(), hilite: pieceOn(), rfill: rfillMode(), stylesize: SSZ, seed: 1 + Math.floor(Math.random() * 1e6), size: sizeK(), sizeRand: sizeRand(), palette: pal, under: underOn(), order: S.order, line: S.line });
+  worker.postMessage({ type: 'start', ...FM, gen: S.gen, w: ww, h: wh, data, ...(vbaseOn() && !S.video ? { current: vecBaseImage(data, ww, wh), detail: SCP.vpaint ?? 0.6 } : {}), shapes: S.total, styles: styleMix(stylePick.values()), bgStyles: stylePick.bg(), smart: true, abstract: abstractOn(), lines: linesOn(), outline: pieceOn() ? 'last' : outlineMode(), hilite: pieceOn(), rfill: rfillMode(), stylesize: SSZ, seed: 1 + Math.floor(Math.random() * 1e6), size: sizeK(), sizeRand: sizeRand(), palette: pal, under: underOn(), order: S.order, line: S.line });
   const H = audioActive() ? hitsInSel().length : 0;
   $('hint').textContent = `Painting ${S.video ? 'the video ' : S.list.length > 1 ? `a playlist of ${S.list.length} (first: ` : ''}${name}${S.list.length > 1 && !S.video ? ')' : ''} — ${S.total} shapes${audioActive() ? ` to ♪ ${AU.name} (${fmtTime(AU.in)}–${fmtTime(AU.out)}${musicMode() === 'hits' ? `, ${H} hits` : ''})` : ''}.`;
   // the music waits until the painter has a head start, so the first hits have strokes ready to land
@@ -2287,7 +2294,7 @@ $('under').onchange = () => { underSwitch(); worker.postMessage({ type: 'under',
 // the strokes it had queued in the old style are dropped.
 const styleOkFor = m => !S.styleOk || !m.s || !m.s.st || S.styleOk.has(m.s.st);     // (strokes still in flight from before a style change are dropped)
 function restyle() {
-  const styles = stylePick.values(), bg = stylePick.bg();
+  const styles = styleMix(stylePick.values()), bg = stylePick.bg();
   worker.postMessage({ type: 'styles', styles, bg }); helpersPost({ type: 'styles', styles, bg });
   // strokes the painters made before the change (in the old styles) are dropped: the new style shows at once
   { const ok = S.styleOk = new Set([...styles, ...bg, 'flat']); if (S.queue && S.queue.length) S.queue = S.queue.filter(m => !m.s || !m.s.st || ok.has(m.s.st)); }
@@ -2871,7 +2878,7 @@ function sendFrame() {
     const msg = { type: 'frame', ...FMF, gen: S.gen, target: t, current: c, n: batch, L: E.Z, abstract: abstractOn(), outline: outlineMode(), rfill: rfillMode(), fresh: S.cut ? S.cut.got / S.cut.need : null, video: !!S.video, path, size: sizeK(), sizeRand: sizeRand(), under: underOn(), band: n > 1 ? [Math.floor(i * h / n), Math.floor((i + 1) * h / n)] : null };
     if (i === 0) { E.busy = true; worker.postMessage(msg, [t.buffer, c.buffer]); continue; }
     const hp = helper(i - 1);
-    if (hp.gen !== S.gen) { hp.gen = S.gen; hp.w.postMessage({ type: 'start', ...FMF, gen: S.gen, w, h, data: t.slice(), shapes: 0, styles: stylePick.values(), bgStyles: stylePick.bg(), smart: true, abstract: abstractOn(), lines: linesOn(), outline: pieceOn() ? 'last' : outlineMode(), hilite: pieceOn(), rfill: rfillMode(), stylesize: SSZ, seed: 1 + Math.floor(Math.random() * 1e6), size: sizeK(), sizeRand: sizeRand(), palette: palette(), under: underOn() }); }
+    if (hp.gen !== S.gen) { hp.gen = S.gen; hp.w.postMessage({ type: 'start', ...FMF, gen: S.gen, w, h, data: t.slice(), shapes: 0, styles: styleMix(stylePick.values()), bgStyles: stylePick.bg(), smart: true, abstract: abstractOn(), lines: linesOn(), outline: pieceOn() ? 'last' : outlineMode(), hilite: pieceOn(), rfill: rfillMode(), stylesize: SSZ, seed: 1 + Math.floor(Math.random() * 1e6), size: sizeK(), sizeRand: sizeRand(), palette: palette(), under: underOn() }); }
     hp.busy = true; hp.w.postMessage(msg, [t.buffer, c.buffer]);
   }
 }
@@ -3420,7 +3427,7 @@ function startMix(info) {
   const x = S.mix.cx; origInto(x, S.ww, S.wh);
   let data = x.getImageData(0, 0, S.ww, S.wh).data;
   if (abstractOn()) data = abstractWarp(data, S.ww, S.wh, 0, 0);
-  worker.postMessage({ type: 'start', gen: S.gen, w: S.ww, h: S.wh, data, shapes: 0, styles: stylePick.values(), bgStyles: stylePick.bg(), smart: true, abstract: abstractOn(), lines: linesOn(), outline: pieceOn() ? 'last' : outlineMode(), hilite: pieceOn(), rfill: rfillMode(), stylesize: SSZ, seed: 1 + Math.floor(Math.random() * 1e6), size: sizeK(), sizeRand: sizeRand(), palette: palette(), under: underOn() });
+  worker.postMessage({ type: 'start', gen: S.gen, w: S.ww, h: S.wh, data, shapes: 0, styles: styleMix(stylePick.values()), bgStyles: stylePick.bg(), smart: true, abstract: abstractOn(), lines: linesOn(), outline: pieceOn() ? 'last' : outlineMode(), hilite: pieceOn(), rfill: rfillMode(), stylesize: SSZ, seed: 1 + Math.floor(Math.random() * 1e6), size: sizeK(), sizeRand: sizeRand(), palette: palette(), under: underOn() });
 }
 function sendMixFrame() {
   const M = S.mix, w = S.ww, h = S.wh, x = M.cx;
@@ -10575,7 +10582,7 @@ function scoreDraw(b, now, brush) {
   const dT = SC.lastT == null ? 0 : Math.max(0, Math.min(0.25, T - SC.lastT)); SC.lastT = T;
   const lv = Math.min(1, 0.65 * AU.bass + 0.45 * AU.mid + 0.5 * AU.beat); VZ.lv = (VZ.lv || 0) + (lv - (VZ.lv || 0)) * 0.3; VZ.hi = (VZ.hi + 1) % VZ.hist.length; VZ.hist[VZ.hi] = VZ.lv;
   const secs = AU.sections, si = secs ? Math.max(0, secs.findIndex(x => T >= x.t0 && T < x.t1)) : Math.floor(T / 9), colOf = n => P.acc[(n.ci + si) % P.acc.length], ink = P.ink;
-  const vis = scVisible(T), styles = stylePick.values(), stOf = n => styles[n.seed % styles.length] || 'painterly';
+  const vis = scVisible(T), styles = styleMix(stylePick.values()), stOf = n => styles[n.seed % styles.length] || 'painterly';
   // ── the crisp layer, in its own canvas (it also feeds the glow)
   SC.ink = vzCanvas(SC.ink, dw, dh); const c = SC.ink.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, dw, dh); c.setTransform(sc, 0, 0, sc, 0, 0); c.lineCap = 'round';
   // the axis through the middle (left of the spine), dotted on to the right
@@ -12300,7 +12307,7 @@ function dgFreeze() {
   const D = DG; if (D.phase === 'paint' || !D.P) return;
   if (D.wk) D.wk.postMessage({ type: 'stop' });
   const P = D.P, n = P.length >> 1;
-  Object.assign(D, { phase: 'paint', P, pn: n, n, pi: 0, pt0: clock(), pf0: audioActive() && !AU.ended ? audioProgress(aTime()) : 0, styles: stylePick.values(), runSt: null });
+  Object.assign(D, { phase: 'paint', P, pn: n, n, pi: 0, pt0: clock(), pf0: audioActive() && !AU.ended ? audioProgress(aTime()) : 0, styles: styleMix(stylePick.values()), runSt: null });
   S.total = Math.ceil(n / 5) + 1; S.count = 0; S.workerDone = false; S.drawn = []; S.lines = []; S.items = [];
   // the grown line stays on the canvas as a faint pencil sketch, and the brush paints over it (no blank flash between the two)
   paintBg(S.outX); const x = S.outX, k = S.k;
@@ -12434,7 +12441,7 @@ function boltNear(x, y, notCi) {
 }
 function boltFire(s) {
   const C = boltChains(); if (!C || !C.length || !S.out || !S.target) return;
-  const styles = stylePick.values(), st = styles[Math.floor(Math.random() * styles.length)] || 'painterly';
+  const styles = styleMix(stylePick.values()), st = styles[Math.floor(Math.random() * styles.length)] || 'painterly';
   const m = Math.min(S.ww, S.wh), len = m * (0.25 + 0.6 * s), w = Math.max(1.5, m * (0.005 + 0.009 * s));
   const walk = (ci, k, dir, maxLen, out) => {
     let c = C[ci], L = 0, px = c[k], py = c[k + 1], jumps = 0; out.push([px, py]);
@@ -13847,6 +13854,38 @@ function multiPick(id, key, defaults, noneText, onChange) {
 }
 // style: two layers — the subject's styles (green LEDs) and the background's (violet; none = the same everywhere).
 // "subject" / "bg" in the title choose which layer the keys show and change. Remembered.
+// ── the style mix: how much of the painting each ticked style paints. A bar split into the ticked styles; drag a
+// divider to give one more and its neighbour less (5% steps). The painters pick each stroke's style from a list with
+// every style in it as often as its share. Double-click the bar: back to even. Kept in this browser.
+const MIX = (() => { try { return JSON.parse(store('cp-mix') || '{}') || {}; } catch (e) { return {}; } })();
+const MIXC = ['#39ff88', '#8b6cff', '#ffd166', '#4cc9f0', '#ff6b9a', '#f4a261', '#9ef01a', '#c77dff'];
+function mixShares(list) { const w = list.map(st => MIX[st] > 0 ? MIX[st] : 1), t = w.reduce((a, b) => a + b, 0) || 1; return w.map(v => v / t); }
+function styleMix(list) {
+  if (!list || list.length < 2) return list;
+  const sh = mixShares(list); if (sh.every(v => Math.abs(v - 1 / list.length) < 0.01)) return list;     // (even: as it always was)
+  const out = []; list.forEach((st, i) => { const n = Math.max(1, Math.round(sh[i] * 20)); for (let k = 0; k < n; k++) out.push(st); }); return out;
+}
+function mixRender() {
+  const root = $('stylepick'); if (!root || typeof stylePick === 'undefined') return;
+  let bar = $('mixbar');
+  if (!bar) { bar = document.createElement('div'); bar.id = 'mixbar'; bar.className = 'mixbar'; bar.title = 'The style mix: how much of the painting each ticked style paints. Drag a divider; double-click for an even mix'; root.after(bar);
+    bar.ondblclick = () => { for (const st of stylePick.values()) delete MIX[st]; store('cp-mix', JSON.stringify(MIX)); mixRender(); restyle(); };
+    bar.oncontextmenu = e => { e.preventDefault(); bar.ondblclick(); }; }
+  const list = stylePick.values(); bar.hidden = list.length < 2; if (bar.hidden) return;
+  const sh = mixShares(list), name = st => { const b = document.querySelector(`#stylepick input[value="${st}"]`); return b ? b.parentElement.textContent.trim() : st; };
+  bar.innerHTML = list.map((st, i) => `<div class="mixseg" title="${name(st)} ${Math.round(sh[i] * 100)}%" style="flex: ${sh[i]} 1 0; --c: ${MIXC[i % MIXC.length]}"><span>${name(st)} ${Math.round(sh[i] * 100)}%</span></div>${i < list.length - 1 ? `<div class="mixdiv" data-i="${i}"></div>` : ''}`).join('');
+  for (const d of bar.querySelectorAll('.mixdiv')) d.onpointerdown = e => {
+    e.preventDefault(); d.setPointerCapture(e.pointerId); const i = +d.dataset.i, r = bar.getBoundingClientRect(), z = parseFloat(document.documentElement.style.zoom) || 1;
+    const s0 = mixShares(list), pair = s0[i] + s0[i + 1], before = s0.slice(0, i).reduce((a, b) => a + b, 0);
+    const move = ev => {
+      const x = (ev.clientX / z - r.left / z) / (r.width / z); let a = Math.round((x - before) * 20) / 20; a = Math.max(0.05, Math.min(pair - 0.05, a));
+      const sh2 = s0.slice(); sh2[i] = a; sh2[i + 1] = pair - a; list.forEach((st, k) => { MIX[st] = Math.round(sh2[k] * 1000) / 1000; });
+      const segs = bar.querySelectorAll('.mixseg'); segs.forEach((g, k) => { g.style.flexGrow = sh2[k]; g.firstChild.textContent = `${name(list[k])} ${Math.round(sh2[k] * 100)}%`; });
+    };
+    const up = () => { d.onpointermove = d.onpointerup = d.onpointercancel = null; store('cp-mix', JSON.stringify(MIX)); restyle(); };
+    d.onpointermove = move; d.onpointerup = d.onpointercancel = up;
+  };
+}
 function stylePicker() {
   const root = $('stylepick'), panel = root.closest('.panel'), boxes = [...root.querySelectorAll('input[type=checkbox]:not([id])')], count = panel.querySelector('.count'), tog = panel.querySelector('[data-set="toggle"]');
   const load = (k, def) => { const v = store(k); if (v === '-') return []; const r = v ? v.split(',').filter(x => document.querySelector(`#stylepick input[value="${x}"]`)) : def; return r.length ? r : def; };
@@ -13859,7 +13898,7 @@ function stylePicker() {
     count.textContent = L.edit === 'bg' && !cur.length ? 'same' : `${cur.length} / ${boxes.length}`;
     tog.classList.toggle('on', cur.length === boxes.length);
   };
-  const keep = () => { store('cp-styles', L.subj.join(',')); store('cp-bgstyles', L.bg.join(',') || '-'); show(); restyle(); };
+  const keep = () => { store('cp-styles', L.subj.join(',')); store('cp-bgstyles', L.bg.join(',') || '-'); show(); restyle(); mixRender(); };
   const save = () => {
     let v = boxes.filter(b => b.checked).map(b => b.value);
     if (L.edit === 'subj' && !v.length) v = [boxes[0].value];
@@ -13876,6 +13915,7 @@ function stylePicker() {
   return { values: () => L.subj, bg: () => L.bg, set: (subj, bg) => { L.subj = subj && subj.length ? subj : ['painterly']; if (bg) L.bg = bg; keep(); } };
 }
 const stylePick = stylePicker();
+mixRender();
 // the pop-up panels (score shape, signal, grade, text bar): dragged anywhere by their title bar, and kept inside the window.
 // Where one was put is remembered; double-click its title bar to put it back where it opens.
 { const Z = () => parseFloat(document.documentElement.style.zoom) || 1, key = el => 'cp-pop-' + el.id;
@@ -14672,7 +14712,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.45.8');
+    const V = await import('./viewer3d.js?v=4.46.0');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
