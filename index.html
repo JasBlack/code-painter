@@ -1412,7 +1412,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.47.0 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.47.1 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1430,7 +1430,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.47.0', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.47.1', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -13318,16 +13318,31 @@ function rebase(d) {
 // threes). At every drawing: boil (the canvas faded back towards blank by that much, and enough strokes to paint it
 // again), its own wobble (where the sheet sits) and flicker (exposure, paper grain). Strokes go down at once — a
 // drawing is a finished frame, never half a stroke.
-const STOP = { run: false, k: 2, boil: 0, jit: null, flk: 1, gx: 0, gy: 0 };
+const STOP = { run: false, k: 2, boil: 0, jit: null, flk: 1, gx: 0, gy: 0, sim0: null };
 const stopOn = () => $('stopon').checked;
 function stopDrawing() {
   const R = Math.random, b = STOP.boil;
   if (b > 0 && S.mode === 'auto' && S.endless.on && S.out && !RLF.on) {
+    if (S.sim != null && (STOP.sim0 == null || S.sim > STOP.sim0)) STOP.sim0 = S.sim;     // (the best match so far — the full painting before the first drawing: every drawing is painted until it is that close again, so they never drift)
     const x = S.outX; x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = Math.min(1, b); x.fillStyle = S.bgHex; x.fillRect(0, 0, S.out.width, S.out.height); x.restore(); S.big = null;
-    S.acc += Math.round(b * 0.6 * Math.max(300, S.total || 1000));           // (the strokes to paint it again)
+    S.acc += Math.round(b * 0.6 * Math.max(300, S.total || 1000));           // (a first share of the strokes to paint it again)
   }
   STOP.jit = $('stopwob').checked ? [(R() - 0.5) * 0.008, (R() - 0.5) * 0.008, (R() - 0.5) * 0.0087] : null;     // (±0.4% of the frame, ±0.25°)
   STOP.flk = $('stopflk').checked ? 1 + (R() - 0.5) * 0.08 : 1; STOP.gx = R(); STOP.gy = R();
+}
+// a boiled drawing is painted until it matches its frame as well as the last one did (however small the strokes, a
+// drawing is never left half-empty): batches of strokes, put down at once, until the match is back, it stops
+// improving, or a generous limit (strokes, time) is reached
+async function stopFill() {
+  const goal = STOP.sim0, t0 = performance.now(), cap = Math.max(2000, 4 * (S.total || 1000)); let n = 0, best = -1, flat = 0;
+  if (goal == null || !(STOP.boil > 0) || !S.endless.on) return;
+  while (n < cap && performance.now() - t0 < 45000) {
+    while (S.queue.length) { reveal(S.queue.shift()); n++; }
+    if (S.sim != null && S.sim >= goal - 0.4) break;
+    if (S.sim != null) { if (S.sim > best + 0.05) { best = S.sim; flat = 0; } else if (++flat > 6) break; }
+    if (!await until(() => S.queue.length >= 24, 6000, () => sendFrame())) break;
+  }
+  S.acc = 0;
 }
 let GRAIN = null;
 function stopGrain(b) {
@@ -13343,7 +13358,7 @@ async function renderOffline() {
   if (!window.MP4REC || typeof VideoEncoder === 'undefined') { $('hint').textContent = "This browser can't render offline (no video encoder). Switch offline off to record in real time."; return false; }
   const bt = '';
   const SM = stopOn(), fps = SM ? 24 : +$('recfps').value || 30, dt = 1000 / fps, wall = performance.now();      // (stop-motion: film speed)
-  Object.assign(STOP, { run: SM, k: +$('stopk').value || 2, boil: +$('stopboil').value / 100, jit: null, flk: 1 });
+  Object.assign(STOP, { run: SM, k: +$('stopk').value || 2, boil: +$('stopboil').value / 100, jit: null, flk: 1, sim0: null });
   recKey(true, 'stop'); S.lastRec = null; $('savevid').disabled = true;
   document.body.classList.add('rendering');
   let R = null, pcm = null, vpcm = null, failed = null, blob = null; const vtimes = [];
@@ -13390,6 +13405,7 @@ async function renderOffline() {
         if (vpcm) vtimes[i] = S.video && S.endless.on ? S.video.currentTime : null;
         await runReplay();
         await feedPainter(dt * kk);
+        if (SM) await stopFill();
         for (let g = 0; S.cut && g < 400; g++) { cutStep(); if (S.cut) await until(() => !S.cut || S.queue.length > 0, 4000, () => sendFrame()); }
         reliefFlush(true);                                   // (the lit relief, brought up to this very frame)
         step(OFF.t, dt * kk);
@@ -14745,7 +14761,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.47.0');
+    const V = await import('./viewer3d.js?v=4.47.1');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
