@@ -43,6 +43,8 @@ When you want more control, switch to **console** (top left).
 
 Styles are grouped in tabs. Tick several and every stroke picks one of them. Right-click a style key to give that style its own size.
 
+**The mix bar**: with two or more styles ticked, a bar under the styles shows how much of the painting each one paints (evenly, to start). Drag a divider to give one style more and its neighbour less, in 5% steps: 70% graffiti, 20% pen, 10% oil, say. Double-click the bar for an even mix again. The mix is kept in your browser.
+
 | tab | styles |
 |---|---|
 | **paint** | paint, oil, acrylic, palette knife, gouache, watercolour, wet watercolour, sumi, ink, calligraphy, graffiti, soft |
