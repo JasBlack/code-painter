@@ -559,7 +559,7 @@
       <button type="button" id="palgrab" class="mini" title="Take the six main colours of the current picture">grab</button>
     </div>
     <div class="pal" id="palrow2">
-      <select id="palpreset" class="sel" aria-label="Palette presets" title="Pick the colours of the output: a ready-made palette fills the six swatches and turns the lock on" style="flex: 1"><option value="">palettes…</option><option value="__off">↺ original colours</option><option value="mono">mono</option><option value="sepia">sepia</option><option value="blueprint">blueprint</option><option value="sunset">sunset</option><option value="riso">risograph</option><option value="pastel">pastel</option><option value="neon">neon</option><option value="forest">forest</option><option value="ocean">ocean</option><option value="fire">fire</option></select>
+      <select id="palpreset" class="sel" aria-label="Palette presets" title="Pick the colours of the output: a ready-made palette fills the six swatches and turns the lock on" style="flex: 1"><option value="">palettes…</option><option value="__off">↺ original colours</option><option value="mono">mono</option><option value="sepia">sepia</option><option value="blueprint">blueprint</option><option value="sunset">sunset</option><option value="riso">risograph</option><option value="pastel">pastel</option><option value="neon">neon</option><option value="forest">forest</option><option value="ocean">ocean</option><option value="fire">fire</option><option value="roto">roto</option></select>
       <input id="tintcol" class="swatch" type="color" value="#2f6bff" aria-label="Tint colour" title="Tint: pick any colour, then press tint for a six-step palette (dark to light) of it">
       <button type="button" id="tintgo" class="mini" title="Paint in shades of the tint colour">tint</button>
     </div>
@@ -824,6 +824,8 @@
     <div class="row" style="flex-wrap: nowrap; align-items: center" id="stoprow"><div class="kn" title="Boil: how much of each drawing is painted again from scratch. 0: every drawing paints over the last one (calm, the paint stays put where nothing moves) · 100: every drawing a fresh painting (wild: the strokes jump on every frame, like a flip-book). Higher boil takes longer to render"><input id="stopboil" type="range" min="0" max="100" value="25" aria-label="Boil"><span class="lbl">boil</span></div>
       <label class="key" title="Wobble: every drawing sits a pixel or two off, a fraction of a degree turned, like sheets of paper not quite lined up under the camera"><input id="stopwob" type="checkbox" checked><span class="led"></span>wobble</label>
       <label class="key" title="Flicker: every drawing has its own paper grain and a slightly different exposure, like a real rostrum camera"><input id="stopflk" type="checkbox" checked><span class="led"></span>flicker</label></div>
+    <div class="row" style="flex-wrap: nowrap"><button type="button" id="rotogo" class="key" title="Roto look, in one click: hand-painted rotoscoping — stop-motion on twos with a fresh drawing each time, wobble and flicker, dark ground, a few strong colours, bold flat gouache with some spray and splashes. Change anything after">roto look</button>
+      <label class="key" title="Dark ground: paint on black — dark parts of the picture are left as bare ground and the paint goes where the light and colour are"><input id="darkground" type="checkbox"><span class="led"></span>dark ground</label></div>
   </div>
   <div class="panel" style="width: 216px">
     <div class="ttl"><b>speed</b></div>
@@ -1412,7 +1414,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.47.1 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.48.0 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1430,7 +1432,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.47.1', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.48.0', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -2217,7 +2219,7 @@ async function startAuto(src, name, fileName = '', opts = {}) {
   if (S.line && S.line.kind === 'growth') { dgStart(data, ww, wh); S.waitAudio = audioActive() && !vidSound; S.waitSince = clock(); setButtons(); return; }
   const FM = await faceMsgAsync(data, ww, wh);
   if (vbaseOn() && !S.video) S.total = Math.max(60, Math.round(S.total * (0.2 + 0.8 * (SCP.vpaint ?? 0.6))));       // (over a vector base: fewer strokes, the details — more of them with paint over)
-  worker.postMessage({ type: 'start', ...FM, gen: S.gen, w: ww, h: wh, data, ...(vbaseOn() && !S.video ? { current: vecBaseImage(data, ww, wh), detail: SCP.vpaint ?? 0.6 } : {}), shapes: S.total, styles: styleMix(stylePick.values()), bgStyles: stylePick.bg(), smart: true, abstract: abstractOn(), lines: linesOn(), outline: pieceOn() ? 'last' : outlineMode(), hilite: pieceOn(), rfill: rfillMode(), stylesize: SSZ, seed: 1 + Math.floor(Math.random() * 1e6), size: sizeK(), sizeRand: sizeRand(), palette: pal, under: underOn(), order: S.order, line: S.line });
+  worker.postMessage({ type: 'start', ...FM, gen: S.gen, w: ww, h: wh, data, ...(vbaseOn() && !S.video ? { current: vecBaseImage(data, ww, wh), detail: SCP.vpaint ?? 0.6 } : darkOn() ? { current: darkImage(ww, wh) } : {}), shapes: S.total, styles: styleMix(stylePick.values()), bgStyles: stylePick.bg(), smart: true, abstract: abstractOn(), lines: linesOn(), outline: pieceOn() ? 'last' : outlineMode(), hilite: pieceOn(), rfill: rfillMode(), stylesize: SSZ, seed: 1 + Math.floor(Math.random() * 1e6), size: sizeK(), sizeRand: sizeRand(), palette: pal, under: underOn(), order: S.order, line: S.line });
   const H = audioActive() ? hitsInSel().length : 0;
   $('hint').textContent = `Painting ${S.video ? 'the video ' : S.list.length > 1 ? `a playlist of ${S.list.length} (first: ` : ''}${name}${S.list.length > 1 && !S.video ? ')' : ''} — ${S.total} shapes${audioActive() ? ` to ♪ ${AU.name} (${fmtTime(AU.in)}–${fmtTime(AU.out)}${musicMode() === 'hits' ? `, ${H} hits` : ''})` : ''}.`;
   // the music waits until the painter has a head start, so the first hits have strokes ready to land
@@ -2323,7 +2325,7 @@ worker.onmessage = (e) => {
   if (m.gen !== S.gen || S.mode !== 'auto') return;
   wake();
   if (m.type === 'mask') { S.mask = m; S.maskCv = null; return; }
-  if (m.type === 'bg') { S.bgHex = S.loopBg = WC.wc ? WC.paper : dryPaper() || SHP.hex(m.c);      // (real watercolour: on white watercolour paper)
+  if (m.type === 'bg') { S.bgHex = S.loopBg = darkOn() ? DARK : WC.wc ? WC.paper : dryPaper() || SHP.hex(m.c);      // (real watercolour: on white watercolour paper)
     if (!S.count) { paintBg(S.outX); S.snaps = []; snapMaybe(0); } S.sim = m.sim; S.bgSet = true; }
   else if (m.type === 'shape' && m.acc) { S.accWant = null; S.wCount = m.count; if (S.running && styleOkFor(m)) { beatColour(m.s); S.accN = (S.accN || 0) + 1; reveal(m, { k: 1, max: 130 + 40 * (1 - musicAmt()) }); } }   // the beat's stroke: down at once, snapped on in a flash
   else if (m.type === 'accent-none') S.accWant = null;
@@ -13334,7 +13336,8 @@ function stopDrawing() {
 // drawing is never left half-empty): batches of strokes, put down at once, until the match is back, it stops
 // improving, or a generous limit (strokes, time) is reached
 async function stopFill() {
-  const goal = STOP.sim0, t0 = performance.now(), cap = Math.max(2000, 4 * (S.total || 1000)); let n = 0, best = -1, flat = 0;
+  const goal = STOP.sim0 == null ? null : STOP.sim0 - (darkOn() ? 2.5 : 0), t0 = performance.now(),      // (dark ground: looser, the ground left showing)
+    cap = Math.max(2000, 4 * (S.total || 1000)); let n = 0, best = -1, flat = 0;
   if (goal == null || !(STOP.boil > 0) || !S.endless.on) return;
   while (n < cap && performance.now() - t0 < 45000) {
     while (S.queue.length) { reveal(S.queue.shift()); n++; }
@@ -13344,6 +13347,20 @@ async function stopFill() {
   }
   S.acc = 0;
 }
+// dark ground: paint on black (the painter knows it starts from black, so dark parts of the picture are left as bare
+// ground and the paint goes where there is light and colour) — the hand-painted rotoscope look
+const DARK = '#0b0b0c', darkOn = () => !!($('darkground') && $('darkground').checked);
+function darkImage(w, h) { const d = new Uint8ClampedArray(w * h * 4); for (let i = 0; i < d.length; i += 4) { d[i] = d[i + 1] = d[i + 2] = 11; d[i + 3] = 255; } return d; }
+// roto look: one click for painted rotoscoping — stop-motion on twos, a fresh drawing each time (boil 100), wobble and
+// flicker, dark ground, a few strong colours, bold flat gouache with some spray, splashes on the beat, bigger strokes
+function rotoLook() {
+  const set = (id, v) => { const e = $(id); if (!e) return; if (e.type === 'checkbox') { if (e.checked !== v) e.click(); return; } e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); };
+  set('stopon', true); set('stopk', '2'); set('stopboil', 100); set('stopwob', true); set('stopflk', true); set('darkground', true);
+  set('palpreset', 'roto'); set('fillmode', 'off'); set('shapes', 'auto'); set('ssize', 0); set('beat_splash', true);
+  MIX.gouache = 0.7; MIX.graffiti = 0.3; store('cp-mix', JSON.stringify(MIX)); stylePick.set(['gouache', 'graffiti']);
+  $('hint').textContent = 'Roto look: hand-painted rotoscoping — drop a video and press ⏺ render (stop-motion shows in the render). Change anything you like after.';
+}
+$('rotogo').onclick = rotoLook;
 let GRAIN = null;
 function stopGrain(b) {
   if (!GRAIN) { const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'), im = x.createImageData(256, 256); for (let i = 0; i < im.data.length; i += 4) { const v = 128 + (Math.random() - 0.5) * 100; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } x.putImageData(im, 0, 0); GRAIN = c; }
@@ -13551,7 +13568,8 @@ const PALETTES = {
   blueprint: ['#06142e', '#0b2a5c', '#1357a6', '#3b8be0', '#9cc8f5', '#f4f9ff'], sunset: ['#1d0b3a', '#4b1a6b', '#a02a7a', '#e8506a', '#ff9a56', '#ffe3a0'],
   riso: ['#0d0d0d', '#2d3a8c', '#00a6d6', '#ff48b0', '#ffd23f', '#f5f0e1'], pastel: ['#3a3550', '#f7a8b8', '#fbd3a2', '#b8e0c8', '#a9cdf2', '#fff8f0'],
   neon: ['#0b0b0c', '#39ff88', '#b36bff', '#00e5ff', '#ff3df2', '#f2f2ef'], forest: ['#0c1a12', '#1f4d33', '#3d7a4a', '#8aae5c', '#d6d08a', '#f3efd5'],
-  ocean: ['#031a2b', '#0a4a6e', '#0e7c9a', '#46b6c4', '#a9e3dc', '#f2fbf6'], fire: ['#120505', '#5c0f0a', '#b8260f', '#f26a1b', '#ffb534', '#fff1b8']
+  ocean: ['#031a2b', '#0a4a6e', '#0e7c9a', '#46b6c4', '#a9e3dc', '#f2fbf6'], fire: ['#120505', '#5c0f0a', '#b8260f', '#f26a1b', '#ffb534', '#fff1b8'],
+  roto: ['#0b0b0c', '#9a4a22', '#e8b030', '#d8382b', '#2f5fd0', '#f4f1ea']
 };
 function tintRamp(hex) {
   const [r, g, b] = hexRgb(hex).map(v => v / 255), mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
@@ -14761,7 +14779,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.47.1');
+    const V = await import('./viewer3d.js?v=4.48.0');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
