@@ -427,26 +427,24 @@
   .fitnote { display: block; margin: 8px 0 2px; padding: 0; border: 0; background: none; color: var(--muted); font: 500 10px 'IBM Plex Mono', monospace; letter-spacing: .02em; text-align: left; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   .fitnote:hover { color: var(--accent); }
   .row.stoponly.dim { opacity: .4; }
-  .panel.recp .row > .lbl:first-child, #stoppop .row > .lbl:first-child { flex: none; width: 48px; }
-  #stoppop .row .key { min-width: 76px; padding-left: 10px; padding-right: 10px; }
-  #stoppop label.key { display: inline-flex; align-items: flex-end; justify-content: center; grid-template-columns: none; gap: 0; margin: 0; height: 40px; }
-  #stoppop label.key .led { left: 50%; top: 6px; margin: 0 0 0 -2.5px; }
-  #stoppop .row { margin: 8px 0; }
+  .panel.recp .row > .lbl:first-child { flex: none; width: 48px; }
+  #stoppanel .row .key { min-width: 76px; padding-left: 10px; padding-right: 10px; }
   .panel.recp { position: relative; }
   .mixbar { display: flex; align-items: stretch; height: 26px; margin: 10px 0 4px; border-radius: 7px; overflow: hidden; border: 1px solid var(--keyline); background: var(--key); user-select: none; touch-action: none; }
   .mixbar[hidden] { display: none; }
   .mixseg { min-width: 0; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--c) 22%, transparent); border-top: 2px solid var(--c); }
   .mixseg span { font: 600 9px 'IBM Plex Mono', monospace; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
-  .mixdiv { flex: none; width: 8px; margin: 0 -4px; z-index: 1; cursor: ew-resize; position: relative; }
-  .mixdiv::after { content: ''; position: absolute; left: 3px; top: 3px; bottom: 3px; width: 2px; border-radius: 1px; background: var(--text); opacity: .55; }
-  .mixdiv:hover::after { opacity: 1; background: var(--accent); }
+  .mixbar { cursor: ew-resize; }
+  .mixdiv { flex: none; width: 12px; margin: 0 -6px; z-index: 1; cursor: ew-resize; position: relative; }
+  .mixdiv::after { content: ''; position: absolute; left: 4px; top: 4px; bottom: 4px; width: 4px; border-radius: 2px; background: var(--text); opacity: .6; }
+  .mixdiv:hover::after, .mixdiv.drag::after { opacity: 1; background: var(--accent); }
   .panel.outp .row { flex-wrap: nowrap; align-items: center; }
   .panel.outp .olbl { flex: none; width: 40px; }
   .panel.outp .ochips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
   .panel.outp .ochips .mini { height: 22px; padding: 0 8px; font-size: 9px; }
   .panel.outp .row:has(.ochips) { flex-wrap: wrap; gap: 5px; }
   .panel.outp .ochips { gap: 5px; }
-  #stopbtn { height: 16px; margin: -3px 0; }
+
 </style>
 </head>
 <body data-ui="dark" data-layout="landscape">
@@ -612,6 +610,13 @@
       </div>
       <div class="kn" data-knob="p" title="Stroke sounds: volume"><input id="sndvol" type="range" min="0" max="100" value="60" aria-label="Stroke sound volume"><span class="lbl">vol</span><output id="sndvolval" for="sndvol">60%</output></div>
     </div>
+  </div>
+  <div class="panel recp" id="stoppanel">
+    <div class="ttl"><b>stop-motion</b><span>for renders</span></div>
+    <div class="row" style="flex-wrap: nowrap" title="Stop-motion (for ⏺ render): the clip is painted as separate drawings at film speed (24 fps), each held for 1, 2 or 3 frames, so it moves like hand-made animation. Works best with a video"><span class="lbl">stop</span><select id="stopk" data-seg aria-label="Stop-motion" title="Stop-motion (for ⏺ render): the clip is painted as separate drawings at film speed (24 fps), each held for 1, 2 or 3 frames, so it moves like hand-made animation. Works best with a video · off: a normal render · 1s: a new drawing every frame (24 a second) · 2s: on twos, every drawing held 2 frames (12 a second, the classic hand-drawn rate) · 3s: on threes (8 a second, choppier, more hand-made)"><option value="0" selected>off</option><option value="1">1s</option><option value="2">2s</option><option value="3">3s</option></select></div>
+    <div class="row stoponly" style="flex-wrap: nowrap"><span class="lbl">boil</span><input id="stopboil" type="range" min="0" max="100" value="25" style="flex: 1" aria-label="Boil" title="Boil: how much of each drawing is painted again from scratch. 0: every drawing paints over the last one (calm, the paint stays put where nothing moves) · 100: every drawing a fresh painting (wild: the strokes jump on every frame, like a flip-book). Higher boil takes longer to render"><output id="stopboilv" style="min-width: 34px; text-align: right">25</output></div>
+    <div class="row stoponly" style="flex-wrap: nowrap"><span class="lbl">sheet</span><label class="key" title="Wobble: every drawing sits a pixel or two off, a fraction of a degree turned, like sheets of paper not quite lined up under the camera"><input id="stopwob" type="checkbox" checked><span class="led"></span>wobble</label><label class="key" title="Flicker: every drawing has its own paper grain and a slightly different exposure, like a real rostrum camera"><input id="stopflk" type="checkbox" checked><span class="led"></span>flicker</label></div>
+    <div class="row" style="flex-wrap: nowrap"><span class="lbl">look</span><button type="button" id="rotogo" class="key" title="Roto look, in one click: hand-painted rotoscoping — stop-motion on twos with a fresh drawing each time, wobble and flicker, dark ground, a few strong colours, bold flat gouache with some spray and splashes. Change anything after">roto</button><label class="key" title="Dark ground: paint on black — dark parts of the picture are left as bare ground and the paint goes where the light and colour are"><input id="darkground" type="checkbox"><span class="led"></span>dark</label></div>
   </div>
 </aside>
 
@@ -819,13 +824,7 @@
 
 <footer class="deck">
   <div class="panel recp" style="width: 274px">
-    <div class="ttl"><b>rec</b><button type="button" class="mini" id="stopbtn" title="Stop-motion (for ⏺ render): the clip painted as separate drawings at film speed, with boil, wobble, flicker, and the roto look">stop-motion</button></div>
-    <div id="stoppop" class="gradepop" hidden><div class="gp-h"><b>stop-motion</b><button type="button" class="mini" id="stopx" title="Close">✕</button></div>
-    <div class="row" style="flex-wrap: nowrap" title="Stop-motion (for ⏺ render): the clip is painted as separate drawings at film speed (24 fps), each held for 1, 2 or 3 frames, so it moves like hand-made animation. Works best with a video"><span class="lbl">stop</span><select id="stopk" data-seg aria-label="Stop-motion" title="Stop-motion (for ⏺ render): the clip is painted as separate drawings at film speed (24 fps), each held for 1, 2 or 3 frames, so it moves like hand-made animation. Works best with a video · off: a normal render · 1s: a new drawing every frame (24 a second) · 2s: on twos, every drawing held 2 frames (12 a second, the classic hand-drawn rate) · 3s: on threes (8 a second, choppier, more hand-made)"><option value="0" selected>off</option><option value="1">1s</option><option value="2">2s</option><option value="3">3s</option></select></div>
-    <div class="row stoponly" style="flex-wrap: nowrap"><span class="lbl">boil</span><input id="stopboil" type="range" min="0" max="100" value="25" style="flex: 1" aria-label="Boil" title="Boil: how much of each drawing is painted again from scratch. 0: every drawing paints over the last one (calm, the paint stays put where nothing moves) · 100: every drawing a fresh painting (wild: the strokes jump on every frame, like a flip-book). Higher boil takes longer to render"><output id="stopboilv" style="min-width: 34px; text-align: right">25</output></div>
-    <div class="row stoponly" style="flex-wrap: nowrap"><span class="lbl">sheet</span><label class="key" title="Wobble: every drawing sits a pixel or two off, a fraction of a degree turned, like sheets of paper not quite lined up under the camera"><input id="stopwob" type="checkbox" checked><span class="led"></span>wobble</label><label class="key" title="Flicker: every drawing has its own paper grain and a slightly different exposure, like a real rostrum camera"><input id="stopflk" type="checkbox" checked><span class="led"></span>flicker</label></div>
-    <div class="row" style="flex-wrap: nowrap"><span class="lbl">look</span><button type="button" id="rotogo" class="key" title="Roto look, in one click: hand-painted rotoscoping — stop-motion on twos with a fresh drawing each time, wobble and flicker, dark ground, a few strong colours, bold flat gouache with some spray and splashes. Change anything after">roto</button><label class="key" title="Dark ground: paint on black — dark parts of the picture are left as bare ground and the paint goes where the light and colour are"><input id="darkground" type="checkbox"><span class="led"></span>dark</label></div>
-    </div>
+    <div class="ttl"><b>rec</b><span>fps · length · loop</span></div>
     <div class="row" style="flex-wrap: nowrap"><select id="recmode" class="sel" style="flex: 1" aria-label="What ⏺ records" title="render: the run starts over and is rendered frame by frame at the size beside it (perfectly smooth; the hint shows how long it will take; live inputs — camera, screen, microphone, 3D — are always recorded live) · live: the stage in real time · interface: the whole page with every knob (the browser asks to share this tab) · from now: the stage from this moment, as it is"><option value="offline" selected>⏺ render (smooth)</option><option value="stage">⏺ live (real time)</option><option value="full">⏺ interface</option><option value="now">⏺ from now</option></select><select id="rsize" class="sel" style="flex: none; width: 92px" aria-label="Render size" title="The size of a rendered video (its short side): 720 is quickest, 4K takes about four times as long as 1080"><option value="720">720p</option><option value="1080" selected>1080p</option><option value="1440">1440p</option><option value="2160">4K</option></select></div>
     <div class="row" style="flex-wrap: nowrap"><label class="key" title="Draw your mouse pointer onto the stage, so it shows in the recording (e.g. while you turn a 3D object)"><input id="mouseon" type="checkbox"><span class="led"></span>mouse</label>
       <select id="mouseicon" class="sel" title="Pointer icon" aria-label="Pointer icon"><option value="auto" selected>auto</option><option value="arrow">arrow</option><option value="hand">hand</option><option value="dot">dot</option><option value="ring">ring</option><option value="crosshair">crosshair</option><option value="touch">touch</option></select>
@@ -1422,7 +1421,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.48.2 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.48.3 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1440,7 +1439,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.48.2', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.48.3', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -13330,10 +13329,9 @@ function rebase(d) {
 // drawing is a finished frame, never half a stroke.
 const STOP = { run: false, k: 2, boil: 0, jit: null, flk: 1, gx: 0, gy: 0, sim0: null };
 const stopOn = () => +$('stopk').value > 0;
-{ const k = $('stopk'), b = $('stopboil'), btn = $('stopbtn'), show = () => { $('stopboilv').textContent = b.value; for (const r of document.querySelectorAll('.stoponly')) r.classList.toggle('dim', !stopOn()); btn.classList.toggle('on', stopOn()); btn.textContent = stopOn() ? `stop-motion · ${k.value}s` : 'stop-motion'; };
+{ const k = $('stopk'), b = $('stopboil'), show = () => { $('stopboilv').textContent = b.value; for (const r of document.querySelectorAll('.stoponly')) r.classList.toggle('dim', !stopOn()); };
   k.addEventListener('change', show); b.addEventListener('input', show); show();
-  btn.onclick = () => { $('stoppop').hidden = !$('stoppop').hidden; };
-  $('stopx').onclick = () => { $('stoppop').hidden = true; }; }
+}
 function stopDrawing() {
   const R = Math.random, b = STOP.boil;
   if (b > 0 && S.mode === 'auto' && S.endless.on && S.out && !RLF.on) {
@@ -13953,16 +13951,19 @@ function mixRender() {
   const list = stylePick.values(); bar.hidden = list.length < 2; if (bar.hidden) return;
   const sh = mixShares(list), name = st => { const b = document.querySelector(`#stylepick input[value="${st}"]`); return b ? b.parentElement.textContent.trim() : st; };
   bar.innerHTML = list.map((st, i) => `<div class="mixseg" title="${name(st)} ${Math.round(sh[i] * 100)}%" style="flex: ${sh[i]} 1 0; --c: ${MIXC[i % MIXC.length]}"><span>${name(st)} ${Math.round(sh[i] * 100)}%</span></div>${i < list.length - 1 ? `<div class="mixdiv" data-i="${i}"></div>` : ''}`).join('');
-  for (const d of bar.querySelectorAll('.mixdiv')) d.onpointerdown = e => {
-    e.preventDefault(); d.setPointerCapture(e.pointerId); const i = +d.dataset.i, r = bar.getBoundingClientRect(), z = parseFloat(document.documentElement.style.zoom) || 1;
+  bar.onpointerdown = e => {
+    if (e.button !== 0) return;
+    const ds = [...bar.querySelectorAll('.mixdiv')]; if (!ds.length) return;
+    const d = ds.reduce((a, c) => { const ca = c.getBoundingClientRect(), aa = a.getBoundingClientRect(); return Math.abs(ca.x + ca.width / 2 - e.clientX) < Math.abs(aa.x + aa.width / 2 - e.clientX) ? c : a; });      // (the nearest divider)
+    e.preventDefault(); bar.setPointerCapture(e.pointerId); d.classList.add('drag'); const i = +d.dataset.i, r = bar.getBoundingClientRect(), z = parseFloat(document.documentElement.style.zoom) || 1;
     const s0 = mixShares(list), pair = s0[i] + s0[i + 1], before = s0.slice(0, i).reduce((a, b) => a + b, 0);
     const move = ev => {
       const x = (ev.clientX / z - r.left / z) / (r.width / z); let a = Math.round((x - before) * 20) / 20; a = Math.max(0.05, Math.min(pair - 0.05, a));
       const sh2 = s0.slice(); sh2[i] = a; sh2[i + 1] = pair - a; list.forEach((st, k) => { MIX[st] = Math.round(sh2[k] * 1000) / 1000; });
       const segs = bar.querySelectorAll('.mixseg'); segs.forEach((g, k) => { g.style.flexGrow = sh2[k]; g.firstChild.textContent = `${name(list[k])} ${Math.round(sh2[k] * 100)}%`; });
     };
-    const up = () => { d.onpointermove = d.onpointerup = d.onpointercancel = null; store('cp-mix', JSON.stringify(MIX)); restyle(); };
-    d.onpointermove = move; d.onpointerup = d.onpointercancel = up;
+    const up = () => { bar.onpointermove = bar.onpointerup = bar.onpointercancel = null; d.classList.remove('drag'); store('cp-mix', JSON.stringify(MIX)); restyle(); };
+    move(e); bar.onpointermove = move; bar.onpointerup = bar.onpointercancel = up;
   };
 }
 function stylePicker() {
@@ -14268,7 +14269,7 @@ $('file').onchange = e => { openFiles([...e.target.files]); e.target.value = '';
   // this is a phone (and put back where they were when it isn't), so every control is here, not a cut-down copy ──
   const panelOf = name => [...document.querySelectorAll('.panel')].find(el => { const b = el.querySelector(':scope > .ttl > b'); return b && b.textContent.trim() === name; });
   const SECS = [['looks', []], ['style', ['style']], ['brush', ['brush']], ['source', ['source', '#slots', '#vtl']], ['motion', ['motion', 'speed']],
-    ['path', ['path']], ['frame', ['frame', 'camera']], ['music', ['music']], ['rec', ['rec']], ['out', ['out', '#presets']]];
+    ['path', ['path']], ['frame', ['frame', 'camera']], ['music', ['music']], ['rec', ['rec', '#stoppanel']], ['out', ['out', '#presets']]];
   const sheet = $('sheet'), body = $('sheetBody'), tabs = sheet.querySelector('.sheet-tabs'), homes = new Map(); let sec = 'looks';
   const els = s => s.map(n => n[0] === '#' ? $(n.slice(1)) : panelOf(n)).filter(Boolean);
   for (const [name] of SECS) { const b = document.createElement('button'); b.type = 'button'; b.textContent = name; b.dataset.sec = name; b.onclick = () => showSec(name); tabs.appendChild(b); }
@@ -14791,7 +14792,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.48.2');
+    const V = await import('./viewer3d.js?v=4.48.3');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }

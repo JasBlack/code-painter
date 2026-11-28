@@ -43,7 +43,7 @@ When you want more control, switch to **console** (top left).
 
 Styles are grouped in tabs. Tick several and every stroke picks one of them. Right-click a style key to give that style its own size.
 
-**The mix bar**: with two or more styles ticked, a bar under the styles shows how much of the painting each one paints (evenly, to start). Drag a divider to give one style more and its neighbour less, in 5% steps: 70% graffiti, 20% pen, 10% oil, say. Double-click the bar for an even mix again. The mix is kept in your browser.
+**The mix bar**: with two or more styles ticked, a bar under the styles shows how much of the painting each one paints (evenly, to start). Drag anywhere on the bar (the nearest divider follows) to give one style more and its neighbour less, in 5% steps: 70% graffiti, 20% pen, 10% oil, say. Double-click the bar for an even mix again. The mix is kept in your browser.
 
 | tab | styles |
 |---|---|
@@ -175,7 +175,7 @@ It works in the studio, simple, +code and editor displays, shows in recordings, 
   - **More detail**: played live, the painter only manages as many strokes as your computer can find in time. Render it instead (**⏺ render**), then **⬇ code**: a render waits for every stroke the **speed** asks for, so a higher speed gives a denser, faster-moving painting. A 77 s trailer (15.9 MB MP4) in graffiti: about 7,000 strokes played live, 17,000 rendered at ×3, 43,000 rendered at ×7.6 — the last as a 580 KB program, about 27 times smaller than the MP4.
 - **svg**, **png 1K / 4K / 8K**, **stills**, **contact sheet**, **cover**. With a live input, a video, a zoom or a playlist (which never finish), **svg** saves the view as it is now. The canvas is traced into flat colour shapes, with the most recent strokes over them as vector strokes.
 - **window**: open the painting on its own, for a projector or a second screen.
-- **stop-motion** (the button in the rec panel's title opens its settings; for **⏺ render**, best with a video). **stop**: *off* for a normal render, or: the clip is painted as separate drawings at film speed (24 fps), so it moves like hand-made animation.
+- **stop-motion** (its own panel at the bottom of the left column — on a phone, under the rec tab; for **⏺ render**, best with a video). **stop**: *off* for a normal render, or: the clip is painted as separate drawings at film speed (24 fps), so it moves like hand-made animation.
   - **1s / 2s / 3s**: a new drawing every frame, on twos (12 drawings a second, the classic hand-drawn rate) or on threes (8 a second, choppier).
   - **boil**: how much of each drawing is painted again from scratch. 0: every drawing paints over the last (calm, the paint stays put where nothing moves); 100: a fresh painting every drawing (wild, like a flip-book). Every drawing is painted until it matches its frame as well as the first full painting did, so it is never left half-empty — the higher the boil and the smaller the strokes, the longer that takes (2s or 3s renders a half or a third of the drawings).
   - **sheet · wobble**: every drawing sits a pixel or two off and a fraction of a degree turned, like sheets not lined up under the camera.
