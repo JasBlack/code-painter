@@ -1421,7 +1421,7 @@ window.MP4REC = (() => {
 <script>
 'use strict';
 // ─────────────────────────────────────────────────────────────
-//  Code Painter by JAS.BLACK — studio. Version 4.48.4 (see CHANGELOG.md in the release zip).
+//  Code Painter by JAS.BLACK — studio. Version 4.48.5 (see CHANGELOG.md in the release zip).
 //  Auto-paint: any image -> painter-worker.js rebuilds it shape by shape;
 //              every shape is a line of code (E/B/T/R/S calls on a tiny runtime).
 //  Replay:     a hand-coded piece (recreate/pieces/sNN.js) re-run op by op in
@@ -1439,7 +1439,7 @@ const stage = $('stage'), STAGE_X = stage.getContext('2d');
 let X = STAGE_X;      // (pointed at the send canvas while the painting is drawn there: see SEND)
 const MONO = '"Cascadia Mono", Consolas, "SF Mono", Menlo, monospace';
 // the stage colours (neon mono: green + purple on near-black; the toolbar uses the same colours via CSS)
-const APP_VERSION = '4.48.4', FOOTER = `Code Painter by Jas Black`;
+const APP_VERSION = '4.48.5', FOOTER = `Code Painter by Jas Black`;
 { const v = document.getElementById('appver'); if (v) v.textContent = 'v' + APP_VERSION; } // shown while the title is hovered
 const THEMES = {
   neon: { bg: '#0b0b0c', panel: '#141517', panel2: '#0f1011', line: '#26272a', fg: '#ececf0', dim: '#6f6f7a', accent: '#39ff88', accent2: '#8b6cff',
@@ -13945,28 +13945,47 @@ function styleMix(list) {
 function mixRender() {
   const root = $('stylepick'); if (!root || typeof stylePick === 'undefined') return;
   let bar = $('mixbar');
-  if (!bar) { bar = document.createElement('div'); bar.id = 'mixbar'; bar.className = 'mixbar'; bar.title = 'The style mix: how much of the painting each ticked style paints. Drag a divider; double-click for an even mix'; root.after(bar);
+  if (!bar) { bar = document.createElement('div'); bar.id = 'mixbar'; bar.className = 'mixbar'; bar.title = 'The style mix: how much of the painting each ticked style paints. Drag anywhere on it (the nearest divider follows) · click a style: 5% more · shift-click: 5% less · double-click: even'; root.after(bar);
     bar.ondblclick = () => { for (const st of stylePick.values()) delete MIX[st]; store('cp-mix', JSON.stringify(MIX)); mixRender(); restyle(); };
     bar.oncontextmenu = e => { e.preventDefault(); bar.ondblclick(); };
-    bar.addEventListener('dragstart', e => e.preventDefault()); bar.addEventListener('mousedown', e => e.preventDefault()); bar.addEventListener('selectstart', e => e.preventDefault()); }      // (no text dragging or selecting off the bar: it would take the pointer away)
+    bar.addEventListener('dragstart', e => e.preventDefault()); bar.addEventListener('selectstart', e => e.preventDefault()); }      // (no text dragging or selecting off the bar: it would take the pointer away)
   const list = stylePick.values(); bar.hidden = list.length < 2; if (bar.hidden) return;
   const sh = mixShares(list), name = st => { const b = document.querySelector(`#stylepick input[value="${st}"]`); return b ? b.parentElement.textContent.trim() : st; };
   bar.innerHTML = list.map((st, i) => `<div class="mixseg" title="${name(st)} ${Math.round(sh[i] * 100)}%" style="flex: ${sh[i]} 1 0; --c: ${MIXC[i % MIXC.length]}"><span>${name(st)} ${Math.round(sh[i] * 100)}%</span></div>${i < list.length - 1 ? `<div class="mixdiv" data-i="${i}"></div>` : ''}`).join('');
-  bar.onpointerdown = e => {
-    if (e.button !== 0) return;
+  // drag anywhere: the nearest divider follows. A click (no drag): that style +5%, shift-click −5% (from / to the others
+  // in proportion) — so it works even where the browser or an extension takes drags over. Pointer and mouse events
+  // both start it (whichever comes first), and it is followed on the whole window.
+  const nudge = (k, dl) => {
+    const s0 = mixShares(list), n = list.length, sk = Math.max(0.05, Math.min(1 - 0.05 * (n - 1), Math.round((s0[k] + dl) * 20) / 20)), restOld = 1 - s0[k] || 1;
+    list.forEach((st, j) => { MIX[st] = Math.round((j === k ? sk : s0[j] / restOld * (1 - sk)) * 1000) / 1000; });
+  };
+  const start = e => {
+    if (e.button !== 0 || bar._drag) return;
     const ds = [...bar.querySelectorAll('.mixdiv')]; if (!ds.length) return;
     const d = ds.reduce((a, c) => { const ca = c.getBoundingClientRect(), aa = a.getBoundingClientRect(); return Math.abs(ca.x + ca.width / 2 - e.clientX) < Math.abs(aa.x + aa.width / 2 - e.clientX) ? c : a; });      // (the nearest divider)
-    e.preventDefault(); try { getSelection().removeAllRanges(); } catch (x) { /* none */ } try { bar.setPointerCapture(e.pointerId); } catch (x) { /* no capture */ } d.classList.add('drag'); const i = +d.dataset.i, r = bar.getBoundingClientRect(), z = parseFloat(document.documentElement.style.zoom) || 1;
-    const s0 = mixShares(list), pair = s0[i] + s0[i + 1], before = s0.slice(0, i).reduce((a, b) => a + b, 0);
+    e.preventDefault(); try { getSelection().removeAllRanges(); } catch (x) { /* none */ }
+    if (e.pointerId != null) try { bar.setPointerCapture(e.pointerId); } catch (x) { /* no capture */ }
+    bar._drag = true; d.classList.add('drag');
+    const i = +d.dataset.i, r = bar.getBoundingClientRect(), x0 = e.clientX, s0 = mixShares(list), pair = s0[i] + s0[i + 1], before = s0.slice(0, i).reduce((a, b) => a + b, 0);
+    let moved = false;
     const move = ev => {
-      const x = (ev.clientX / z - r.left / z) / (r.width / z); let a = Math.round((x - before) * 20) / 20; a = Math.max(0.05, Math.min(pair - 0.05, a));
+      if (!moved && Math.abs(ev.clientX - x0) < 4) return; moved = true;
+      const x = (ev.clientX - r.left) / r.width; let a = Math.round((x - before) * 20) / 20; a = Math.max(0.05, Math.min(pair - 0.05, a));
       const sh2 = s0.slice(); sh2[i] = a; sh2[i + 1] = pair - a; list.forEach((st, k) => { MIX[st] = Math.round(sh2[k] * 1000) / 1000; });
       const segs = bar.querySelectorAll('.mixseg'); segs.forEach((g, k) => { g.style.flexGrow = sh2[k]; g.firstChild.textContent = `${name(list[k])} ${Math.round(sh2[k] * 100)}%`; });
     };
-    // (followed on the whole window — never lost if the pointer leaves the bar or the browser starts something of its own)
-    const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); d.classList.remove('drag'); store('cp-mix', JSON.stringify(MIX)); restyle(); };
-    move(e); addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+    const up = ev => {
+      for (const [t, f] of [['pointermove', move], ['mousemove', move], ['pointerup', up], ['mouseup', up], ['pointercancel', up]]) removeEventListener(t, f);
+      bar._drag = false; d.classList.remove('drag');
+      if (!moved && ev && ev.type !== 'pointercancel') {      // (a click: the style under it, 5% more — shift: 5% less)
+        const fx = (x0 - r.left) / r.width; let acc = 0, k = 0; for (; k < s0.length - 1; k++) { acc += s0[k]; if (fx < acc) break; }
+        nudge(k, ev.shiftKey ? -0.05 : 0.05);
+      }
+      store('cp-mix', JSON.stringify(MIX)); mixRender(); restyle();
+    };
+    for (const [t, f] of [['pointermove', move], ['mousemove', move], ['pointerup', up], ['mouseup', up], ['pointercancel', up]]) addEventListener(t, f);
   };
+  bar.onpointerdown = start; bar.onmousedown = e => { e.preventDefault(); start(e); };
 }
 function stylePicker() {
   const root = $('stylepick'), panel = root.closest('.panel'), boxes = [...root.querySelectorAll('input[type=checkbox]:not([id])')], count = panel.querySelector('.count'), tog = panel.querySelector('[data-set="toggle"]');
@@ -14794,7 +14813,7 @@ async function open3D(file) {
   $('hint').textContent = 'Opening the 3D viewer…'; loading('3d');
   try {
     if (location.protocol === 'file:') throw new Error('the 3D input needs the page opened from a web address (a host, or a local server), not from the disk');
-    const V = await import('./viewer3d.js?v=4.48.4');
+    const V = await import('./viewer3d.js?v=4.48.5');
     stopLive();
     LIVE.view3d = await V.open(file, stage);
   } catch (e) { loading(false); $('hint').textContent = `Couldn't open that 3D file (${e.message}).`; return; }
